@@ -1,5 +1,5 @@
 import type { Message } from "./Message.ts";
 
-export interface Intent<TPayload = unknown> extends Message<TPayload> {
+export interface Intent<TType = string, TPayload = unknown> extends Message<TType, TPayload> {
   kind: "intent";
 }
