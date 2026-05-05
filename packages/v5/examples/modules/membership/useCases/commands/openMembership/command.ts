@@ -5,17 +5,17 @@ import { name } from "../../../core/domain/Name.ts";
 import { email } from "../../../core/domain/Email.ts";
 import { v7 as uuidv7 } from "uuid";
 
-export const OpenMembershipCommandPayload = z.object({
+export const openMembershipCommandPayload = z.object({
   name: name,
   email: email,
 });
 
-export type OpenMembershipCommandPayload = z.output<typeof OpenMembershipCommandPayload>;
+export type OpenMembershipCommandPayload = z.output<typeof openMembershipCommandPayload>;
 
 export function createOpenMembershipCommand(
   payload: OpenMembershipCommandPayload,
   metadata: Metadata,
-): Command {
+): Command<"OpenMembership", OpenMembershipCommandPayload> {
   return {
     type: "OpenMembership",
     kind: "command",
