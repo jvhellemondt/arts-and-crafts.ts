@@ -8,31 +8,35 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   implements LoadsDomainEvents<Promise<TEvent[]>>, AppendsDomainEvents<TEvent>
 {
   private readonly tableName: string = "event_store";
-  private readonly datasource = new Map<string, StoredEvent<TEvent>[]>();
+
+  constructor(private readonly datasource: Map<string, StoredEvent<TEvent>[]> = new Map()) {}
+
+  private get rows(): StoredEvent<TEvent>[] {
+    if (!this.datasource.has(this.tableName)) {
+      this.datasource.set(this.tableName, []);
+    }
+    return this.datasource.get(this.tableName)!;
+  }
 
   async load(streamName: string, aggregateId: string): Promise<TEvent[]> {
     const streamKey: StreamKey = `${streamName}#${aggregateId}`;
-    if (!this.datasource.has(this.tableName)) this.datasource.set(this.tableName, []);
-    const rows = this.datasource.get(this.tableName);
-    return rows!.filter((row) => row.streamKey === streamKey).map((row) => row.event);
+    return this.rows
+      .filter((envelope) => envelope.streamKey === streamKey)
+      .map((envelope) => envelope.event);
   }
 
   async append(domainEvents: TEvent[]): Promise<void> {
-    if (!this.datasource.has(this.tableName)) this.datasource.set(this.tableName, []);
-    const rows = this.datasource.get(this.tableName);
-
-    domainEvents.forEach((event) => {
+    for (const event of domainEvents) {
       const streamKey: StreamKey = `${event.aggregateType}#${event.aggregateId}`;
-      const version = rows?.length ? rows.length + 1 : 1;
-      const storedEvent: StoredEvent<TEvent> = {
-        id: event.id,
-        timestamp: new Date().getTime(),
+      const streamVersion = this.rows.filter((e) => e.streamKey === streamKey).length + 1;
+
+      this.rows.push({
         streamKey,
-        version,
+        streamVersion,
+        globalPosition: this.rows.length + 1,
+        insertedAt: Date.now(),
         event,
-      };
-      rows?.push(storedEvent);
-    });
-    return;
+      });
+    }
   }
 }

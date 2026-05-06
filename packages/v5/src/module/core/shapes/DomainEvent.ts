@@ -10,5 +10,4 @@ export interface DomainEvent<TType = string, TPayload = unknown> extends Message
   kind: "domain";
   aggregateType: string;
   aggregateId: string;
-  aggregateVersion: number;
 }

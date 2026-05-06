@@ -1,18 +1,19 @@
+import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 import type { StreamKey } from "./StreamKey.ts";
 
 /**
  * StoredEvent wraps a DomainEvent for persistence in the event store with its
  * stream coordinates and version. This table must be immutable, append-only.
  */
-export interface StoredEvent<TEvent> {
-  /** Same as DomainEvent.id. */
-  id: string;
+export type StoredEvent<TEvent extends DomainEvent> = {
   /** Stream key, e.g., `${aggregateType}#${aggregateId}`. */
   streamKey: StreamKey;
-  /** Aggregate version after applying this event. */
-  version: number;
-  /** Epoch millis for write-time ordering. */
-  timestamp: number;
+  /** Version within the stream */
+  streamVersion: number;
+  /** Global position in the store */
+  globalPosition: number;
+  /** Write-time, distinct from event.timestamp */
+  insertedAt: number;
   /** The actual domain event. */
   event: TEvent;
-}
+};
