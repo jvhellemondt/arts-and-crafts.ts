@@ -40,6 +40,27 @@ The `evolve` function:
 - Is a pure fold: `events.reduce(evolve, initialState)`
 - Has **no I/O**
 
+```mermaid
+flowchart TD
+    CMD[/Command/] --> HANDLER[Command Handler]
+    EVS_R[(Event Store)] -->|load events\n+ fold over evolve| STATE[/Current State/]
+    STATE --> DECIDE["decide(command, state)"]
+    HANDLER --> DECIDE
+
+    DECIDE -->|"Ok { events, intents }"| WRITE[Atomic Write]
+    DECIDE -->|Err rejection| REJ[/Rejection returned to caller/]
+
+    WRITE --> EVS_W[(Event Store)]
+    WRITE --> OUTBOX[(Intent Outbox)]
+
+    OUTBOX --> WORKER[Outbox Worker]
+    WORKER --> RELAY[Outbound Relay]
+    RELAY --> EXT[/External Service/]
+
+    EVS_W --> PROJ[Projector]
+    PROJ --> RM[(Read Model)]
+```
+
 ### Membership State Machine
 
 ```typescript

@@ -101,6 +101,31 @@ T+21mo   AppealDecided              Appeal upheld
 T+21mo   MemberReinstated
 ```
 
+```mermaid
+flowchart TD
+    OPN([MembershipOpened]) --> EV([EmailVerified])
+    EV --> TOS([TermsOfServiceAccepted])
+    TOS --> ACT([MembershipActivated])
+    ACT --> ENG([Engagement\nCPD · Events · Certifications])
+    ENG --> INV([InvoiceRaised])
+    INV --> REN([MembershipRenewed])
+    REN --> ENG
+
+    ACT -. email change .-> EVI([EmailVerificationInvalidated])
+    EVI --> REV([EmailVerified])
+    REV --> ACT
+
+    INV -- payment fails ×3 --> SUS_P([MembershipSuspended\nlapse path])
+    SUS_P -- payment received --> ACT
+    SUS_P -- 30 days elapsed --> CLO([MembershipClosed])
+
+    ACT -- voluntary closure --> CLO
+    ACT -- conduct sanction --> SUS_C([MembershipSuspended\nconduct path])
+    SUS_C -- appeal upheld --> ACT
+    SUS_C -- appeal window elapsed --> CLO
+    CLO --> RMV([MemberRemovedFromRegistry\nafter 30 days])
+```
+
 ## Contested Areas & Alternatives Considered
 
 | Area | Alternative A | Alternative B | Decision |

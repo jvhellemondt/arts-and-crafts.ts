@@ -119,6 +119,26 @@ Map the waste and pain points identified in the Value Stream to concrete softwar
 | 8 | O8 — Conduct audit trail | Requires Conduct BC; legally required |
 | 9 | O9 — Certification revocation on closure | Requires both Accreditation and integration events |
 
+```mermaid
+quadrantChart
+    title Opportunity Value vs Implementation Complexity
+    x-axis Low Complexity --> High Complexity
+    y-axis Low Value --> High Value
+    quadrant-1 Quick Wins
+    quadrant-2 Major Projects
+    quadrant-3 Fill-ins
+    quadrant-4 Hard Slogs
+    Remove admin gate: [0.10, 0.90]
+    Welcome email + registry: [0.20, 0.85]
+    Automated verification resend: [0.20, 0.75]
+    Pending activations view: [0.25, 0.55]
+    Webhook payment reconciliation: [0.50, 0.85]
+    Automated renewal invoicing: [0.55, 0.80]
+    CPD auto-reminder: [0.55, 0.60]
+    Conduct audit trail: [0.65, 0.75]
+    Certification revocation on closure: [0.70, 0.50]
+```
+
 ## What This Led To
 
 With opportunities mapped and sequenced, the team moved to formalising how the bounded contexts integrate with each other. See `10-context-mapping.md`.

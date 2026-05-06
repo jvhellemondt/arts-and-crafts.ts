@@ -31,6 +31,31 @@ Add structure to the Big Picture events by introducing swimlanes, actors (yellow
 | 5 | Prospective member | `ActivateMembership` | Requires verified email + accepted ToS | `MembershipActivated` |
 | 6 | System (policy) | — | On `MembershipActivated` → dispatch intents | `[Intent] SendWelcomeMail`, `[Intent] ListMemberInRegistry` |
 
+```mermaid
+sequenceDiagram
+    actor Member as Prospective Member
+    participant M as Membership BC
+    participant N as Notifications BC
+    participant R as Public Registry
+
+    Member->>M: OpenMembership(name, email)
+    M-->>Member: MembershipOpened
+    M--)N: [Intent] SendEmailVerificationMail
+    N-->>Member: Verification email
+
+    Member->>M: VerifyEmail(token)
+    M-->>Member: EmailVerified
+
+    Member->>M: AcceptTermsOfService(version, signedAt)
+    M-->>Member: TermsOfServiceAccepted
+
+    Member->>M: ActivateMembership
+    M-->>Member: MembershipActivated
+    M--)N: [Intent] SendWelcomeMail
+    M--)R: [Intent] ListMemberInRegistry
+    N-->>Member: Welcome email
+```
+
 ### Flow 2: Email Change
 
 | Step | Actor | Command | Policy triggered | Events emitted |
@@ -63,6 +88,33 @@ Note: if the member was `active` when they changed their email, they remain `act
 | 5 | System (policy) | `SuspendMembership` | On `SanctionIssued` (via integration event) | `MemberSuspended` |
 | 6 | Respondent (optional) | `SubmitAppeal` | Pause enforcement | `AppealSubmitted` |
 | 7 | Appeals panel | `DecideAppeal` | If overturned → reinstate member | `AppealDecided`, `MemberReinstated` |
+
+```mermaid
+sequenceDiagram
+    actor C as Complainant
+    actor I as Investigator
+    actor P as Panel
+    participant G as Conduct BC
+    participant M as Membership BC
+
+    C->>G: RaiseComplaint
+    G-->>I: ComplaintRaised (assigned)
+    I->>G: SubmitInvestigation
+    P->>G: ScheduleHearing
+    P->>G: IssueDecision
+    G--)M: SanctionIssued [integration event]
+    M-->>M: MembershipSuspended
+
+    alt Appeal submitted within 14 days
+        C->>G: SubmitAppeal
+        P->>G: DecideAppeal
+        G--)M: AppealDecided (upheld)
+        M-->>M: MemberReinstated
+    else No appeal filed
+        Note over M: 30-day closure window elapses
+        M-->>M: MembershipClosed
+    end
+```
 
 ### Flow 5: Certification Assessment
 

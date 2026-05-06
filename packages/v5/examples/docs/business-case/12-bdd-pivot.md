@@ -33,6 +33,19 @@ All scenarios use the following test fixtures:
 - `tosVersion`: `"v2024.1"`
 - `signedAt`: `"2024-06-01T10:00:00+00:00"`
 
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> initial
+    initial --> open      : OpenMembership
+    open    --> open      : VerifyEmail · AcceptTermsOfService\nChangeEmail · ChangeAddress
+    open    --> active    : ActivateMembership
+    open    --> closed    : CloseMembership
+    active  --> active    : ChangeEmail · ChangeAddress
+    active  --> closed    : CloseMembership
+    closed  --> [*]
+```
+
 ---
 
 ## `OpenMembership`

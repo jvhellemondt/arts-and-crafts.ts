@@ -130,37 +130,38 @@ Define the integration patterns between the nine bounded contexts. For each rela
 
 ---
 
-## Context Map Diagram (textual)
+## Context Map Diagram
 
-```
-                    ┌─────────────┐
-                    │  MEMBERSHIP │ ◄── root identity context
-                    └──────┬──────┘
-          ┌────────────────┼───────────────────┬────────────────┐
-          ▼                ▼                   ▼                ▼
-   ┌──────────┐   ┌────────────────┐   ┌────────────┐   ┌──────────────┐
-   │ACCREDITAT│   │    PAYMENTS    │   │    CPD     │   │PUBLIC REGISTRY│
-   │   -ION   │   │(Partnership)   │   │            │   │(read-only    │
-   └────┬─────┘   └───────┬────────┘   └─────┬──────┘   │projection)   │
-        │                 │                   │          └──────────────┘
-        │         ┌───────┘                   │
-        ▼         ▼                           │
-   ┌─────────────────────────┐               │
-   │       CONDUCT           │               │
-   │ (issues SuspendCommand  │               │
-   │  via ACL to Membership) │               │
-   └─────────────────────────┘               │
-                                             ▼
-                                    ┌──────────────┐
-                                    │    EVENTS    │──────────────────┐
-                                    └──────────────┘                  │
-                                                                       ▼
-   ┌──────────────────┐       ┌───────────────────────────────────────────┐
-   │ COMMUNICATIONS   │──────►│             NOTIFICATIONS                 │
-   └──────────────────┘       │   (all contexts route intents here)       │
-   All contexts emit           └───────────────────────────────────────────┘
-   intents → Notifications
+```mermaid
+graph TB
+    M([Membership]):::core
+    A([Accreditation]):::core
+    C([CPD]):::core
+    E([Events]):::supporting
+    P([Payments]):::supporting
+    COM([Communications]):::supporting
+    N([Notifications]):::generic
+    G([Conduct & Governance]):::supporting
+    R([Public Registry]):::supporting
 
+    M -->|Published Language| A
+    M -->|Published Language| C
+    M -->|Published Language| R
+    M -->|Customer/Supplier| N
+    P -->|Partnership| M
+    M -->|Partnership| P
+    G -->|ACL| M
+    A -->|Published Language| R
+    E -->|Published Language| C
+    COM -->|Customer/Supplier| N
+    A -->|Customer/Supplier| N
+    P -->|Customer/Supplier| N
+    G -->|Customer/Supplier| N
+    C -->|Customer/Supplier| N
+
+    classDef core       fill:#d4edda,stroke:#28a745,color:#000
+    classDef supporting fill:#d1ecf1,stroke:#17a2b8,color:#000
+    classDef generic    fill:#fff3cd,stroke:#ffc107,color:#000
 ```
 
 ## Contested Areas & Alternatives Considered

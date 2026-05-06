@@ -138,22 +138,24 @@ Define the precise command/event/policy structures for each bounded context, wit
 
 ## Membership BC — State Machine
 
-```
-initial ──[MembershipOpened]──────────────────► open
-open    ──[EmailVerified]──────────────────────► open  (emailVerifiedAt set)
-open    ──[EmailVerificationInvalidated]───────► open  (emailVerifiedAt cleared)
-open    ──[TermsOfServiceAccepted]─────────────► open  (tosAccepted set)
-open    ──[MembershipActivated]────────────────► active
-open    ──[EmailChanged]───────────────────────► open  (email updated, emailVerifiedAt cleared)
-open    ──[AddressChanged]─────────────────────► open  (address updated)
-open    ──[MembershipClosed]───────────────────► closed
-active  ──[EmailChanged]───────────────────────► active (email updated, emailVerifiedAt cleared)
-active  ──[AddressChanged]─────────────────────► active (address updated)
-active  ──[MembershipRenewed]──────────────────► active
-active  ──[MembershipSuspended]────────────────► suspended
-active  ──[MembershipClosed]───────────────────► closed
-suspended──[MemberReinstated]──────────────────► active
-suspended──[MembershipClosed]──────────────────► closed
+```mermaid
+stateDiagram-v2
+    [*] --> initial
+
+    initial --> open : MembershipOpened
+
+    open --> open : EmailVerified\nEmailVerificationInvalidated\nTermsOfServiceAccepted\nEmailChanged\nAddressChanged
+    open --> active : MembershipActivated
+    open --> closed : MembershipClosed
+
+    active --> active : EmailChanged\nAddressChanged\nMembershipRenewed
+    active --> suspended : MembershipSuspended
+    active --> closed : MembershipClosed
+
+    suspended --> active : MemberReinstated
+    suspended --> closed : MembershipClosed
+
+    closed --> [*]
 ```
 
 ## Contested Areas & Alternatives Considered

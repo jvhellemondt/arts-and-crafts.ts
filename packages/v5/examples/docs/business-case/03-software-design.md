@@ -29,6 +29,42 @@ Map the process model onto a software architecture: identify aggregates, externa
 | Member Portal (web app) | Primary member-facing interface | Inbound HTTP adapter; sends commands, reads projections |
 | Admin Portal (back-office) | Staff interface for membership management | Inbound HTTP adapter; elevated command permissions |
 
+```mermaid
+graph TD
+    subgraph External
+        ES[Email Service]
+        PG[Payment Gateway]
+    end
+    subgraph Adapters
+        MP[Member Portal]
+        AP[Admin Portal]
+    end
+    subgraph IDC Platform
+        API[IDC API]
+        CB[Command Bus]
+        QB[Query Bus]
+        subgraph Membership BC
+            EVS[(Event Store)]
+            ITO[(Intent Outbox)]
+            OW[Outbox Worker]
+        end
+        subgraph Read Models
+            MD[MemberDetail]
+            ML[MemberList]
+            PA[PendingActivations]
+        end
+    end
+
+    MP --> API
+    AP --> API
+    API --> CB & QB
+    CB --> EVS & ITO
+    EVS -->|Projectors| MD & ML & PA
+    QB --> MD & ML & PA
+    ITO --> OW --> ES
+    PG --> API
+```
+
 ### Aggregates by Bounded Context
 
 | Context | Aggregate | Persistence | Notes |

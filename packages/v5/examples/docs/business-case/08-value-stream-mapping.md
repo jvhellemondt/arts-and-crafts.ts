@@ -34,6 +34,23 @@ Map the end-to-end value stream from a prospective member's first contact with t
 | 8. Registry listing | System | Yes | 1–3 days | <1 min | W6: manual data entry in current process |
 | **Total (happy path)** | | | **3–7 days** | **<2h** | |
 
+```mermaid
+flowchart LR
+    D[Discovery] --> R[Registration\n5 min]
+    R --> EV[Email Verification\n⚠️ 2–48h\ntarget: <1h]
+    EV --> TOS[ToS Acceptance\n⚠️ 0–72h\ntarget: <1h]
+    TOS --> ADM[Admin Review\n❌ 1–5 days\ntarget: eliminated]
+    ADM --> ACT[Activation\nautomated]
+    ACT --> WE[Welcome Email\n⚠️ 0–24h\ntarget: <1 min]
+    WE --> RL[Registry Listing\n⚠️ 1–3 days\ntarget: <1 min]
+
+    style ADM fill:#ffcccc,stroke:#cc0000,color:#000
+    style EV  fill:#ffe8cc,stroke:#cc6600,color:#000
+    style TOS fill:#ffe8cc,stroke:#cc6600,color:#000
+    style WE  fill:#ffe8cc,stroke:#cc6600,color:#000
+    style RL  fill:#ffe8cc,stroke:#cc6600,color:#000
+```
+
 ### Value Stream: Active Member → Renewed Member (Annual)
 
 | Step | Actor | Value-adding? | Avg. wait (current) | Avg. wait (target) | Waste type |

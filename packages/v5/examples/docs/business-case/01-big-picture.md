@@ -24,6 +24,32 @@ A critical insight emerged mid-session from the domain expert: **the IDC does no
 
 A second insight: **suspension and closure are meaningfully different exits**. Suspension is temporary and reversible (e.g. conduct investigation, payment grace period). Closure is permanent. Conflating them into a single terminal state would destroy historical context.
 
+```mermaid
+timeline
+    title IDC Domain Event Landscape
+    section Onboarding
+        MembershipOpened : Prospective member registers
+        EmailVerified : Member confirms email
+        TermsOfServiceAccepted : Member signs ToS
+        MembershipActivated : Member goes live
+    section Engagement
+        CPDActivitySubmitted : Learning activity logged
+        CPDRequirementFulfilled : Annual CPD met
+        AssessmentRequested : Certification process begins
+        CertificationAwarded : Credential earned
+        MemberRegisteredForEvent : Event attended
+    section Governance
+        InvoiceRaised : Annual renewal due
+        PaymentReceived : Renewal payment made
+        MembershipRenewed : Membership extended
+        ComplaintRaised : Conduct issue flagged
+        SanctionIssued : Committee decision
+    section Exit
+        MembershipSuspended : Member suspended
+        MembershipClosed : Membership ended
+        MemberRemovedFromRegistry : Profile removed
+```
+
 ## Artefacts
 
 ### Domain Events by Emerging Context
