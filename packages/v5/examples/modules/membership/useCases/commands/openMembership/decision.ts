@@ -16,6 +16,13 @@ pub enum Decision {
 }
 */
 
+import type { MembershipOpened } from "@examples/modules/membership/core/events/v1/MembershipOpened.ts";
+import type { NotifyUserToVerifyEmail } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import type { Decision } from "@useCases/command/shapes/Decision.ts";
+import type { MembershipAlreadyExists } from "./rejections/MembershipAlreadyExists.ts";
 
-export type OpenMembershipDecision = Decision<any, any, any>;
+export type OpenMembershipDecision = Decision<
+  MembershipOpened,
+  NotifyUserToVerifyEmail,
+  MembershipAlreadyExists
+>;

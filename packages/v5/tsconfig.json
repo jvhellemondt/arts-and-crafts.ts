@@ -14,7 +14,8 @@
       "@core/*": ["./src/module/core/*"],
       "@useCases/*": ["./src/module/useCases/*"],
       "@adapters/*": ["./src/module/adapters/*"],
-      "@shell/*": ["./src/shell/*"]
+      "@shell/*": ["./src/shell/*"],
+      "@examples/*": ["./examples/*"]
     },
     "types": ["vitest/globals", "bun"],
     "allowImportingTsExtensions": true,
