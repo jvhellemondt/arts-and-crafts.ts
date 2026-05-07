@@ -12,4 +12,7 @@ export const address = z.object({
   countryCode: z.enum(COUNTRY_CODES),
 }).brand<"Address">();
 
-export type Address = z.infer<typeof address>;
+export type Address = {
+  parsed: z.infer<typeof address>;
+  input: z.input<typeof address>;
+};

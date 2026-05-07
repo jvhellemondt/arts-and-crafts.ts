@@ -6,15 +6,21 @@ import type { SignedAt } from "./domain/SignedAt.ts";
 import type { TosAcceptance } from "./domain/TosAcceptance.ts";
 
 export type MembershipState =
-  | { status: "initial"; id: MembershipId }
+  | { status: "initial"; id: MembershipId["input"] }
   | {
       status: "open";
-      id: MembershipId;
-      name: Name;
-      email: Email;
-      address?: Address;
-      emailVerifiedAt?: SignedAt;
-      tosAccepted?: TosAcceptance;
+      id: MembershipId["input"];
+      name: Name["input"];
+      email: Email["input"];
+      address?: Address["input"];
+      emailVerifiedAt?: SignedAt["input"];
+      tosAccepted?: TosAcceptance["input"];
     }
-  | { status: "active"; id: MembershipId; name: Name; email: Email; address?: Address }
-  | { status: "closed"; id: MembershipId };
+  | {
+      status: "active";
+      id: MembershipId["input"];
+      name: Name["input"];
+      email: Email["input"];
+      address?: Address["input"];
+    }
+  | { status: "closed"; id: MembershipId["input"] };

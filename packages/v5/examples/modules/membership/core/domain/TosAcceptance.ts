@@ -9,4 +9,7 @@ export const tosAcceptance = z
   })
   .brand<"TosAcceptance">();
 
-export type TosAcceptance = z.infer<typeof tosAcceptance>;
+export type TosAcceptance = {
+  parsed: z.infer<typeof tosAcceptance>;
+  input: z.input<typeof tosAcceptance>;
+};
