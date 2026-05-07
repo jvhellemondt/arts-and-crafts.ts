@@ -23,11 +23,11 @@ Construct a single chronological timeline of domain events for a representative 
 
 ```
 T+0m     MembershipOpened           Alice registers with name and email
-T+0m     [Intent] SendEmailVerificationMail
+T+0m     [Intent] NotifyUserToVerifyEmail
 T+5m     EmailVerified              Alice clicks the verification link
 T+10m    TermsOfServiceAccepted     Alice accepts ToS v2024.1
 T+10m    MembershipActivated
-T+10m    [Intent] SendWelcomeMail
+T+10m    [Intent] WelcomeNewUser
 T+10m    MemberListedInRegistry
 
 T+2w     CPDActivitySubmitted       Alice logs attendance at a local meetup
