@@ -4,7 +4,6 @@ type MembershipOpenedPayload = {
   aggregateId: string;
   name: string;
   email: string;
-  occurredAt: Date;
 };
 
 export interface MembershipOpened extends DomainEvent<
