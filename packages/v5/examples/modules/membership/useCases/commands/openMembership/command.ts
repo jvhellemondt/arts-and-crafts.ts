@@ -25,3 +25,5 @@ export function createOpenMembershipCommand(
     metadata,
   };
 }
+
+export type OpenMembershipCommand = ReturnType<typeof createOpenMembershipCommand>;
