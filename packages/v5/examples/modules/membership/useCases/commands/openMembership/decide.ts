@@ -22,7 +22,7 @@ export function decideOpenMembership(
     accepted: true,
     events: [
       {
-        type: "MembershipOpened",
+        type: "MembershipOpened.v1",
         id: uuidv7(),
         payload: {
           aggregateId: state.id,

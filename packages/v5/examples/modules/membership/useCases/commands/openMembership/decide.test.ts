@@ -41,7 +41,7 @@ describe("decideOpenMembership", () => {
 
       expect(decision.events).toHaveLength(1);
       expect(decision.events[0]).toMatchObject({
-        type: "MembershipOpened",
+        type: "MembershipOpened.v1",
         kind: "domain",
         aggregateType: "Membership",
         aggregateId: state.id,
