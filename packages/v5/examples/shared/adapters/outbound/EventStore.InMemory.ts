@@ -45,6 +45,7 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   async load(streamName: string, aggregateId: string): Promise<TEvent[] | GatewayFailure> {
     if (this.activeFault === "offline") {
       return {
+        type: "failure",
         kind: "GatewayFailure",
         gateway: "InMemoryEventStore",
         reason: "The Eventstore has been set to offline mode",
@@ -64,6 +65,7 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   ): Promise<void | GatewayFailure> {
     if (this.activeFault === "offline") {
       return {
+        type: "failure",
         kind: "GatewayFailure",
         gateway: "InMemoryEventStore",
         reason: "The Eventstore has been set to offline mode",

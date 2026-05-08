@@ -11,6 +11,7 @@
  * said no, that is a `Rejection`, not a `Failure`.
  */
 export type Failure = {
+  readonly type: "failure";
   readonly kind: string;
   readonly reason: string;
   readonly cause?: unknown;

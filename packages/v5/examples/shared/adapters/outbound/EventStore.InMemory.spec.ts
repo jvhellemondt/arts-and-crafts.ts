@@ -95,6 +95,7 @@ describe("in-memory event store", () => {
     it("should return gateway failure when loading events", async () => {
       const response = await eventStore.load(streamName, aggregateId);
       expect(response).toEqual({
+        type: "failure",
         kind: "GatewayFailure",
         gateway: "InMemoryEventStore",
         reason: "The Eventstore has been set to offline mode",
@@ -105,6 +106,7 @@ describe("in-memory event store", () => {
       const event = makeEvent(streamName, randomUUID());
       const response = await eventStore.append(streamName, event.aggregateId, [event]);
       expect(response).toEqual({
+        type: "failure",
         kind: "GatewayFailure",
         gateway: "InMemoryEventStore",
         reason: "The Eventstore has been set to offline mode",
