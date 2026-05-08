@@ -1,8 +1,8 @@
-import type { StagesIntents } from "@adapters/outbound/capabilities/StagesIntents.ts";
+import type { StageIntents } from "@adapters/outbound/capabilities/StageIntents.ts";
 import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
 import type { Intent } from "@core/shapes/Intent.ts";
 
-export class InMemoryIntentOutbox<TIntent extends Intent> implements StagesIntents<TIntent> {
+export class InMemoryIntentOutbox<TIntent extends Intent> implements StageIntents<TIntent> {
   private readonly tableName: string = "intent_outbox";
 
   constructor(private readonly datasource: Map<string, OutboxEnvelope<TIntent>[]> = new Map()) {}

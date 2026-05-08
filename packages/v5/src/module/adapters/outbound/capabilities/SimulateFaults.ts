@@ -17,7 +17,7 @@ export type FaultSimulationMode = "offline" | "timeout" | (string & {});
  * an offline gateway or a timeout. Useful for testing resilience
  * and failure handling in use cases without real infrastructure.
  */
-export interface SimulatesFaults {
+export interface SimulateFaults {
   simulate(fault: FaultSimulationMode): void;
   restore(): void;
   get isSimulating(): boolean;

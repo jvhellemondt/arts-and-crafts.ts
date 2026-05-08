@@ -1,7 +1,7 @@
-import type { LoadsDomainEvents } from "@adapters/outbound/capabilities/LoadsDomainEvents.ts";
+import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
 import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 import { InMemoryEventStore } from "./EventStore.InMemory.ts";
-import type { AppendToStream } from "@adapters/outbound/capabilities/AppendToStream.ts";
+import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
 import { randomUUID } from "node:crypto";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { SimulateFaults } from "@adapters/outbound/capabilities/SimulateFaults.ts";
@@ -25,8 +25,8 @@ const makeEvent = (aggregateType: string, aggregateId: string): TestDomainEvent 
 describe("in-memory event store", () => {
   const aggregateId = randomUUID();
   const streamName = "users";
-  let eventStore: LoadsDomainEvents<TestDomainEvent, Promise<TestDomainEvent[] | GatewayFailure>> &
-    AppendToStream<TestDomainEvent, Promise<void | GatewayFailure>> &
+  let eventStore: LoadDomainEvents<TestDomainEvent, Promise<TestDomainEvent[] | GatewayFailure>> &
+    AppendToEventStream<TestDomainEvent, Promise<void | GatewayFailure>> &
     SimulateFaults;
 
   const fixture = [

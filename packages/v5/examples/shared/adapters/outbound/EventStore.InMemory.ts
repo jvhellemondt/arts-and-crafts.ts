@@ -1,5 +1,5 @@
-import type { AppendToStream } from "@adapters/outbound/capabilities/AppendToStream.ts";
-import type { LoadsDomainEvents } from "@adapters/outbound/capabilities/LoadsDomainEvents.ts";
+import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
+import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
 import type {
   FaultSimulationMode,
   SimulateFaults,
@@ -11,8 +11,8 @@ import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
-    LoadsDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>,
-    AppendToStream<TEvent, Promise<void | GatewayFailure>>,
+    LoadDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>,
+    AppendToEventStream<TEvent, Promise<void | GatewayFailure>>,
     SimulateFaults
 {
   private readonly tableName: string = "event_store";

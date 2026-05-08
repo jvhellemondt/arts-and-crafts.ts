@@ -1,4 +1,4 @@
-import type { StagesIntents } from "@adapters/outbound/capabilities/StagesIntents.ts";
+import type { StageIntents } from "@adapters/outbound/capabilities/StageIntents.ts";
 import { InMemoryIntentOutbox } from "./IntentOutbox.InMemory.ts";
 import type { Intent } from "@core/shapes/Intent.ts";
 import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
@@ -20,7 +20,7 @@ const makeIntent = (channel: "email" | "push"): TestNotificationIntent => ({
 
 describe("in-memory intent outbox", () => {
   let datasource: Map<string, OutboxEnvelope<TestNotificationIntent>[]>;
-  let outbox: StagesIntents<TestNotificationIntent>;
+  let outbox: StageIntents<TestNotificationIntent>;
 
   const fixture: TestNotificationIntent[] = [
     makeIntent("email"),
