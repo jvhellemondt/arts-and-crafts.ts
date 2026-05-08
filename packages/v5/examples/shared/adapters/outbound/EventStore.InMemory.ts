@@ -1,9 +1,9 @@
-import type { AppendsDomainEvents } from "@adapters/outbound/capabilities/AppendsDomainEvents.ts";
+import type { AppendToStream } from "@adapters/outbound/capabilities/AppendToStream.ts";
 import type { LoadsDomainEvents } from "@adapters/outbound/capabilities/LoadsDomainEvents.ts";
 import type {
   FaultSimulationMode,
-  SimulatesFaults,
-} from "@adapters/outbound/capabilities/SimulatesFaults.ts";
+  SimulateFaults,
+} from "@adapters/outbound/capabilities/SimulateFaults.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
 import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
@@ -12,8 +12,8 @@ import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
     LoadsDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>,
-    AppendsDomainEvents<TEvent, Promise<void | GatewayFailure>>,
-    SimulatesFaults
+    AppendToStream<TEvent, Promise<void | GatewayFailure>>,
+    SimulateFaults
 {
   private readonly tableName: string = "event_store";
   private simulation?: FaultSimulationMode;
@@ -57,7 +57,11 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
       .map((envelope) => envelope.event);
   }
 
-  async append(domainEvents: TEvent[]): Promise<void | GatewayFailure> {
+  async append(
+    streamName: string,
+    aggregateId: string,
+    events: TEvent[],
+  ): Promise<void | GatewayFailure> {
     if (this.activeFault === "offline") {
       return {
         kind: "GatewayFailure",
@@ -66,8 +70,8 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
       };
     }
 
-    for (const event of domainEvents) {
-      const streamKey: StreamKey = `${event.aggregateType}#${event.aggregateId}`;
+    for (const event of events) {
+      const streamKey: StreamKey = `${streamName}#${aggregateId}`;
       const streamVersion = this.rows.filter((e) => e.streamKey === streamKey).length + 1;
 
       this.rows.push({
