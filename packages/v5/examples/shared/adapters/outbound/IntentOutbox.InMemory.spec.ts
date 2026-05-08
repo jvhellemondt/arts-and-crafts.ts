@@ -1,4 +1,3 @@
-import type { StageIntents } from "@adapters/outbound/capabilities/StageIntents.ts";
 import { InMemoryIntentOutbox } from "./IntentOutbox.InMemory.ts";
 import type { Intent } from "@core/shapes/Intent.ts";
 import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
@@ -20,7 +19,7 @@ const makeIntent = (channel: "email" | "push"): TestNotificationIntent => ({
 
 describe("in-memory intent outbox", () => {
   let datasource: Map<string, OutboxEnvelope<TestNotificationIntent>[]>;
-  let outbox: StageIntents<TestNotificationIntent>;
+  let outbox: InMemoryIntentOutbox<TestNotificationIntent>;
 
   const fixture: TestNotificationIntent[] = [
     makeIntent("email"),
@@ -50,17 +49,40 @@ describe("in-memory intent outbox", () => {
     datasource.set("intent_outbox", [existing]);
     outbox = new InMemoryIntentOutbox<TestNotificationIntent>(datasource);
 
-    await outbox.stage(fixture);
+    await Array.fromAsync(outbox.stage(fixture));
 
     expect(datasource.get("intent_outbox")).toHaveLength(fixture.length + 1);
   });
 
   it("should stage intents as pending envelopes", async () => {
-    await outbox.stage(fixture);
+    await Array.fromAsync(outbox.stage(fixture));
 
     const rows = datasource.get("intent_outbox");
     expect(rows).toHaveLength(fixture.length);
     expect(rows?.every((r) => r.status === "pending")).toBe(true);
     expect(rows?.map((r) => r.intent)).toEqual(fixture);
+  });
+
+  describe("should simulate offline fault", async () => {
+    beforeEach(() => {
+      outbox.simulate("offline");
+    });
+
+    it("should expose isSimulating property as true", () => {
+      expect(outbox.isSimulating).toBe(true);
+    });
+
+    it("should yield a gateway failure for each intent", async () => {
+      const results = await Array.fromAsync(outbox.stage(fixture));
+      expect(results).toHaveLength(fixture.length);
+      expect(results.every((r) => r?.kind === "GatewayFailure")).toBe(true);
+    });
+
+    it("should restore the outbox to online state", async () => {
+      outbox.restore();
+      expect(outbox.isSimulating).toBe(false);
+      await Array.fromAsync(outbox.stage(fixture));
+      expect(datasource.get("intent_outbox")).toHaveLength(fixture.length);
+    });
   });
 });
