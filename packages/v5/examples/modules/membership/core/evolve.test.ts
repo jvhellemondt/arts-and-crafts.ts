@@ -21,6 +21,12 @@ describe("evolveMembership", () => {
     expect(state).toEqual({ status: "initial", id: aggregateId });
   });
 
+  it("ignores unknown event types and returns the current state", () => {
+    const unknown = { type: "Unknown.v1" } as unknown as MembershipOpenedV1;
+    const state = evolveMembership(aggregateId, [unknown]);
+    expect(state).toEqual({ status: "initial", id: aggregateId });
+  });
+
   describe("MembershipOpened.v1", () => {
     it("transitions to open status", () => {
       const state = evolveMembership(aggregateId, [makeMembershipOpenedV1(aggregateId)]);
