@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Metadata } from "@core/shapes/Metadata.ts";
-import {
-  createOpenMembershipCommand,
-  openMembershipCommandPayload,
-} from "./command.ts";
+import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
+import { v7 as uuidv7 } from "uuid";
 
 const VALID_PAYLOAD = openMembershipCommandPayload.parse({
+  membershipId: uuidv7(),
   name: "Alice",
   email: "alice@example.com",
 });
@@ -18,8 +17,9 @@ const VALID_METADATA: Metadata = {
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 describe("openMembershipCommandPayload", () => {
-  it("parses a valid payload with name and email", () => {
+  it("parses a valid payload with membershipId, name and email", () => {
     const result = openMembershipCommandPayload.safeParse({
+      membershipId: uuidv7(),
       name: "Alice",
       email: "alice@example.com",
     });
@@ -28,6 +28,7 @@ describe("openMembershipCommandPayload", () => {
 
   it("rejects when name is missing", () => {
     const result = openMembershipCommandPayload.safeParse({
+      membershipId: uuidv7(),
       email: "alice@example.com",
     });
     expect(result.success).toBe(false);
@@ -35,13 +36,32 @@ describe("openMembershipCommandPayload", () => {
 
   it("rejects when email is missing", () => {
     const result = openMembershipCommandPayload.safeParse({
+      membershipId: uuidv7(),
       name: "Alice",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects when membershipId is missing", () => {
+    const result = openMembershipCommandPayload.safeParse({
+      name: "Alice",
+      email: "alice@example.com",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid membershipId", () => {
+    const result = openMembershipCommandPayload.safeParse({
+      membershipId: "invalid-uuid",
+      name: "Alice",
+      email: "alice@example.com",
     });
     expect(result.success).toBe(false);
   });
 
   it("rejects an invalid email", () => {
     const result = openMembershipCommandPayload.safeParse({
+      membershipId: uuidv7(),
       name: "Alice",
       email: "not-an-email",
     });

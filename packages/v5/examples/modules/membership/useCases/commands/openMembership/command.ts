@@ -4,10 +4,12 @@ import { z } from "zod";
 import { name } from "../../../core/domain/Name.ts";
 import { email } from "../../../core/domain/Email.ts";
 import { v7 as uuidv7 } from "uuid";
+import { membershipId } from "@examples/modules/membership/core/domain/MembershipId.ts";
 
 export const openMembershipCommandPayload = z.object({
-  name: name,
-  email: email,
+  membershipId,
+  name,
+  email,
 });
 
 export type OpenMembershipCommandPayload = z.output<typeof openMembershipCommandPayload>;

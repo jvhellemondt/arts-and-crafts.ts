@@ -17,7 +17,7 @@ const makeInitialState = (): MembershipState => ({
 
 const makeCommand = () =>
   createOpenMembershipCommand(
-    openMembershipCommandPayload.parse({ name: "Jane Doe", email: "jane@example.com" }),
+    openMembershipCommandPayload.parse({ membershipId: uuidv7(), name: "Jane Doe", email: "jane@example.com" }),
     makeMetadata(),
   );
 
