@@ -1,14 +1,16 @@
-import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
-import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
 import type { MembershipEventV1 } from "./events/index.ts";
 import type { StoreDomainEvents } from "@core/capabilities/StoreDomainEvents.ts";
-import type { MembershipOpenedV1 } from "./events/v1/MembershipOpenedV1.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { LoadAggregateState } from "@core/capabilities/LoadAggregateState.ts";
+import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
+import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
+import { evolveMembership } from "./evolve.ts";
+import type { MembershipState } from "./state.ts";
 
 export class MembershipRepository
   implements
-    LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>>,
-    StoreDomainEvents<MembershipEventV1>
+    LoadAggregateState<MembershipEventV1, Promise<MembershipState | GatewayFailure>>,
+    StoreDomainEvents<MembershipEventV1, AsyncIterable<void | GatewayFailure>>
 {
   private readonly streamName: string = "membership";
 
@@ -20,13 +22,15 @@ export class MembershipRepository
       AppendToEventStream<MembershipEventV1, Promise<void | GatewayFailure>>,
   ) {}
 
-  async load(aggregateId: string): Promise<MembershipEventV1[] | GatewayFailure> {
-    return this.eventStore.load(this.streamName, aggregateId);
+  async load(aggregateId: string): Promise<MembershipState | GatewayFailure> {
+    const result = await this.eventStore.load(this.streamName, aggregateId);
+    if (!Array.isArray(result)) return result;
+    return evolveMembership(aggregateId, result);
   }
 
-  async store(events: MembershipOpenedV1[]): Promise<void> {
-    await Promise.all(
-      events.map((event) => this.eventStore.append(this.streamName, event.aggregateId, [event])),
-    );
+  async *store(events: MembershipEventV1[]): AsyncIterable<void | GatewayFailure> {
+    for (const event of events) {
+      yield await this.eventStore.append(this.streamName, event.aggregateId, [event]);
+    }
   }
 }

@@ -1,11 +1,8 @@
-import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
-import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { randomUUID } from "node:crypto";
 import type { MembershipEventV1 } from "./events/index.ts";
 import type { MembershipOpenedV1 } from "./events/v1/MembershipOpenedV1.ts";
 import { MembershipRepository } from "./repository.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 
 const makeEvent = (aggregateId: string): MembershipOpenedV1 => ({
   type: "MembershipOpened.v1",
@@ -14,23 +11,12 @@ const makeEvent = (aggregateId: string): MembershipOpenedV1 => ({
   aggregateId,
   timestamp: Date.now(),
   id: randomUUID(),
-  metadata: {
-    correlationId: randomUUID(),
-    causationId: randomUUID(),
-  },
-  payload: {
-    aggregateId,
-    name: "Jane Doe",
-    email: "jane@example.com",
-  },
+  metadata: { correlationId: randomUUID(), causationId: randomUUID() },
+  payload: { aggregateId, name: "Jane Doe", email: "jane@example.com" },
 });
 
 describe("MembershipRepository", () => {
-  let eventStore: LoadDomainEvents<
-    MembershipEventV1,
-    Promise<MembershipEventV1[] | GatewayFailure>
-  > &
-    AppendToEventStream<MembershipEventV1, Promise<void | GatewayFailure>>;
+  let eventStore: InMemoryEventStore<MembershipEventV1>;
   let repository: MembershipRepository;
 
   beforeEach(() => {
@@ -43,7 +29,7 @@ describe("MembershipRepository", () => {
       const aggregateId = randomUUID();
       const event = makeEvent(aggregateId);
 
-      await repository.store([event]);
+      await Array.fromAsync(repository.store([event]));
 
       const stored = await eventStore.load("membership", aggregateId);
       expect(stored).toEqual([event]);
@@ -53,7 +39,7 @@ describe("MembershipRepository", () => {
       const aggregateId1 = randomUUID();
       const aggregateId2 = randomUUID();
 
-      await repository.store([makeEvent(aggregateId1), makeEvent(aggregateId2)]);
+      await Array.fromAsync(repository.store([makeEvent(aggregateId1), makeEvent(aggregateId2)]));
 
       expect(await eventStore.load("membership", aggregateId1)).toHaveLength(1);
       expect(await eventStore.load("membership", aggregateId2)).toHaveLength(1);
@@ -62,34 +48,51 @@ describe("MembershipRepository", () => {
     it("does not append to any other stream", async () => {
       const aggregateId = randomUUID();
 
-      await repository.store([makeEvent(aggregateId)]);
+      await Array.fromAsync(repository.store([makeEvent(aggregateId)]));
 
-      const stored = await eventStore.load("other", aggregateId);
-      expect(stored).toEqual([]);
+      expect(await eventStore.load("other", aggregateId)).toEqual([]);
     });
   });
 
   describe("load", () => {
-    it("returns an empty array when no events exist for the aggregate", async () => {
-      const events = await repository.load(randomUUID());
-      expect(events).toEqual([]);
+    it("returns initial state when no events exist for the aggregate", async () => {
+      const aggregateId = randomUUID();
+
+      const state = await repository.load(aggregateId);
+
+      expect(state).toEqual({ status: "initial", id: aggregateId });
     });
 
-    it("returns events previously stored for the aggregate", async () => {
+    it("returns the evolved state after storing events", async () => {
       const aggregateId = randomUUID();
-      const event = makeEvent(aggregateId);
-      await repository.store([event]);
+      await Array.fromAsync(repository.store([makeEvent(aggregateId)]));
 
-      const events = await repository.load(aggregateId);
-      expect(events).toEqual([event]);
+      const state = await repository.load(aggregateId);
+
+      expect(state).toMatchObject({
+        status: "open",
+        id: aggregateId,
+        name: "Jane Doe",
+        email: "jane@example.com",
+      });
     });
 
-    it("does not return events belonging to a different aggregate", async () => {
+    it("returns initial state for a different aggregate", async () => {
       const aggregateId = randomUUID();
-      await repository.store([makeEvent(aggregateId)]);
+      await Array.fromAsync(repository.store([makeEvent(aggregateId)]));
 
-      const events = await repository.load(randomUUID());
-      expect(events).toEqual([]);
+      const otherId = randomUUID();
+      const state = await repository.load(otherId);
+
+      expect(state).toEqual({ status: "initial", id: otherId });
+    });
+
+    it("returns a GatewayFailure when the event store is offline", async () => {
+      eventStore.simulate("offline");
+
+      const state = await repository.load(randomUUID());
+
+      expect(state).toMatchObject({ kind: "GatewayFailure" });
     });
   });
 });
