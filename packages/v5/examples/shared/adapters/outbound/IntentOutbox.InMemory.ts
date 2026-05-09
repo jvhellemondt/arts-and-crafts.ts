@@ -2,7 +2,7 @@ import type {
   FaultSimulationMode,
   SimulateFaults,
 } from "@adapters/outbound/capabilities/SimulateFaults.ts";
-import type { StageIntents } from "@adapters/outbound/capabilities/StageIntents.ts";
+import type { StageIntents } from "@core/capabilities/StageIntents.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
 import type { Intent } from "@core/shapes/Intent.ts";
