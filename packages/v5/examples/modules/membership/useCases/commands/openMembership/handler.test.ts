@@ -1,5 +1,5 @@
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
-import { InMemoryIntentOutbox } from "@examples/shared/adapters/outbound/IntentOutbox.InMemory.ts";
+import { InMemoryIntentOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
 import { MembershipRepository } from "@examples/modules/membership/core/repository.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmail } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";

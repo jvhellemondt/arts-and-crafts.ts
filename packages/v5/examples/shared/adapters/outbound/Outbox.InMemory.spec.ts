@@ -1,4 +1,4 @@
-import { InMemoryIntentOutbox } from "./IntentOutbox.InMemory.ts";
+import { InMemoryIntentOutbox } from "./Outbox.InMemory.ts";
 import type { Intent } from "@core/shapes/Intent.ts";
 import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
 import { randomUUID } from "node:crypto";
@@ -44,7 +44,7 @@ describe("in-memory intent outbox", () => {
     const existing: OutboxEnvelope<TestNotificationIntent> = {
       status: "pending",
       stagedAt: Date.now(),
-      intent: makeIntent("email"),
+      entry: makeIntent("email"),
     };
     datasource.set("intent_outbox", [existing]);
     outbox = new InMemoryIntentOutbox<TestNotificationIntent>(datasource);
@@ -60,7 +60,7 @@ describe("in-memory intent outbox", () => {
     const rows = datasource.get("intent_outbox");
     expect(rows).toHaveLength(fixture.length);
     expect(rows?.every((r) => r.status === "pending")).toBe(true);
-    expect(rows?.map((r) => r.intent)).toEqual(fixture);
+    expect(rows?.map((r) => r.entry)).toEqual(fixture);
   });
 
   describe("should simulate offline fault", async () => {

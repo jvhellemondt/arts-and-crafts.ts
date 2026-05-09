@@ -6,5 +6,5 @@ export interface Message<TType = string, TPayload = unknown> extends WithIdentif
   payload: TPayload;
   timestamp: number;
   metadata: Metadata;
-  kind: "command" | "query" | "domain" | "intent" | "integration";
+  kind: "command" | "query" | "domain" | "intent" | "integration" | "notification";
 }
