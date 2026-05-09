@@ -10,9 +10,9 @@ import type { MembershipState } from "./state.ts";
 export class MembershipRepository
   implements
     LoadAggregateState<MembershipEventV1, Promise<MembershipState | GatewayFailure>>,
-    StoreDomainEvents<MembershipEventV1, AsyncIterable<void | GatewayFailure>>
+    StoreDomainEvents<MembershipEventV1, Promise<void | GatewayFailure>>
 {
-  private readonly streamName: string = "membership";
+  private readonly streamName: string = "Membership";
 
   constructor(
     private readonly eventStore: LoadDomainEvents<
@@ -28,9 +28,7 @@ export class MembershipRepository
     return evolveMembership(aggregateId, result);
   }
 
-  async *store(events: MembershipEventV1[]): AsyncIterable<void | GatewayFailure> {
-    for (const event of events) {
-      yield await this.eventStore.append(this.streamName, event.aggregateId, [event]);
-    }
+  async store(events: MembershipEventV1[]): Promise<void | GatewayFailure> {
+    await this.eventStore.append(events);
   }
 }

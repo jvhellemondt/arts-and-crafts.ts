@@ -33,7 +33,7 @@ describe("OpenMembershipHandler", () => {
 
   it("returns void when the membership is successfully opened", async () => {
     const result = await handler.handle(makeCommand());
-    expect(result).toBeUndefined();
+    expect(result).toEqual([]);
   });
 
   it("returns the rejection when the membership already exists", async () => {

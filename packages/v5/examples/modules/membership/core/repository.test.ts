@@ -29,9 +29,9 @@ describe("MembershipRepository", () => {
       const aggregateId = randomUUID();
       const event = makeEvent(aggregateId);
 
-      await Array.fromAsync(repository.store([event]));
+      await repository.store([event]);
 
-      const stored = await eventStore.load("membership", aggregateId);
+      const stored = await eventStore.load("Membership", aggregateId);
       expect(stored).toEqual([event]);
     });
 
@@ -39,16 +39,16 @@ describe("MembershipRepository", () => {
       const aggregateId1 = randomUUID();
       const aggregateId2 = randomUUID();
 
-      await Array.fromAsync(repository.store([makeEvent(aggregateId1), makeEvent(aggregateId2)]));
+      await repository.store([makeEvent(aggregateId1), makeEvent(aggregateId2)]);
 
-      expect(await eventStore.load("membership", aggregateId1)).toHaveLength(1);
-      expect(await eventStore.load("membership", aggregateId2)).toHaveLength(1);
+      expect(await eventStore.load("Membership", aggregateId1)).toHaveLength(1);
+      expect(await eventStore.load("Membership", aggregateId2)).toHaveLength(1);
     });
 
     it("does not append to any other stream", async () => {
       const aggregateId = randomUUID();
 
-      await Array.fromAsync(repository.store([makeEvent(aggregateId)]));
+      await repository.store([makeEvent(aggregateId)]);
 
       expect(await eventStore.load("other", aggregateId)).toEqual([]);
     });
@@ -65,7 +65,7 @@ describe("MembershipRepository", () => {
 
     it("returns the evolved state after storing events", async () => {
       const aggregateId = randomUUID();
-      await Array.fromAsync(repository.store([makeEvent(aggregateId)]));
+      await repository.store([makeEvent(aggregateId)]);
 
       const state = await repository.load(aggregateId);
 
@@ -79,7 +79,7 @@ describe("MembershipRepository", () => {
 
     it("returns initial state for a different aggregate", async () => {
       const aggregateId = randomUUID();
-      await Array.fromAsync(repository.store([makeEvent(aggregateId)]));
+      await repository.store([makeEvent(aggregateId)]);
 
       const otherId = randomUUID();
       const state = await repository.load(otherId);

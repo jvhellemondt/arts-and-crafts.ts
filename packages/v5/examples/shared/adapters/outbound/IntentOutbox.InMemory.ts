@@ -8,7 +8,7 @@ import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts
 import type { Intent } from "@core/shapes/Intent.ts";
 
 export class InMemoryIntentOutbox<TIntent extends Intent>
-  implements StageIntents<TIntent, AsyncIterable<void | GatewayFailure>>, SimulateFaults
+  implements StageIntents<TIntent, Promise<void | GatewayFailure>>, SimulateFaults
 {
   private readonly tableName: string = "intent_outbox";
   private simulation?: FaultSimulationMode;
@@ -38,17 +38,17 @@ export class InMemoryIntentOutbox<TIntent extends Intent>
     return this.datasource.get(this.tableName)!;
   }
 
-  async *stage(intents: TIntent[]): AsyncIterable<void | GatewayFailure> {
-    for (const intent of intents) {
-      if (this.activeFault === "offline") {
-        yield {
-          type: "failure",
-          kind: "GatewayFailure",
-          gateway: "InMemoryIntentOutbox",
-          reason: "The Outbox has been set to offline mode",
-        };
-      }
+  async stage(intents: TIntent[]): Promise<void | GatewayFailure> {
+    if (this.activeFault === "offline") {
+      return {
+        type: "failure",
+        kind: "GatewayFailure",
+        gateway: "InMemoryIntentOutbox",
+        reason: "The Outbox has been set to offline mode",
+      };
+    }
 
+    for (const intent of intents) {
       this.rows.push({
         status: "pending",
         stagedAt: Date.now(),

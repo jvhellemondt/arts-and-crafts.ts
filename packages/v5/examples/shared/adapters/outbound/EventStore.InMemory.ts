@@ -59,8 +59,6 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   }
 
   async append(
-    streamName: string,
-    aggregateId: string,
     events: TEvent[],
   ): Promise<void | GatewayFailure> {
     if (this.activeFault === "offline") {
@@ -73,7 +71,7 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     }
 
     for (const event of events) {
-      const streamKey: StreamKey = `${streamName}#${aggregateId}`;
+      const streamKey: StreamKey = `${event.aggregateType}#${event.aggregateId}`;
       const streamVersion = this.rows.filter((e) => e.streamKey === streamKey).length + 1;
 
       this.rows.push({

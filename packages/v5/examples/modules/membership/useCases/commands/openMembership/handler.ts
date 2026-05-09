@@ -11,17 +11,17 @@ import { isRejection } from "@examples/shared/utils/isRejection.ts";
 
 export class OpenMembershipHandler implements HandleCommand<
   OpenMembershipCommand,
-  Promise<void | GatewayFailure[] | Rejection>
+  Promise<GatewayFailure[] | Rejection>
 > {
   constructor(
     private readonly repository: MembershipRepository,
     private readonly outbox: StageIntents<
       NotifyUserToVerifyEmail,
-      AsyncIterable<void | GatewayFailure>
+      Promise<void | GatewayFailure>
     >,
   ) {}
 
-  async handle(command: OpenMembershipCommand): Promise<void | GatewayFailure[] | Rejection> {
+  async handle(command: OpenMembershipCommand): Promise<GatewayFailure[] | Rejection> {
     const result = await this.repository.load(command.payload.membershipId);
     if (isFailure(result)) return [result];
 
@@ -30,10 +30,9 @@ export class OpenMembershipHandler implements HandleCommand<
 
     if (isRejection(decision)) return decision.rejection;
 
-    const repositoryResult = await Array.fromAsync(this.repository.store(decision.events));
-    const outboxResult = await Array.fromAsync(this.outbox.stage(decision.intents));
+    const repositoryResult = await this.repository.store(decision.events);
+    const outboxResult = await this.outbox.stage(decision.intents);
 
-    if (repositoryResult.concat(outboxResult).some(isFailure))
-      return repositoryResult.concat(outboxResult).filter(isFailure);
+    return [repositoryResult, outboxResult].filter(isFailure);
   }
 }

@@ -49,13 +49,13 @@ describe("in-memory intent outbox", () => {
     datasource.set("intent_outbox", [existing]);
     outbox = new InMemoryIntentOutbox<TestNotificationIntent>(datasource);
 
-    await Array.fromAsync(outbox.stage(fixture));
+    await outbox.stage(fixture);
 
     expect(datasource.get("intent_outbox")).toHaveLength(fixture.length + 1);
   });
 
   it("should stage intents as pending envelopes", async () => {
-    await Array.fromAsync(outbox.stage(fixture));
+    await outbox.stage(fixture);
 
     const rows = datasource.get("intent_outbox");
     expect(rows).toHaveLength(fixture.length);
@@ -73,15 +73,14 @@ describe("in-memory intent outbox", () => {
     });
 
     it("should yield a gateway failure for each intent", async () => {
-      const results = await Array.fromAsync(outbox.stage(fixture));
-      expect(results).toHaveLength(fixture.length);
-      expect(results.every((r) => r?.kind === "GatewayFailure")).toBe(true);
+      const result = await outbox.stage(fixture);
+      expect(result?.kind === "GatewayFailure").toBe(true);
     });
 
     it("should restore the outbox to online state", async () => {
       outbox.restore();
       expect(outbox.isSimulating).toBe(false);
-      await Array.fromAsync(outbox.stage(fixture));
+      await outbox.stage(fixture);
       expect(datasource.get("intent_outbox")).toHaveLength(fixture.length);
     });
   });

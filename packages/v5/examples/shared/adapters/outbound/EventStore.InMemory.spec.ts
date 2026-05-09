@@ -48,7 +48,7 @@ describe("in-memory event store", () => {
     { _streamName: "test", expected: [] },
   ])("should load domain events for '$streamName'", async ({ _streamName, expected }) => {
     await Promise.all(
-      fixture.map((event) => eventStore.append(streamName, event.aggregateId, [event])),
+      fixture.map((event) => eventStore.append([event])),
     );
     const events = await eventStore.load(_streamName, aggregateId);
     expect(events).toEqual(expected);
@@ -70,17 +70,17 @@ describe("in-memory event store", () => {
     },
   ])("should append $events.length domain event(s)", async ({ events }) => {
     const promise = Promise.all(
-      events.map((event) => eventStore.append(streamName, event.aggregateId, [event])),
+      events.map((event) => eventStore.append( [event])),
     );
     await expect(promise).resolves.not.toThrow();
   });
 
   it("should append events when events already exist in the store", async () => {
     await Promise.all(
-      fixture.map((event) => eventStore.append(streamName, event.aggregateId, [event])),
+      fixture.map((event) => eventStore.append( [event])),
     );
     const event = makeEvent(streamName, randomUUID());
-    await expect(eventStore.append(streamName, event.aggregateId, [event])).resolves.not.toThrow();
+    await expect(eventStore.append( [event])).resolves.not.toThrow();
   });
 
   describe("should simulate offline fault", async () => {
@@ -104,7 +104,7 @@ describe("in-memory event store", () => {
 
     it("should return gateway failure when appending events", async () => {
       const event = makeEvent(streamName, randomUUID());
-      const response = await eventStore.append(streamName, event.aggregateId, [event]);
+      const response = await eventStore.append( [event]);
       expect(response).toEqual({
         type: "failure",
         kind: "GatewayFailure",
@@ -117,7 +117,7 @@ describe("in-memory event store", () => {
       eventStore.restore();
       expect(eventStore.isSimulating).toBe(false);
       await Promise.all(
-        fixture.map((event) => eventStore.append(streamName, event.aggregateId, [event])),
+        fixture.map((event) => eventStore.append( [event])),
       );
       const events = await eventStore.load(streamName, aggregateId);
       expect(events).toEqual(fixture);
