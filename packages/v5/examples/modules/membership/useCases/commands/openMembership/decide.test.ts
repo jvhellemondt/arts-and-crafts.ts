@@ -17,7 +17,11 @@ const makeInitialState = (): MembershipState => ({
 
 const makeCommand = () =>
   createOpenMembershipCommand(
-    openMembershipCommandPayload.parse({ membershipId: uuidv7(), name: "Jane Doe", email: "jane@example.com" }),
+    openMembershipCommandPayload.parse({
+      membershipId: uuidv7(),
+      name: "Jane Doe",
+      email: "jane@example.com",
+    }),
     makeMetadata(),
   );
 
@@ -52,7 +56,7 @@ describe("decideOpenMembership", () => {
       });
     });
 
-    it("should stage a NotifyUserToVerifyEmail intent", () => {
+    it("should stage a NotifyUserToVerifyEmailV1 intent", () => {
       const state = makeInitialState();
       const command = makeCommand();
       const decision = decideOpenMembership(state, command);
@@ -62,7 +66,7 @@ describe("decideOpenMembership", () => {
 
       expect(decision.intents).toHaveLength(1);
       expect(decision.intents[0]).toMatchObject({
-        type: "NotifyUserToVerifyEmail",
+        type: "NotifyUserToVerifyEmail.v1",
         kind: "intent",
         payload: {
           name: command.payload.name,

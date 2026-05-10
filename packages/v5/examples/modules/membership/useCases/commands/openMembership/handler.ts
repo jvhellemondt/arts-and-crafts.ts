@@ -5,7 +5,7 @@ import { decideOpenMembership } from "./decide.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import { isFailure } from "@examples/shared/utils/isFailure.ts";
 import type { StageIntents } from "@core/capabilities/StageIntents.ts";
-import type { NotifyUserToVerifyEmail } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
+import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import type { Rejection } from "@core/shapes/Rejection.ts";
 import { isRejection } from "@examples/shared/utils/isRejection.ts";
 
@@ -16,7 +16,7 @@ export class OpenMembershipHandler implements HandleCommand<
   constructor(
     private readonly repository: MembershipRepository,
     private readonly outbox: StageIntents<
-      NotifyUserToVerifyEmail,
+      NotifyUserToVerifyEmailV1,
       Promise<void | GatewayFailure>
     >,
   ) {}

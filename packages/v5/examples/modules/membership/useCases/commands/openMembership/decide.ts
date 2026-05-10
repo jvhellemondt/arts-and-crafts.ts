@@ -39,7 +39,7 @@ export function decideOpenMembership(
     intents: [
       {
         kind: "intent",
-        type: "NotifyUserToVerifyEmail",
+        type: "NotifyUserToVerifyEmail.v1",
         payload: {
           aggregateId: state.id,
           name: command.payload.name,

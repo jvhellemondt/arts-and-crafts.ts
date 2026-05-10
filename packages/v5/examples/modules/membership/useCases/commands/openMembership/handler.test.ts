@@ -2,7 +2,7 @@ import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStor
 import { InMemoryIntentOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
 import { MembershipRepository } from "@examples/modules/membership/core/repository.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
-import type { NotifyUserToVerifyEmail } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
+import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
 import { OpenMembershipHandler } from "./handler.ts";
 import { randomUUID } from "node:crypto";
@@ -20,13 +20,13 @@ const makeCommand = (membershipId: string = uuidv7()) =>
 
 describe("OpenMembershipHandler", () => {
   let eventStore: InMemoryEventStore<MembershipEventV1>;
-  let outbox: InMemoryIntentOutbox<NotifyUserToVerifyEmail>;
+  let outbox: InMemoryIntentOutbox<NotifyUserToVerifyEmailV1>;
   let repository: MembershipRepository;
   let handler: OpenMembershipHandler;
 
   beforeEach(() => {
     eventStore = new InMemoryEventStore<MembershipEventV1>();
-    outbox = new InMemoryIntentOutbox<NotifyUserToVerifyEmail>();
+    outbox = new InMemoryIntentOutbox<NotifyUserToVerifyEmailV1>();
     repository = new MembershipRepository(eventStore);
     handler = new OpenMembershipHandler(repository, outbox);
   });
