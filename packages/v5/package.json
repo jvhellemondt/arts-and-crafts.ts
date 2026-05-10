@@ -13,6 +13,7 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "scripts": {
+    "dev": "bun run --hot examples/shell/main.ts",
     "lint": "oxlint src/",
     "lint:fix": "oxlint --fix src/",
     "fmt": "oxfmt src/",
@@ -37,6 +38,7 @@
     "countries-list": "^3.3.0",
     "cz-conventional-changelog": "^3.3.0",
     "globals": "^17.5.0",
+    "hono": "^4.12.18",
     "husky": "^9.1.7",
     "oxfmt": "^0.46.0",
     "oxide.ts": "^1.1.0",
