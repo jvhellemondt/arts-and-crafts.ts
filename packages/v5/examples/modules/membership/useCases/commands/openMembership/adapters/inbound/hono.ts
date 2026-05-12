@@ -1,42 +1,30 @@
 import { name } from "@examples/modules/membership/core/domain/Name.ts";
 import { email } from "@examples/modules/membership/core/domain/Email.ts";
-import type { OpenMembershipCommandPayload } from "../../command.ts";
+import { createOpenMembershipCommand } from "../../command.ts";
 import { sleep } from "bun";
-import { Hono } from "hono";
-import { validator } from "hono/validator";
+import { type Context } from "hono";
 import { v7 as uuidv7 } from "uuid";
-import { membershipId } from "@examples/modules/membership/core/domain/MembershipId.ts";
 import z from "zod";
-
-const openMembershipHandlerRoute = new Hono();
+import { type AggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
+import type { ParsedHonoBody } from "@examples/shared/adapters/inbound/ParsedHonoBody.ts";
 
 export const schema = z.object({
   name,
   email,
 });
 
-openMembershipHandlerRoute.post(
-  "membership/open",
-  validator("json", (body, c) => {
-    const parsed = schema.safeParse(body);
-    if (!parsed.success) {
-      const { fieldErrors } = z.flattenError(parsed.error);
-      return c.json({ message: "Invalid body", errors: fieldErrors }, 401);
-    }
-    return { body: parsed.data };
-  }),
-  async (c) => {
-    const { body } = c.req.valid("json");
-    const id = membershipId.parse(uuidv7());
-    handle({ ...body, membershipId: id }).catch(console.error);
-    return c.json({ accepted: true, id }, 202);
-  },
-);
+export async function handle(
+  c: Context<{}, "membership/open", ParsedHonoBody<typeof schema>>,
+  aggregateId: AggregateId["parsed"],
+): Promise<void> {
+  const correlationId = c.req.header("X-Correlation-ID") ?? uuidv7();
+  const causationId = c.req.header("X-Request-ID") ?? uuidv7();
+  const { body } = c.req.valid("json");
+  const command = createOpenMembershipCommand(aggregateId, body, {
+    correlationId,
+    causationId,
+  });
+  console.log({ command });
 
-export { openMembershipHandlerRoute };
-
-async function handle(body: OpenMembershipCommandPayload) {
   await sleep(1);
-  console.log({ body });
-  return "ok";
 }

@@ -7,11 +7,14 @@ import { createOpenMembershipCommand, openMembershipCommandPayload } from "./com
 import { OpenMembershipHandler } from "./handler.ts";
 import { randomUUID } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
+import { aggregateId as aggregateIdSchema } from "@examples/modules/membership/core/domain/AggregateId.ts";
 
-const makeCommand = (membershipId: string = uuidv7()) =>
+const aggregateId = aggregateIdSchema.parse(uuidv7());
+
+const makeCommand = (id: typeof aggregateId) =>
   createOpenMembershipCommand(
+    id,
     openMembershipCommandPayload.parse({
-      membershipId,
       name: "Jane Doe",
       email: "jane@example.com",
     }),
@@ -32,28 +35,27 @@ describe("OpenMembershipHandler", () => {
   });
 
   it("returns void when the membership is successfully opened", async () => {
-    const result = await handler.handle(makeCommand());
+    const result = await handler.handle(makeCommand(aggregateId));
     expect(result).toEqual([]);
   });
 
   it("returns the rejection when the membership already exists", async () => {
-    const membershipId = uuidv7();
-    await handler.handle(makeCommand(membershipId));
+    await handler.handle(makeCommand(aggregateId));
 
-    const result = await handler.handle(makeCommand(membershipId));
+    const result = await handler.handle(makeCommand(aggregateId));
 
     expect(result).toMatchObject({ code: "MEMBERSHIP_ALREADY_EXISTS" });
   });
 
   it("returns a GatewayFailure when the event store is offline", async () => {
     eventStore.simulate("offline");
-    const result = await handler.handle(makeCommand());
+    const result = await handler.handle(makeCommand(aggregateId));
     expect(result).toMatchObject([{ kind: "GatewayFailure", gateway: "InMemoryEventStore" }]);
   });
 
   it("returns GatewayFailures when the outbox is offline", async () => {
     outbox.simulate("offline");
-    const result = await handler.handle(makeCommand());
+    const result = await handler.handle(makeCommand(aggregateId));
     expect(result).toMatchObject([{ kind: "GatewayFailure", gateway: "InMemoryIntentOutbox" }]);
   });
 });

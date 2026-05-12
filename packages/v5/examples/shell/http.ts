@@ -8,7 +8,7 @@ import { logger } from "hono/logger";
 import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import { trimTrailingSlash } from "hono/trailing-slash";
-import { openMembershipHandlerRoute } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
+import { openMembershipHandlerRoute } from "./routes/membership.ts";
 
 const http = new Hono();
 

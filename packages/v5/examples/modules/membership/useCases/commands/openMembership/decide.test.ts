@@ -1,9 +1,11 @@
 import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
 import type { MembershipState } from "@examples/modules/membership/core/state.ts";
 import { randomUUID } from "node:crypto";
-import { membershipId } from "@examples/modules/membership/core/domain/MembershipId.ts";
 import { v7 as uuidv7 } from "uuid";
 import { decideOpenMembership } from "./decide.ts";
+import { aggregateId as aggregateIdSchema } from "@examples/modules/membership/core/domain/AggregateId.ts";
+
+const aggregateId = aggregateIdSchema.parse(uuidv7())
 
 const makeMetadata = () => ({
   correlationId: randomUUID(),
@@ -12,13 +14,13 @@ const makeMetadata = () => ({
 
 const makeInitialState = (): MembershipState => ({
   status: "initial",
-  id: membershipId.parse(uuidv7()),
+  id: aggregateId,
 });
 
 const makeCommand = () =>
   createOpenMembershipCommand(
+    aggregateId,
     openMembershipCommandPayload.parse({
-      membershipId: uuidv7(),
       name: "Jane Doe",
       email: "jane@example.com",
     }),

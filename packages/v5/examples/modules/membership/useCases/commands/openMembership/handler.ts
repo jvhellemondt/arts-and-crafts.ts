@@ -22,7 +22,7 @@ export class OpenMembershipHandler implements HandleCommand<
   ) {}
 
   async handle(command: OpenMembershipCommand): Promise<GatewayFailure[] | Rejection> {
-    const result = await this.repository.load(command.payload.membershipId);
+    const result = await this.repository.load(command.aggregateId);
     if (isFailure(result)) return [result];
 
     const currentState = result;
