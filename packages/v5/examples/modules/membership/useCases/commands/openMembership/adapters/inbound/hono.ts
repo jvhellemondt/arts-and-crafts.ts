@@ -1,5 +1,4 @@
 import { createOpenMembershipCommand } from "../../command.ts";
-import { sleep } from "bun";
 import { type Context } from "hono";
 import { v7 as uuidv7 } from "uuid";
 import { type AggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
@@ -21,8 +20,7 @@ export class OpenMembershipHonoAdapter {
       correlationId,
       causationId,
     });
-    console.log({ command });
-
-    await sleep(1);
+    const result = await this.handler.handle(command);
+    console.log({ result });
   }
 }
