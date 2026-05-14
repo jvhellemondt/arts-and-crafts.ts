@@ -1,5 +1,5 @@
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
-import { InMemoryIntentOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
+import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
 import { MembershipRepository } from "@examples/modules/membership/core/repository.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
@@ -23,13 +23,13 @@ const makeCommand = (id: typeof aggregateId) =>
 
 describe("OpenMembershipHandler", () => {
   let eventStore: InMemoryEventStore<MembershipEventV1>;
-  let outbox: InMemoryIntentOutbox<NotifyUserToVerifyEmailV1>;
+  let outbox: InMemoryOutbox<NotifyUserToVerifyEmailV1>;
   let repository: MembershipRepository;
   let handler: OpenMembershipHandler;
 
   beforeEach(() => {
     eventStore = new InMemoryEventStore<MembershipEventV1>();
-    outbox = new InMemoryIntentOutbox<NotifyUserToVerifyEmailV1>();
+    outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1>();
     repository = new MembershipRepository(eventStore);
     handler = new OpenMembershipHandler(repository, outbox);
   });

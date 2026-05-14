@@ -9,13 +9,21 @@ import type { Intent } from "@core/shapes/Intent.ts";
 import type { StageNotifications } from "@adapters/outbound/capabilities/StageNotifications.ts";
 import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
 
-export class InMemoryIntentOutbox<TIntent extends Intent = never, TNotification extends Notification = never>
-  implements StageIntents<TIntent, Promise<void | GatewayFailure>>, StageNotifications<TNotification, Promise<void | GatewayFailure>>, SimulateFaults
+export class InMemoryOutbox<
+  TIntent extends Intent = never,
+  TNotification extends Notification = never,
+>
+  implements
+    StageIntents<TIntent, Promise<void | GatewayFailure>>,
+    StageNotifications<TNotification, Promise<void | GatewayFailure>>,
+    SimulateFaults
 {
   private readonly tableName: string = "intent_outbox";
   private simulation?: FaultSimulationMode;
 
-  constructor(private readonly datasource: Map<string, OutboxEnvelope<TIntent | TNotification>[]> = new Map()) {}
+  constructor(
+    private readonly datasource: Map<string, OutboxEnvelope<TIntent | TNotification>[]> = new Map(),
+  ) {}
 
   simulate(mode: "offline"): void {
     this.simulation = mode;

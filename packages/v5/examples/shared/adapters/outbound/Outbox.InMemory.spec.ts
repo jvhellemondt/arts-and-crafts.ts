@@ -1,4 +1,4 @@
-import { InMemoryIntentOutbox } from "./Outbox.InMemory.ts";
+import { InMemoryOutbox } from "./Outbox.InMemory.ts";
 import type { Intent } from "@core/shapes/Intent.ts";
 import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
 import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
@@ -27,22 +27,25 @@ const makeNotification = (reason: string): TestNotification => ({
 
 describe("InMemoryIntentOutbox", () => {
   let datasource: Map<string, OutboxEnvelope<TestIntent | TestNotification>[]>;
-  let outbox: InMemoryIntentOutbox<TestIntent, TestNotification>;
+  let outbox: InMemoryOutbox<TestIntent, TestNotification>;
 
   const intentFixture: TestIntent[] = [makeIntent("email"), makeIntent("push"), makeIntent("push")];
-  const notificationFixture: TestNotification[] = [makeNotification("already exists"), makeNotification("invalid email")];
+  const notificationFixture: TestNotification[] = [
+    makeNotification("already exists"),
+    makeNotification("invalid email"),
+  ];
 
   beforeEach(() => {
     datasource = new Map();
-    outbox = new InMemoryIntentOutbox<TestIntent, TestNotification>(datasource);
+    outbox = new InMemoryOutbox<TestIntent, TestNotification>(datasource);
   });
 
   it("should be defined", () => {
-    expect(InMemoryIntentOutbox).toBeDefined();
+    expect(InMemoryOutbox).toBeDefined();
   });
 
   it("should construct without arguments", () => {
-    expect(new InMemoryIntentOutbox()).toBeDefined();
+    expect(new InMemoryOutbox()).toBeDefined();
   });
 
   it("should use the table if it were already created", async () => {
@@ -52,7 +55,7 @@ describe("InMemoryIntentOutbox", () => {
       entry: makeIntent("email"),
     };
     datasource.set("intent_outbox", [existing]);
-    outbox = new InMemoryIntentOutbox<TestIntent, TestNotification>(datasource);
+    outbox = new InMemoryOutbox<TestIntent, TestNotification>(datasource);
 
     await outbox.stage(intentFixture);
 
@@ -65,8 +68,8 @@ describe("InMemoryIntentOutbox", () => {
 
       const rows = datasource.get("intent_outbox");
       expect(rows).toHaveLength(intentFixture.length);
-      expect(rows?.every(r => r.status === "pending")).toBe(true);
-      expect(rows?.map(r => r.entry)).toEqual(intentFixture);
+      expect(rows?.every((r) => r.status === "pending")).toBe(true);
+      expect(rows?.map((r) => r.entry)).toEqual(intentFixture);
     });
   });
 
@@ -76,15 +79,17 @@ describe("InMemoryIntentOutbox", () => {
 
       const rows = datasource.get("intent_outbox");
       expect(rows).toHaveLength(notificationFixture.length);
-      expect(rows?.every(r => r.status === "pending")).toBe(true);
-      expect(rows?.map(r => r.entry)).toEqual(notificationFixture);
+      expect(rows?.every((r) => r.status === "pending")).toBe(true);
+      expect(rows?.map((r) => r.entry)).toEqual(notificationFixture);
     });
 
     it("should stage intents and notifications to the same table", async () => {
       await outbox.stage(intentFixture);
       await outbox.stage(notificationFixture);
 
-      expect(datasource.get("intent_outbox")).toHaveLength(intentFixture.length + notificationFixture.length);
+      expect(datasource.get("intent_outbox")).toHaveLength(
+        intentFixture.length + notificationFixture.length,
+      );
     });
   });
 
