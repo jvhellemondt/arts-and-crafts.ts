@@ -5,8 +5,12 @@ import type { AppendToEventStream } from "@adapters/outbound/capabilities/Append
 import { randomUUID } from "node:crypto";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { SimulateFaults } from "@adapters/outbound/capabilities/SimulateFaults.ts";
+import type { EventTail } from "@adapters/outbound/capabilities/EventTail.ts";
+import type { PublishEvents } from "@adapters/outbound/capabilities/PublishEvents.ts";
 
 interface TestDomainEvent extends DomainEvent<"TestDomainEvent", { name: string }> {}
+
+const publishEvents: TestDomainEvent[] = [];
 
 const makeEvent = (aggregateType: string, aggregateId: string): TestDomainEvent => ({
   type: "TestDomainEvent",
@@ -27,6 +31,7 @@ describe("in-memory event store", () => {
   const streamName = "users";
   let eventStore: LoadDomainEvents<TestDomainEvent, Promise<TestDomainEvent[] | GatewayFailure>> &
     AppendToEventStream<TestDomainEvent, Promise<void | GatewayFailure>> &
+    EventTail<TestDomainEvent> &
     SimulateFaults;
 
   const fixture = [
@@ -47,9 +52,7 @@ describe("in-memory event store", () => {
     { _streamName: streamName, expected: fixture },
     { _streamName: "test", expected: [] },
   ])("should load domain events for '$streamName'", async ({ _streamName, expected }) => {
-    await Promise.all(
-      fixture.map((event) => eventStore.append([event])),
-    );
+    await Promise.all(fixture.map((event) => eventStore.append([event])));
     const events = await eventStore.load(_streamName, aggregateId);
     expect(events).toEqual(expected);
   });
@@ -69,18 +72,14 @@ describe("in-memory event store", () => {
       ],
     },
   ])("should append $events.length domain event(s)", async ({ events }) => {
-    const promise = Promise.all(
-      events.map((event) => eventStore.append( [event])),
-    );
+    const promise = Promise.all(events.map((event) => eventStore.append([event])));
     await expect(promise).resolves.not.toThrow();
   });
 
   it("should append events when events already exist in the store", async () => {
-    await Promise.all(
-      fixture.map((event) => eventStore.append( [event])),
-    );
+    await eventStore.append(fixture);
     const event = makeEvent(streamName, randomUUID());
-    await expect(eventStore.append( [event])).resolves.not.toThrow();
+    await expect(eventStore.append([event])).resolves.not.toThrow();
   });
 
   describe("should simulate offline fault", async () => {
@@ -104,7 +103,7 @@ describe("in-memory event store", () => {
 
     it("should return gateway failure when appending events", async () => {
       const event = makeEvent(streamName, randomUUID());
-      const response = await eventStore.append( [event]);
+      const response = await eventStore.append([event]);
       expect(response).toEqual({
         type: "failure",
         kind: "GatewayFailure",
@@ -116,11 +115,22 @@ describe("in-memory event store", () => {
     it("should restore the event store to online state", async () => {
       eventStore.restore();
       expect(eventStore.isSimulating).toBe(false);
-      await Promise.all(
-        fixture.map((event) => eventStore.append( [event])),
-      );
+      await Promise.all(fixture.map((event) => eventStore.append([event])));
       const events = await eventStore.load(streamName, aggregateId);
       expect(events).toEqual(fixture);
+    });
+  });
+
+  describe("with event publisher", async () => {
+    it("should publish events", async () => {
+      const publisher: PublishEvents<TestDomainEvent, Promise<void>> = {
+        publish: async (events) => {
+          publishEvents.push(...events);
+        },
+      };
+      eventStore.withEventTail(publisher);
+      await eventStore.append(fixture);
+      expect(publishEvents).toEqual(fixture);
     });
   });
 });

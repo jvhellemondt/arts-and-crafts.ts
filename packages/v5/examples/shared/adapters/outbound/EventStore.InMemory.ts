@@ -1,5 +1,7 @@
 import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
+import type { EventTail } from "@adapters/outbound/capabilities/EventTail.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
+import type { PublishEvents } from "@adapters/outbound/capabilities/PublishEvents.ts";
 import type {
   FaultSimulationMode,
   SimulateFaults,
@@ -13,12 +15,15 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
     LoadDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>,
     AppendToEventStream<TEvent, Promise<void | GatewayFailure>>,
-    SimulateFaults
+    SimulateFaults,
+    EventTail<TEvent>
 {
   private readonly tableName: string = "event_store";
   private simulation?: FaultSimulationMode;
+  private publisher?: PublishEvents<TEvent, Promise<void>>;
 
   constructor(private readonly datasource: Map<string, StoredEvent<TEvent>[]> = new Map()) {}
+
   get isSimulating(): boolean {
     return this.simulation !== undefined;
   }
@@ -58,9 +63,7 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
       .map((envelope) => envelope.event);
   }
 
-  async append(
-    events: TEvent[],
-  ): Promise<void | GatewayFailure> {
+  async append(events: TEvent[]): Promise<void | GatewayFailure> {
     if (this.activeFault === "offline") {
       return {
         type: "failure",
@@ -75,6 +78,7 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
       const streamVersion = this.rows.filter((e) => e.streamKey === streamKey).length + 1;
 
       this.rows.push({
+        stream: event.aggregateType,
         streamKey,
         streamVersion,
         globalPosition: this.rows.length + 1,
@@ -82,5 +86,13 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
         event,
       });
     }
+
+    if (this.publisher) {
+      await this.publisher.publish(events);
+    }
+  }
+
+  async withEventTail(publisher: PublishEvents<TEvent, Promise<void>>): Promise<void> {
+    this.publisher = publisher;
   }
 }
