@@ -20,12 +20,12 @@ const makeIntent = (
 });
 
 describe("NotifyUserToVerifyEmailHandler", () => {
-  let email: InMemoryEmailGateway;
+  let gateway: InMemoryEmailGateway;
   let handler: NotifyUserToVerifyEmailHandler;
 
   beforeEach(() => {
-    email = new InMemoryEmailGateway();
-    handler = new NotifyUserToVerifyEmailHandler(email);
+    gateway = new InMemoryEmailGateway();
+    handler = new NotifyUserToVerifyEmailHandler(gateway);
   });
 
   it("should send an email with payload-derived fields and the intent id as idempotency key", async () => {
@@ -33,7 +33,7 @@ describe("NotifyUserToVerifyEmailHandler", () => {
 
     await handler.handle(intent);
 
-    expect(email.sent).toEqual([
+    expect(gateway.sent).toEqual([
       {
         to: intent.payload.email,
         subject: "Please verify your email",
@@ -44,7 +44,7 @@ describe("NotifyUserToVerifyEmailHandler", () => {
   });
 
   it("should propagate exceptions thrown by the gateway", async () => {
-    email.simulate("offline");
+    gateway.simulate("offline");
     await expect(handler.handle(makeIntent())).rejects.toThrow("EmailGateway is offline");
   });
 });
