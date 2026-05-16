@@ -5,12 +5,18 @@ import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 import { InMemoryEventBus, type SubscriberFailure } from "./EventBus.InMemory.ts";
 import { randomUUID } from "node:crypto";
 
+const aggregateId = randomUUID();
 const eventType = "TestDomainEvent" as const;
+const eventType2 = "TestDomainEvent2" as const;
 const aggregateType = "Test" as const;
+const aggregateType2 = "Test2" as const;
 
-interface TestDomainEvent
-  extends DomainEvent<typeof eventType | string, { name: string }> {
+interface TestDomainEvent extends DomainEvent<typeof eventType | string, { name: string }> {
   aggregateType: typeof aggregateType;
+}
+
+interface TestDomainEvent2 extends DomainEvent<typeof eventType2 | string, { name: string }> {
+  aggregateType: typeof aggregateType2;
 }
 
 const makeEvent = (type: typeof eventType | string, aggregateId: string): TestDomainEvent => ({
@@ -27,36 +33,53 @@ const makeEvent = (type: typeof eventType | string, aggregateId: string): TestDo
   id: randomUUID(),
 });
 
+const makeEvent2 = (type: typeof eventType2 | string, aggregateId: string): TestDomainEvent2 => ({
+  type,
+  payload: { name: "Elon Musk" },
+  kind: "domain",
+  aggregateType: aggregateType2,
+  aggregateId,
+  timestamp: Date.now(),
+  metadata: {
+    correlationId: randomUUID(),
+    causationId: randomUUID(),
+  },
+  id: randomUUID(),
+});
+
 describe("InMemoryEventBus", () => {
-  let bus: RegisterEventSubscriber<TestDomainEvent> & PublishEvents<TestDomainEvent>;
-  let consumedEvents: TestDomainEvent[];
+  let bus: RegisterEventSubscriber<TestDomainEvent | TestDomainEvent2> &
+    PublishEvents<TestDomainEvent | TestDomainEvent2>;
+  let consumedEvents: Array<TestDomainEvent | TestDomainEvent2>;
 
   beforeEach(() => {
-    bus = new InMemoryEventBus<TestDomainEvent>();
+    bus = new InMemoryEventBus<TestDomainEvent | TestDomainEvent2>();
     consumedEvents = [];
   });
 
-  it("should subscribe and publish events", async () => {
-    const aggregateId = randomUUID();
-    const handler: ConsumeEvents<TestDomainEvent> = {
-      consume: async (event) => {
-        consumedEvents.push(event);
-      },
-    };
-    bus.subscribe(aggregateType, handler);
-    await bus.publish([makeEvent(eventType, aggregateId)]);
-    expect(consumedEvents).toHaveLength(1);
-    expect(consumedEvents[0].aggregateId).toBe(aggregateId);
-  });
+  it.each([makeEvent(eventType, aggregateId), makeEvent2(eventType, aggregateId)])(
+    "should subscribe and publish events $aggregateType",
+    async (event) => {
+      const handler: ConsumeEvents<TestDomainEvent | TestDomainEvent2> = {
+        consume: async (e) => {
+          consumedEvents.push(e);
+        },
+      };
+      bus.subscribe(event.aggregateType, handler);
+      await bus.publish([event]);
+      expect(consumedEvents).toHaveLength(1);
+      expect(consumedEvents[0].aggregateId).toBe(event.aggregateId);
+    },
+  );
 
   it("should publish events to multiple handlers", async () => {
     const aggregateId = randomUUID();
-    const handler1: ConsumeEvents<TestDomainEvent> = {
+    const handler1: ConsumeEvents<TestDomainEvent | TestDomainEvent2> = {
       consume: async (event) => {
         consumedEvents.push(event);
       },
     };
-    const handler2: ConsumeEvents<TestDomainEvent> = {
+    const handler2: ConsumeEvents<TestDomainEvent | TestDomainEvent2> = {
       consume: async (event) => {
         consumedEvents.push(event);
       },
