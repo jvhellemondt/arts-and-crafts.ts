@@ -9,7 +9,10 @@ import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import { trimTrailingSlash } from "hono/trailing-slash";
 import { createOpenMembershipRoute } from "./routes/createOpenMembershipRoute.ts";
+import { createListMembershipsRoute } from "./routes/createListMembershipsRoute.ts";
 import { OpenMembershipHonoAdapter } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
+import { ListMembershipsHonoAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/http.ts";
+import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
 import { MembershipRepository } from "@examples/modules/membership/core/repository.ts";
 import type { StageIntents } from "@core/capabilities/StageIntents.ts";
 import type { StageNotifications } from "@adapters/outbound/capabilities/StageNotifications.ts";
@@ -21,6 +24,8 @@ import { OpenMembershipHandler } from "@examples/modules/membership/useCases/com
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
 import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
+import type { LoadProjection } from "@adapters/outbound/capabilities/LoadProjection.ts";
+import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 
 export function createHonoApp(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
@@ -30,6 +35,7 @@ export function createHonoApp(
       Notification<"OpenMembershipRejected", MembershipAlreadyExists>,
       Promise<void | GatewayFailure>
     >,
+  listMembershipsProjectionLoader: LoadProjection<ListMembershipsProjection>,
 ) {
   const membershipRepository = new MembershipRepository(eventStore);
 
@@ -49,6 +55,10 @@ export function createHonoApp(
   const openMembershipHandler = new OpenMembershipHandler(membershipRepository, outbox);
   const openMembershipAdapter = new OpenMembershipHonoAdapter(openMembershipHandler);
   app.route("/", createOpenMembershipRoute(openMembershipAdapter));
+
+  const listMembershipsHandler = new ListMembershipsHandler(listMembershipsProjectionLoader);
+  const listMembershipsAdapter = new ListMembershipsHonoAdapter(listMembershipsHandler);
+  app.route("/", createListMembershipsRoute(listMembershipsAdapter));
 
   app.notFound((c) => {
     return c.text("Not found", 404);
