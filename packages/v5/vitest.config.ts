@@ -6,8 +6,10 @@ export default defineConfig({
     watch: false,
     globals: true,
     reporters: ["verbose"],
-    include: ["examples/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+    include: ["examples/**/*.{spec,test}.?(c|m)[jt]s?(x)"],
     exclude: [
+      "**/index.ts",
+      "**/__tests__/**",
       "**/node_modules/**",
       "**/dist/**",
       "**/cypress/**",
@@ -17,6 +19,8 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
       reporter: ["text", "json", "html"],
+      include: ["examples/**/*.?(c|m)[jt]s?(x)"],
+      exclude: ["**/index.ts", "**/main.ts", "**/__tests__/**"],
       thresholds: {
         lines: 100,
         statements: 100,
