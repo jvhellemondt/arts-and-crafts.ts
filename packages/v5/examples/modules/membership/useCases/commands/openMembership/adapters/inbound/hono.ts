@@ -1,9 +1,12 @@
-import { createOpenMembershipCommand, type OpenMembershipCommand } from "../../command.ts";
+import {
+  createOpenMembershipCommand,
+  openMembershipCommandPayload,
+  type OpenMembershipCommand,
+} from "../../command.ts";
 import { type Context } from "hono";
 import { v7 as uuidv7 } from "uuid";
 import { type AggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
 import type { ParsedHonoBody } from "@examples/shared/adapters/inbound/ParsedHonoBody.ts";
-import type { OpenMembershipSchema } from "./schema.ts";
 import type { HandleCommand } from "@useCases/command/capabilities/HandleCommand.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { Rejection } from "@core/shapes/Rejection.ts";
@@ -17,7 +20,7 @@ export class OpenMembershipHonoAdapter {
   ) {}
 
   async handle(
-    c: Context<{}, "membership/open", ParsedHonoBody<typeof OpenMembershipSchema>>,
+    c: Context<{}, "membership/open", ParsedHonoBody<"json", typeof openMembershipCommandPayload>>,
     aggregateId: AggregateId["parsed"],
   ): Promise<void> {
     const correlationId = c.req.header("X-Correlation-ID") ?? uuidv7();
