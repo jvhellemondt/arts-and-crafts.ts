@@ -52,10 +52,8 @@ describe("IntentRelay", () => {
 
   it("should resolve and call no handlers when the outbox is empty", async () => {
     const notify = new RecordingHandler<NotifyIntent>();
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox);
+    relay.subscribe("Notify.v1", notify);
 
     await relay.relay();
 
@@ -69,13 +67,9 @@ describe("IntentRelay", () => {
     const w = makeWelcome();
     await outbox.stage([n, w]);
 
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>([
-        ["Notify.v1", notify as HandleIntent<TestIntent>],
-        ["Welcome.v1", welcome as HandleIntent<TestIntent>],
-      ]),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox);
+    relay.subscribe("Notify.v1", notify);
+    relay.subscribe("Welcome.v1", welcome);
 
     await relay.relay();
 
@@ -88,10 +82,8 @@ describe("IntentRelay", () => {
     const n = makeNotify();
     await outbox.stage([n]);
 
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox);
+    relay.subscribe("Notify.v1", notify);
     await relay.relay();
 
     const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === n.id);
@@ -106,10 +98,8 @@ describe("IntentRelay", () => {
     const n = makeNotify();
     await outbox.stage([n]);
 
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", failing as HandleIntent<TestIntent>]]),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox);
+    relay.subscribe("Notify.v1", failing);
     await relay.relay();
 
     const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === n.id);
@@ -126,10 +116,8 @@ describe("IntentRelay", () => {
     const n = makeNotify();
     await outbox.stage([n]);
 
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", failing as HandleIntent<TestIntent>]]),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox);
+    relay.subscribe("Notify.v1", failing);
     await relay.relay();
 
     const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === n.id);
@@ -140,10 +128,7 @@ describe("IntentRelay", () => {
     const w = makeWelcome();
     await outbox.stage([w]);
 
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>(),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox);
     await relay.relay();
 
     const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === w.id);
@@ -156,10 +141,8 @@ describe("IntentRelay", () => {
     await outbox.stage([makeNotify()]);
     outbox.simulate("offline");
 
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox);
+    relay.subscribe("Notify.v1", notify);
 
     await expect(relay.relay()).resolves.toBeUndefined();
     expect(notify.received).toEqual([]);
@@ -169,10 +152,8 @@ describe("IntentRelay", () => {
     const notify = new RecordingHandler<NotifyIntent>();
     await outbox.stage([makeNotify()]);
 
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox);
+    relay.subscribe("Notify.v1", notify);
 
     await relay.relay();
     await relay.relay();
@@ -200,10 +181,8 @@ describe("IntentRelay", () => {
     };
 
     const notify = new RecordingHandler<NotifyIntent>();
-    const relay = new IntentRelay<TestIntent>(
-      fakeOutbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
-    );
+    const relay = new IntentRelay<TestIntent>(fakeOutbox);
+    relay.subscribe("Notify.v1", notify);
 
     await expect(relay.relay()).resolves.toBeUndefined();
     expect(notify.received).toHaveLength(1);
@@ -230,10 +209,8 @@ describe("IntentRelay", () => {
     const failing = new RecordingHandler<NotifyIntent>(async () => {
       throw new Error("nope");
     });
-    const relay = new IntentRelay<TestIntent>(
-      fakeOutbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", failing as HandleIntent<TestIntent>]]),
-    );
+    const relay = new IntentRelay<TestIntent>(fakeOutbox);
+    relay.subscribe("Notify.v1", failing);
 
     await expect(relay.relay()).resolves.toBeUndefined();
   });
@@ -247,13 +224,9 @@ describe("IntentRelay", () => {
     const w = makeWelcome();
     await outbox.stage([n, w]);
 
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>([
-        ["Notify.v1", failing as HandleIntent<TestIntent>],
-        ["Welcome.v1", succeeding as HandleIntent<TestIntent>],
-      ]),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox);
+    relay.subscribe("Notify.v1", failing);
+    relay.subscribe("Welcome.v1", succeeding);
 
     await relay.relay();
 
@@ -261,5 +234,21 @@ describe("IntentRelay", () => {
     expect(rows.find((r) => r.entry.id === n.id)?.status).toBe("failed");
     expect(rows.find((r) => r.entry.id === w.id)?.status).toBe("dispatched");
     expect(succeeding.received).toEqual([w]);
+  });
+
+  it("should overwrite a previously registered handler when subscribed twice for the same type", async () => {
+    const first = new RecordingHandler<NotifyIntent>();
+    const second = new RecordingHandler<NotifyIntent>();
+    const n = makeNotify();
+    await outbox.stage([n]);
+
+    const relay = new IntentRelay<TestIntent>(outbox);
+    relay.subscribe("Notify.v1", first);
+    relay.subscribe("Notify.v1", second);
+
+    await relay.relay();
+
+    expect(first.received).toEqual([]);
+    expect(second.received).toEqual([n]);
   });
 });

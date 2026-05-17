@@ -4,14 +4,13 @@ import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemo
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
 import { InMemoryEmailGateway } from "@examples/shared/adapters/outbound/EmailGateway.ts";
 import { IntentRelay } from "@examples/shared/useCases/policy/IntentRelay.ts";
-import { registerNotifyUserToVerifyEmail } from "@examples/modules/membership/useCases/policies/notifyUserToVerifyEmail/adapters/inbound/subscriber.ts";
+import { subscribeNotifyUserToVerifyEmail } from "@examples/modules/membership/useCases/policies/notifyUserToVerifyEmail/adapters/inbound/subscriber.ts";
 import {
   emptyProjection,
   type ListMembershipsProjection,
 } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import { ListMembershipsProjector } from "@examples/modules/membership/useCases/queries/listMemberships/projector.ts";
 import { createHonoApp } from "./apps/hono/index.ts";
-import type { HandleIntent } from "@useCases/policy/capabilities/HandleIntent.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
 
@@ -24,9 +23,8 @@ const outbox = new InMemoryOutbox<MembershipIntents>();
 
 const emailGateway = new InMemoryEmailGateway();
 
-const intentHandlers = new Map<string, HandleIntent<MembershipIntents>>();
-registerNotifyUserToVerifyEmail(intentHandlers, { email: emailGateway });
-const intentRelay = new IntentRelay<MembershipIntents>(outbox, intentHandlers);
+const intentRelay = new IntentRelay<MembershipIntents>(outbox);
+subscribeNotifyUserToVerifyEmail(intentRelay, { email: emailGateway });
 const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjection>(
   emptyProjection,
 );
