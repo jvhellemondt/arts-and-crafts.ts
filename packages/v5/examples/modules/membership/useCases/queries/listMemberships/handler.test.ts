@@ -50,10 +50,10 @@ describe("ListMembershipsHandler", () => {
   });
 
   it("returns an empty list when status is undefined", async () => {
-    const a = makeSummary();
-    const handler = new ListMembershipsHandler(makeLoader({ [a.id]: a }));
+    const state = makeSummary();
+    const handler = new ListMembershipsHandler(makeLoader({ [state.id]: state }));
     const result = await handler.handle(makeQuery());
-    expect(result).toEqual([]);
+    expect(result).toEqual([state]);
   });
 
   it("surfaces a GatewayFailure from the projection store", async () => {

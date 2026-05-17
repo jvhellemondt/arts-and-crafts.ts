@@ -14,6 +14,8 @@ export class ListMembershipsHandler implements HandleQuery<
   async handle(query: ListMembershipsQuery): Promise<MembershipSummary[] | GatewayFailure> {
     const projection = await this.store.load();
     if (isFailure(projection)) return projection;
-    return Object.values(projection).filter((m) => m.status === query.payload.status);
+    return Object.values(projection).filter((m) =>
+      query.payload.status ? m.status === query.payload.status : true,
+    );
   }
 }
