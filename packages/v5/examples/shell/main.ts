@@ -4,7 +4,7 @@ import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemo
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
 import { InMemoryEmailGateway } from "@examples/shared/adapters/outbound/EmailGateway.ts";
 import { IntentRelay } from "@examples/shared/useCases/policy/IntentRelay.ts";
-import { NotifyUserToVerifyEmailHandler } from "@examples/modules/membership/useCases/policies/notifyUserToVerifyEmail/handler.ts";
+import { registerNotifyUserToVerifyEmail } from "@examples/modules/membership/useCases/policies/notifyUserToVerifyEmail/adapters/inbound/subscriber.ts";
 import {
   emptyProjection,
   type ListMembershipsProjection,
@@ -24,9 +24,8 @@ const outbox = new InMemoryOutbox<MembershipIntents>();
 
 const emailGateway = new InMemoryEmailGateway();
 
-const intentHandlers = new Map<string, HandleIntent<MembershipIntents>>([
-  ["NotifyUserToVerifyEmail.v1", new NotifyUserToVerifyEmailHandler(emailGateway)],
-]);
+const intentHandlers = new Map<string, HandleIntent<MembershipIntents>>();
+registerNotifyUserToVerifyEmail(intentHandlers, { email: emailGateway });
 const intentRelay = new IntentRelay<MembershipIntents>(outbox, intentHandlers);
 const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjection>(
   emptyProjection,
