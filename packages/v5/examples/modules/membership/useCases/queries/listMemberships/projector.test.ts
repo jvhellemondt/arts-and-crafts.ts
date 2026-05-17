@@ -1,3 +1,5 @@
+import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
+import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { InMemoryEventBus } from "@examples/shared/adapters/outbound/EventBus.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
@@ -23,6 +25,15 @@ const makeEvent = (overrides: Partial<MembershipOpenedV1["payload"]> = {}): Memb
   };
 };
 
+const wrap = (event: MembershipOpenedV1): StoredEvent<MembershipOpenedV1> => ({
+  stream: event.aggregateType,
+  streamKey: `${event.aggregateType}#${event.aggregateId}` as StreamKey,
+  streamVersion: 1,
+  globalPosition: 1,
+  insertedAt: Date.now(),
+  event,
+});
+
 describe("ListMembershipsProjector", () => {
   describe("start", () => {
     it("subscribes to the Membership aggregate on the bus", async () => {
@@ -31,7 +42,7 @@ describe("ListMembershipsProjector", () => {
       const projector = new ListMembershipsProjector(store);
 
       projector.start(bus);
-      await bus.publish([makeEvent({ aggregateId: "id-1" })]);
+      await bus.publish([wrap(makeEvent({ aggregateId: "id-1" }))]);
 
       expect(await store.load()).toMatchObject({ "id-1": expect.objectContaining({ id: "id-1" }) });
     });
@@ -43,7 +54,7 @@ describe("ListMembershipsProjector", () => {
       const projector = new ListMembershipsProjector(store);
       const event = makeEvent({ aggregateId: "id-1", name: "Ada Lovelace", email: "ada@example.com" });
 
-      await projector.consume(event);
+      await projector.consume(wrap(event));
 
       expect(await store.load()).toEqual({
         "id-1": { id: "id-1", name: "Ada Lovelace", email: "ada@example.com", status: "open" },
@@ -54,8 +65,8 @@ describe("ListMembershipsProjector", () => {
       const store = new InMemoryProjectionStore<ListMembershipsProjection>({});
       const projector = new ListMembershipsProjector(store);
 
-      await projector.consume(makeEvent({ aggregateId: "id-1" }));
-      await projector.consume(makeEvent({ aggregateId: "id-2" }));
+      await projector.consume(wrap(makeEvent({ aggregateId: "id-1" })));
+      await projector.consume(wrap(makeEvent({ aggregateId: "id-2" })));
 
       expect(Object.keys((await store.load()) as ListMembershipsProjection)).toEqual(
         expect.arrayContaining(["id-1", "id-2"]),
@@ -67,7 +78,7 @@ describe("ListMembershipsProjector", () => {
       store.simulate("offline");
       const projector = new ListMembershipsProjector(store);
 
-      await projector.consume(makeEvent());
+      await projector.consume(wrap(makeEvent()));
 
       store.restore();
       expect(await store.load()).toEqual({});

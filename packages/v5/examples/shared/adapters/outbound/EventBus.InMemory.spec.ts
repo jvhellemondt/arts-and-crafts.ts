@@ -1,6 +1,8 @@
 import type { ConsumeEvents } from "@adapters/outbound/capabilities/ConsumeEvents.ts";
 import type { PublishEvents } from "@adapters/outbound/capabilities/PublishEvents.ts";
 import type { RegisterEventSubscriber } from "@adapters/outbound/capabilities/RegisterEventSubscriber.ts";
+import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
+import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
 import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 import { InMemoryEventBus, type SubscriberFailure } from "./EventBus.InMemory.ts";
 import { randomUUID } from "node:crypto";
@@ -47,6 +49,19 @@ const makeEvent2 = (type: typeof eventType2 | string, aggregateId: string): Test
   id: randomUUID(),
 });
 
+const wrap = <T extends TestDomainEvent | TestDomainEvent2>(
+  event: T,
+  overrides: Partial<StoredEvent<T>> = {},
+): StoredEvent<T> => ({
+  stream: event.aggregateType,
+  streamKey: `${event.aggregateType}#${event.aggregateId}` as StreamKey,
+  streamVersion: 1,
+  globalPosition: 1,
+  insertedAt: Date.now(),
+  event,
+  ...overrides,
+});
+
 describe("InMemoryEventBus", () => {
   let bus: RegisterEventSubscriber<TestDomainEvent | TestDomainEvent2> &
     PublishEvents<TestDomainEvent | TestDomainEvent2>;
@@ -61,32 +76,54 @@ describe("InMemoryEventBus", () => {
     "should subscribe and publish events $aggregateType",
     async (event) => {
       const handler: ConsumeEvents<TestDomainEvent | TestDomainEvent2> = {
-        consume: async (e) => {
-          consumedEvents.push(e);
+        consume: async (stored) => {
+          consumedEvents.push(stored.event);
         },
       };
       bus.subscribe(event.aggregateType, handler);
-      await bus.publish([event]);
+      await bus.publish([wrap(event)]);
       expect(consumedEvents).toHaveLength(1);
       expect(consumedEvents[0].aggregateId).toBe(event.aggregateId);
     },
   );
 
+  it("should deliver stream coordinates on the wrapped event", async () => {
+    const aggregateId = randomUUID();
+    const event = makeEvent(eventType, aggregateId);
+    const received: StoredEvent<TestDomainEvent>[] = [];
+    const sink = new InMemoryEventBus<TestDomainEvent>();
+    sink.subscribe(aggregateType, {
+      consume: async (stored) => {
+        received.push(stored);
+      },
+    });
+
+    await sink.publish([wrap(event, { streamVersion: 7, globalPosition: 42 })]);
+
+    expect(received).toHaveLength(1);
+    expect(received[0]).toMatchObject({
+      streamVersion: 7,
+      globalPosition: 42,
+      stream: aggregateType,
+      streamKey: `${aggregateType}#${aggregateId}`,
+    });
+  });
+
   it("should publish events to multiple handlers", async () => {
     const aggregateId = randomUUID();
     const handler1: ConsumeEvents<TestDomainEvent | TestDomainEvent2> = {
-      consume: async (event) => {
-        consumedEvents.push(event);
+      consume: async (stored) => {
+        consumedEvents.push(stored.event);
       },
     };
     const handler2: ConsumeEvents<TestDomainEvent | TestDomainEvent2> = {
-      consume: async (event) => {
-        consumedEvents.push(event);
+      consume: async (stored) => {
+        consumedEvents.push(stored.event);
       },
     };
     bus.subscribe(aggregateType, handler1);
     bus.subscribe(aggregateType, handler2);
-    await bus.publish([makeEvent(eventType, aggregateId)]);
+    await bus.publish([wrap(makeEvent(eventType, aggregateId))]);
     expect(consumedEvents).toHaveLength(2);
     expect(consumedEvents[0].aggregateId).toBe(aggregateId);
     expect(consumedEvents[1].aggregateId).toBe(aggregateId);
@@ -94,7 +131,7 @@ describe("InMemoryEventBus", () => {
 
   it("should not consume if no handlers are registered", async () => {
     const aggregateId = randomUUID();
-    await bus.publish([makeEvent(eventType, aggregateId)]);
+    await bus.publish([wrap(makeEvent(eventType, aggregateId))]);
     expect(consumedEvents).toHaveLength(0);
   });
 
@@ -106,8 +143,8 @@ describe("InMemoryEventBus", () => {
       },
     };
     const succeeding: ConsumeEvents<TestDomainEvent> = {
-      consume: async (event) => {
-        consumedEvents.push(event);
+      consume: async (stored) => {
+        consumedEvents.push(stored.event);
       },
     };
     const failures: SubscriberFailure<TestDomainEvent>[] = [];
@@ -118,11 +155,12 @@ describe("InMemoryEventBus", () => {
     sink.subscribe(aggregateType, succeeding);
 
     const event = makeEvent(eventType, aggregateId);
-    await expect(sink.publish([event])).resolves.toBeUndefined();
+    const stored = wrap(event);
+    await expect(sink.publish([stored])).resolves.toBeUndefined();
 
     expect(consumedEvents).toEqual([event]);
     expect(failures).toHaveLength(1);
-    expect(failures[0].event).toBe(event);
+    expect(failures[0].storedEvent).toBe(stored);
     expect(failures[0].handler).toBe(failing);
     expect((failures[0].cause as Error).message).toBe("boom");
   });
@@ -135,30 +173,32 @@ describe("InMemoryEventBus", () => {
       },
     };
     bus.subscribe(aggregateType, failing);
-    await expect(bus.publish([makeEvent(eventType, aggregateId)])).resolves.toBeUndefined();
+    await expect(bus.publish([wrap(makeEvent(eventType, aggregateId))])).resolves.toBeUndefined();
   });
 
   it("should continue publishing the rest of the batch after a handler rejection", async () => {
     const first = makeEvent(eventType, randomUUID());
     const second = makeEvent(eventType, randomUUID());
+    const firstStored = wrap(first);
+    const secondStored = wrap(second);
     const seen: TestDomainEvent[] = [];
     const failures: SubscriberFailure<TestDomainEvent>[] = [];
     const sink = new InMemoryEventBus<TestDomainEvent>((failure) => {
       failures.push(failure);
     });
     sink.subscribe(aggregateType, {
-      consume: async (event) => {
-        seen.push(event);
-        if (event === first) {
+      consume: async (stored) => {
+        seen.push(stored.event);
+        if (stored.event === first) {
           throw new Error("first failed");
         }
       },
     });
 
-    await sink.publish([first, second]);
+    await sink.publish([firstStored, secondStored]);
 
     expect(seen).toEqual([first, second]);
     expect(failures).toHaveLength(1);
-    expect(failures[0].event).toBe(first);
+    expect(failures[0].storedEvent).toBe(firstStored);
   });
 });

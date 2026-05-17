@@ -1,10 +1,11 @@
 import type { ConsumeEvents } from "@adapters/outbound/capabilities/ConsumeEvents.ts";
 import type { PublishEvents } from "@adapters/outbound/capabilities/PublishEvents.ts";
 import type { RegisterEventSubscriber } from "@adapters/outbound/capabilities/RegisterEventSubscriber.ts";
+import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
 import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 
 export interface SubscriberFailure<TEvent extends DomainEvent> {
-  event: TEvent;
+  storedEvent: StoredEvent<TEvent>;
   handler: ConsumeEvents<TEvent>;
   cause: unknown;
 }
@@ -25,14 +26,16 @@ export class InMemoryEventBus<TEvent extends DomainEvent = DomainEvent>
     this.handlers.set(aggregateType, list);
   }
 
-  async publish(events: TEvent[]): Promise<void> {
-    for (const event of events) {
-      const handlers = this.handlers.get(event.aggregateType) ?? [];
-      const results = await Promise.allSettled(handlers.map((handler) => handler.consume(event)));
+  async publish(events: StoredEvent<TEvent>[]): Promise<void> {
+    for (const storedEvent of events) {
+      const handlers = this.handlers.get(storedEvent.stream) ?? [];
+      const results = await Promise.allSettled(
+        handlers.map((handler) => handler.consume(storedEvent)),
+      );
       results.forEach((result, idx) => {
         if (result.status === "rejected") {
           this.onSubscriberFailure({
-            event,
+            storedEvent,
             handler: handlers[idx],
             cause: result.reason,
           });
