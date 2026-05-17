@@ -3,10 +3,9 @@ import { aggregateId as aggregateIdSchema } from "@examples/modules/membership/c
 import { v7 as uuidv7 } from "uuid";
 import type { Context } from "hono";
 import type { ParsedHonoBody } from "@examples/shared/adapters/inbound/ParsedHonoBody.ts";
-import type { OpenMembershipSchema } from "./schema.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { Rejection } from "@core/shapes/Rejection.ts";
-import type { OpenMembershipCommand } from "../../command.ts";
+import type { OpenMembershipCommand, openMembershipCommandPayload } from "../../command.ts";
 import type { HandleCommand } from "@useCases/command/capabilities/HandleCommand.ts";
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -15,7 +14,11 @@ const aggregateId = aggregateIdSchema.parse(uuidv7());
 
 const VALID_BODY = { name: "Jane Doe", email: "jane@example.com" };
 
-type HonoCtx = Context<{}, "membership/open", ParsedHonoBody<typeof OpenMembershipSchema>>;
+type HonoCtx = Context<
+  {},
+  "membership/open",
+  ParsedHonoBody<"json", typeof openMembershipCommandPayload>
+>;
 
 function makeContext(headers: Record<string, string | undefined> = {}): HonoCtx {
   return {
