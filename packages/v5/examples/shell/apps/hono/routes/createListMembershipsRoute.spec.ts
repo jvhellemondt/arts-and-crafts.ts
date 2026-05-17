@@ -1,8 +1,8 @@
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { HandleQuery } from "@useCases/query/capabilities/HandleQuery.ts";
-import { ListMembershipsHonoAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/http.ts";
+import { ListMembershipsHonoAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
 import type { MembershipSummary } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
-import type { ListMembershipsQuery } from "@examples/modules/membership/useCases/queries/listMemberships/queries.ts";
+import type { ListMembershipsQuery } from "@examples/modules/membership/useCases/queries/listMemberships/query.ts";
 import { randomUUID } from "node:crypto";
 import { createListMembershipsRoute } from "./createListMembershipsRoute.ts";
 

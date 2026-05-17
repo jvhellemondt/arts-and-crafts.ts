@@ -3,7 +3,9 @@ import type { MembershipOpenedV1 } from "@examples/modules/membership/core/event
 import { randomUUID } from "node:crypto";
 import { apply, emptyProjection, type ListMembershipsProjection } from "./projection.ts";
 
-const makeOpened = (overrides: Partial<MembershipOpenedV1["payload"]> = {}): MembershipOpenedV1 => ({
+const makeOpened = (
+  overrides: Partial<MembershipOpenedV1["payload"]> = {},
+): MembershipOpenedV1 => ({
   type: "MembershipOpened.v1",
   kind: "domain",
   aggregateType: "Membership",
@@ -19,8 +21,8 @@ const makeOpened = (overrides: Partial<MembershipOpenedV1["payload"]> = {}): Mem
 });
 
 describe("listMemberships projection", () => {
-  it("starts with an empty byId map", () => {
-    expect(emptyProjection).toEqual({ byId: {} });
+  it("starts with an empty projection", () => {
+    expect(emptyProjection).toEqual({});
   });
 
   it("adds an entry for MembershipOpened.v1", () => {
@@ -33,7 +35,7 @@ describe("listMemberships projection", () => {
 
     const next = apply(emptyProjection, event);
 
-    expect(next.byId[id]).toEqual({
+    expect(next[id]).toEqual({
       id,
       name: "Ada Lovelace",
       email: "ada@example.com",
@@ -47,7 +49,7 @@ describe("listMemberships projection", () => {
     const afterFirst = apply(emptyProjection, makeOpened({ aggregateId: firstId }));
     const afterSecond = apply(afterFirst, makeOpened({ aggregateId: secondId }));
 
-    expect(Object.keys(afterSecond.byId)).toEqual(expect.arrayContaining([firstId, secondId]));
+    expect(Object.keys(afterSecond)).toEqual(expect.arrayContaining([firstId, secondId]));
   });
 
   it("returns the same state reference for unrecognised events", () => {
@@ -55,7 +57,7 @@ describe("listMemberships projection", () => {
       ...makeOpened(),
       type: "Unknown.v1",
     } as unknown as MembershipEventV1;
-    const state: ListMembershipsProjection = { byId: {} };
+    const state: ListMembershipsProjection = {};
     expect(apply(state, unknown)).toBe(state);
   });
 });

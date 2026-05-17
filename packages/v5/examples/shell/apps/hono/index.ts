@@ -11,7 +11,7 @@ import { trimTrailingSlash } from "hono/trailing-slash";
 import { createOpenMembershipRoute } from "./routes/createOpenMembershipRoute.ts";
 import { createListMembershipsRoute } from "./routes/createListMembershipsRoute.ts";
 import { OpenMembershipHonoAdapter } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
-import { ListMembershipsHonoAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/http.ts";
+import { ListMembershipsHonoAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
 import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
 import { MembershipRepository } from "@examples/modules/membership/core/repository.ts";
 import type { StageIntents } from "@core/capabilities/StageIntents.ts";

@@ -7,11 +7,9 @@ export interface MembershipSummary {
   status: "open";
 }
 
-export interface ListMembershipsProjection {
-  byId: Record<string, MembershipSummary>;
-}
+export type ListMembershipsProjection = Record<string, MembershipSummary>;
 
-export const emptyProjection: ListMembershipsProjection = { byId: {} };
+export const emptyProjection: ListMembershipsProjection = {};
 
 export function apply(
   state: ListMembershipsProjection,
@@ -20,14 +18,12 @@ export function apply(
   switch (event.type) {
     case "MembershipOpened.v1":
       return {
-        byId: {
-          ...state.byId,
-          [event.payload.aggregateId]: {
-            id: event.payload.aggregateId,
-            name: event.payload.name,
-            email: event.payload.email,
-            status: "open",
-          },
+        ...state,
+        [event.payload.aggregateId]: {
+          id: event.payload.aggregateId,
+          name: event.payload.name,
+          email: event.payload.email,
+          status: "open",
         },
       };
     default:

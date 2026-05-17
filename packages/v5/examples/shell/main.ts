@@ -27,9 +27,7 @@ const emailGateway = new InMemoryEmailGateway();
 const intentHandlers = new Map<string, HandleIntent<MembershipIntents>>([
   ["NotifyUserToVerifyEmail.v1", new NotifyUserToVerifyEmailHandler(emailGateway)],
 ]);
-
 const intentRelay = new IntentRelay<MembershipIntents>(outbox, intentHandlers);
-
 const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjection>(
   emptyProjection,
 );
