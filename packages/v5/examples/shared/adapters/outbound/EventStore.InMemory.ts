@@ -1,9 +1,7 @@
 import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
-import type { EventTail } from "@adapters/outbound/capabilities/EventTail.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
 import type { LoadEventStreamFrom } from "@adapters/outbound/capabilities/LoadEventStreamFrom.ts";
 import type { LoadEventsFrom } from "@adapters/outbound/capabilities/LoadEventsFrom.ts";
-import type { PublishEvents } from "@adapters/outbound/capabilities/PublishEvents.ts";
 import type {
   FaultSimulationMode,
   SimulateFaults,
@@ -19,12 +17,10 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     LoadEventsFrom<TEvent>,
     LoadEventStreamFrom<TEvent>,
     AppendToEventStream<TEvent, Promise<void | GatewayFailure>>,
-    SimulateFaults,
-    EventTail<TEvent>
+    SimulateFaults
 {
   private readonly tableName: string = "event_store";
   private simulation?: FaultSimulationMode;
-  private publisher?: PublishEvents<TEvent, Promise<void>>;
 
   constructor(private readonly datasource: Map<string, StoredEvent<TEvent>[]> = new Map()) {}
 
@@ -93,28 +89,17 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   async append(events: TEvent[]): Promise<void | GatewayFailure> {
     if (this.activeFault === "offline") return this.offlineFailure();
 
-    const appended: StoredEvent<TEvent>[] = [];
     for (const event of events) {
       const streamKey: StreamKey = `${event.aggregateType}#${event.aggregateId}`;
       const streamVersion = this.rows.filter((e) => e.streamKey === streamKey).length + 1;
-      const row: StoredEvent<TEvent> = {
+      this.rows.push({
         stream: event.aggregateType,
         streamKey,
         streamVersion,
         globalPosition: this.rows.length + 1,
         insertedAt: Date.now(),
         event,
-      };
-      this.rows.push(row);
-      appended.push(row);
+      });
     }
-
-    if (this.publisher) {
-      await this.publisher.publish(appended);
-    }
-  }
-
-  async withEventTail(publisher: PublishEvents<TEvent, Promise<void>>): Promise<void> {
-    this.publisher = publisher;
   }
 }

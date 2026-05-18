@@ -1,11 +1,35 @@
-import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
-import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
+import type { AdvanceCheckpoint } from "@adapters/outbound/capabilities/AdvanceCheckpoint.ts";
+import type { LoadCheckpoint } from "@adapters/outbound/capabilities/LoadCheckpoint.ts";
+import type { LoadProjection } from "@adapters/outbound/capabilities/LoadProjection.ts";
+import type { SaveProjection } from "@adapters/outbound/capabilities/SaveProjection.ts";
+import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
-import { InMemoryEventBus } from "@examples/shared/adapters/outbound/EventBus.InMemory.ts";
+import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
 import { randomUUID } from "node:crypto";
 import type { ListMembershipsProjection } from "./projection.ts";
 import { ListMembershipsProjector } from "./projector.ts";
+
+const stubFailure: GatewayFailure = {
+  type: "failure",
+  kind: "GatewayFailure",
+  gateway: "Stub",
+  reason: "stub failure",
+};
+
+type StubStore = LoadProjection<ListMembershipsProjection> &
+  SaveProjection<ListMembershipsProjection> &
+  LoadCheckpoint &
+  AdvanceCheckpoint;
+
+const stubStore = (overrides: Partial<StubStore>): StubStore => ({
+  load: async () => ({}),
+  save: async () => {},
+  loadCheckpoint: async () => 0,
+  advanceCheckpoint: async () => {},
+  ...overrides,
+});
 
 const makeEvent = (overrides: Partial<MembershipOpenedV1["payload"]> = {}): MembershipOpenedV1 => {
   const aggregateId = overrides.aggregateId ?? randomUUID();
@@ -25,63 +49,168 @@ const makeEvent = (overrides: Partial<MembershipOpenedV1["payload"]> = {}): Memb
   };
 };
 
-const wrap = (event: MembershipOpenedV1): StoredEvent<MembershipOpenedV1> => ({
-  stream: event.aggregateType,
-  streamKey: `${event.aggregateType}#${event.aggregateId}` as StreamKey,
-  streamVersion: 1,
-  globalPosition: 1,
-  insertedAt: Date.now(),
-  event,
-});
-
 describe("ListMembershipsProjector", () => {
-  describe("start", () => {
-    it("subscribes to the Membership aggregate on the bus", async () => {
-      const store = new InMemoryProjectionStore<ListMembershipsProjection>({});
-      const bus = new InMemoryEventBus();
-      const projector = new ListMembershipsProjector(store);
+  describe("tick", () => {
+    it("applies appended events to the projection", async () => {
+      const projectionStore = new InMemoryProjectionStore<ListMembershipsProjection>({});
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const projector = new ListMembershipsProjector(projectionStore, eventStore);
 
-      projector.start(bus);
-      await bus.publish([wrap(makeEvent({ aggregateId: "id-1" }))]);
+      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      await projector.tick();
 
-      expect(await store.load()).toMatchObject({ "id-1": expect.objectContaining({ id: "id-1" }) });
-    });
-  });
-
-  describe("consume", () => {
-    it("saves the updated projection after applying an event", async () => {
-      const store = new InMemoryProjectionStore<ListMembershipsProjection>({});
-      const projector = new ListMembershipsProjector(store);
-      const event = makeEvent({ aggregateId: "id-1", name: "Ada Lovelace", email: "ada@example.com" });
-
-      await projector.consume(wrap(event));
-
-      expect(await store.load()).toEqual({
-        "id-1": { id: "id-1", name: "Ada Lovelace", email: "ada@example.com", status: "open" },
+      expect(await projectionStore.load()).toMatchObject({
+        "id-1": expect.objectContaining({ id: "id-1" }),
       });
     });
 
-    it("preserves existing entries when applying a new event", async () => {
-      const store = new InMemoryProjectionStore<ListMembershipsProjection>({});
-      const projector = new ListMembershipsProjector(store);
+    it("advances the checkpoint to the last applied globalPosition", async () => {
+      const projectionStore = new InMemoryProjectionStore<ListMembershipsProjection>({});
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const projector = new ListMembershipsProjector(projectionStore, eventStore);
 
-      await projector.consume(wrap(makeEvent({ aggregateId: "id-1" })));
-      await projector.consume(wrap(makeEvent({ aggregateId: "id-2" })));
+      await eventStore.append([
+        makeEvent({ aggregateId: "id-1" }),
+        makeEvent({ aggregateId: "id-2" }),
+        makeEvent({ aggregateId: "id-3" }),
+      ]);
+      await projector.tick();
 
-      expect(Object.keys((await store.load()) as ListMembershipsProjection)).toEqual(
-        expect.arrayContaining(["id-1", "id-2"]),
-      );
+      expect(await projectionStore.loadCheckpoint()).toBe(3);
     });
 
-    it("does not save when the store returns a GatewayFailure", async () => {
-      const store = new InMemoryProjectionStore<ListMembershipsProjection>({});
-      store.simulate("offline");
-      const projector = new ListMembershipsProjector(store);
+    it("resumes from the saved checkpoint on the next tick", async () => {
+      const projectionStore = new InMemoryProjectionStore<ListMembershipsProjection>({});
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const projector = new ListMembershipsProjector(projectionStore, eventStore);
 
-      await projector.consume(wrap(makeEvent()));
+      await eventStore.append([
+        makeEvent({ aggregateId: "id-1" }),
+        makeEvent({ aggregateId: "id-2" }),
+      ]);
+      await projector.tick();
 
-      store.restore();
-      expect(await store.load()).toEqual({});
+      await eventStore.append([
+        makeEvent({ aggregateId: "id-3" }),
+        makeEvent({ aggregateId: "id-4" }),
+      ]);
+      await projector.tick();
+
+      const state = (await projectionStore.load()) as ListMembershipsProjection;
+      expect(Object.keys(state)).toEqual(
+        expect.arrayContaining(["id-1", "id-2", "id-3", "id-4"]),
+      );
+      expect(await projectionStore.loadCheckpoint()).toBe(4);
+    });
+
+    it("does nothing when no new events are available", async () => {
+      const projectionStore = new InMemoryProjectionStore<ListMembershipsProjection>({});
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const projector = new ListMembershipsProjector(projectionStore, eventStore);
+
+      await projector.tick();
+
+      expect(await projectionStore.load()).toEqual({});
+      expect(await projectionStore.loadCheckpoint()).toBe(0);
+    });
+
+    it("does not advance the checkpoint when the projection store is offline", async () => {
+      const projectionStore = new InMemoryProjectionStore<ListMembershipsProjection>({});
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const projector = new ListMembershipsProjector(projectionStore, eventStore);
+
+      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      projectionStore.simulate("offline");
+      await projector.tick();
+
+      projectionStore.restore();
+      expect(await projectionStore.load()).toEqual({});
+      expect(await projectionStore.loadCheckpoint()).toBe(0);
+    });
+
+    it("returns early when the event store is offline", async () => {
+      const projectionStore = new InMemoryProjectionStore<ListMembershipsProjection>({});
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const projector = new ListMembershipsProjector(projectionStore, eventStore);
+
+      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      eventStore.simulate("offline");
+      await projector.tick();
+
+      eventStore.restore();
+      expect(await projectionStore.load()).toEqual({});
+      expect(await projectionStore.loadCheckpoint()).toBe(0);
+    });
+
+    it("bails mid-batch when projection load fails", async () => {
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const advanced: number[] = [];
+      const store = stubStore({
+        load: async () => stubFailure,
+        advanceCheckpoint: async (position) => {
+          advanced.push(position);
+        },
+      });
+      const projector = new ListMembershipsProjector(store, eventStore);
+
+      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      await projector.tick();
+
+      expect(advanced).toEqual([]);
+    });
+
+    it("bails mid-batch when projection save fails", async () => {
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const advanced: number[] = [];
+      const store = stubStore({
+        save: async () => stubFailure,
+        advanceCheckpoint: async (position) => {
+          advanced.push(position);
+        },
+      });
+      const projector = new ListMembershipsProjector(store, eventStore);
+
+      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      await projector.tick();
+
+      expect(advanced).toEqual([]);
+    });
+
+    it("bails mid-batch when checkpoint advance fails", async () => {
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const saved: ListMembershipsProjection[] = [];
+      const store = stubStore({
+        save: async (state) => {
+          saved.push(state);
+        },
+        advanceCheckpoint: async () => stubFailure,
+      });
+      const projector = new ListMembershipsProjector(store, eventStore);
+
+      await eventStore.append([
+        makeEvent({ aggregateId: "id-1" }),
+        makeEvent({ aggregateId: "id-2" }),
+      ]);
+      await projector.tick();
+
+      expect(saved).toHaveLength(1);
+    });
+
+    it("honours batchSize and only applies the configured slice per tick", async () => {
+      const projectionStore = new InMemoryProjectionStore<ListMembershipsProjection>({});
+      const eventStore = new InMemoryEventStore<MembershipEventV1>();
+      const projector = new ListMembershipsProjector(projectionStore, eventStore, 2);
+
+      await eventStore.append([
+        makeEvent({ aggregateId: "id-1" }),
+        makeEvent({ aggregateId: "id-2" }),
+        makeEvent({ aggregateId: "id-3" }),
+      ]);
+      await projector.tick();
+
+      expect(await projectionStore.loadCheckpoint()).toBe(2);
+      await projector.tick();
+      expect(await projectionStore.loadCheckpoint()).toBe(3);
     });
   });
 });

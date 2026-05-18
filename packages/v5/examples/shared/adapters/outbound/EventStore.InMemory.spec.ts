@@ -1,9 +1,7 @@
 import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
-import type { EventTail } from "@adapters/outbound/capabilities/EventTail.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
 import type { LoadEventStreamFrom } from "@adapters/outbound/capabilities/LoadEventStreamFrom.ts";
 import type { LoadEventsFrom } from "@adapters/outbound/capabilities/LoadEventsFrom.ts";
-import type { PublishEvents } from "@adapters/outbound/capabilities/PublishEvents.ts";
 import type { SimulateFaults } from "@adapters/outbound/capabilities/SimulateFaults.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
@@ -35,7 +33,6 @@ describe("in-memory event store", () => {
     LoadEventsFrom<TestDomainEvent> &
     LoadEventStreamFrom<TestDomainEvent> &
     AppendToEventStream<TestDomainEvent, Promise<void | GatewayFailure>> &
-    EventTail<TestDomainEvent> &
     SimulateFaults;
 
   const fixture = [
@@ -200,26 +197,6 @@ describe("in-memory event store", () => {
       await Promise.all(fixture.map((event) => eventStore.append([event])));
       const events = await eventStore.load(streamName, aggregateId);
       expect(events).toEqual(fixture);
-    });
-  });
-
-  describe("with event publisher", async () => {
-    it("should publish stored events with stream coordinates", async () => {
-      const store = new InMemoryEventStore<TestDomainEvent>();
-      const published: StoredEvent<TestDomainEvent>[] = [];
-      const publisher: PublishEvents<TestDomainEvent, Promise<void>> = {
-        publish: async (events) => {
-          published.push(...events);
-        },
-      };
-      await store.withEventTail(publisher);
-      await store.append(fixture);
-
-      expect(published).toHaveLength(3);
-      expect(published.map((row) => row.event)).toEqual(fixture);
-      expect(published.map((row) => row.globalPosition)).toEqual([1, 2, 3]);
-      expect(published.map((row) => row.streamVersion)).toEqual([1, 2, 3]);
-      expect(published.every((row) => row.stream === streamName)).toBe(true);
     });
   });
 });
