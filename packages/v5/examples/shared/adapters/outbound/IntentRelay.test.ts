@@ -54,7 +54,9 @@ describe("IntentRelay", () => {
     const notify = new RecordingHandler<NotifyIntent>();
     const relay = new IntentRelay<TestIntent>(
       outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
+      new Map<string, HandleIntent<TestIntent>>([
+        ["Notify.v1", notify as HandleIntent<TestIntent>],
+      ]),
     );
 
     await relay.relay();
@@ -90,7 +92,9 @@ describe("IntentRelay", () => {
 
     const relay = new IntentRelay<TestIntent>(
       outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
+      new Map<string, HandleIntent<TestIntent>>([
+        ["Notify.v1", notify as HandleIntent<TestIntent>],
+      ]),
     );
     await relay.relay();
 
@@ -108,7 +112,9 @@ describe("IntentRelay", () => {
 
     const relay = new IntentRelay<TestIntent>(
       outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", failing as HandleIntent<TestIntent>]]),
+      new Map<string, HandleIntent<TestIntent>>([
+        ["Notify.v1", failing as HandleIntent<TestIntent>],
+      ]),
     );
     await relay.relay();
 
@@ -128,7 +134,9 @@ describe("IntentRelay", () => {
 
     const relay = new IntentRelay<TestIntent>(
       outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", failing as HandleIntent<TestIntent>]]),
+      new Map<string, HandleIntent<TestIntent>>([
+        ["Notify.v1", failing as HandleIntent<TestIntent>],
+      ]),
     );
     await relay.relay();
 
@@ -140,10 +148,7 @@ describe("IntentRelay", () => {
     const w = makeWelcome();
     await outbox.stage([w]);
 
-    const relay = new IntentRelay<TestIntent>(
-      outbox,
-      new Map<string, HandleIntent<TestIntent>>(),
-    );
+    const relay = new IntentRelay<TestIntent>(outbox, new Map<string, HandleIntent<TestIntent>>());
     await relay.relay();
 
     const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === w.id);
@@ -158,7 +163,9 @@ describe("IntentRelay", () => {
 
     const relay = new IntentRelay<TestIntent>(
       outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
+      new Map<string, HandleIntent<TestIntent>>([
+        ["Notify.v1", notify as HandleIntent<TestIntent>],
+      ]),
     );
 
     await expect(relay.relay()).resolves.toBeUndefined();
@@ -171,7 +178,9 @@ describe("IntentRelay", () => {
 
     const relay = new IntentRelay<TestIntent>(
       outbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
+      new Map<string, HandleIntent<TestIntent>>([
+        ["Notify.v1", notify as HandleIntent<TestIntent>],
+      ]),
     );
 
     await relay.relay();
@@ -202,7 +211,9 @@ describe("IntentRelay", () => {
     const notify = new RecordingHandler<NotifyIntent>();
     const relay = new IntentRelay<TestIntent>(
       fakeOutbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", notify as HandleIntent<TestIntent>]]),
+      new Map<string, HandleIntent<TestIntent>>([
+        ["Notify.v1", notify as HandleIntent<TestIntent>],
+      ]),
     );
 
     await expect(relay.relay()).resolves.toBeUndefined();
@@ -232,7 +243,9 @@ describe("IntentRelay", () => {
     });
     const relay = new IntentRelay<TestIntent>(
       fakeOutbox,
-      new Map<string, HandleIntent<TestIntent>>([["Notify.v1", failing as HandleIntent<TestIntent>]]),
+      new Map<string, HandleIntent<TestIntent>>([
+        ["Notify.v1", failing as HandleIntent<TestIntent>],
+      ]),
     );
 
     await expect(relay.relay()).resolves.toBeUndefined();

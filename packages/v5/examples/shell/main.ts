@@ -2,7 +2,7 @@ import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStor
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
 import { InMemoryEmailGateway } from "@examples/shared/adapters/outbound/EmailGateway.ts";
-import { IntentRelay } from "@examples/shared/useCases/policy/IntentRelay.ts";
+import { IntentRelay } from "@examples/shared/adapters/outbound/IntentRelay.ts";
 import { NotifyUserToVerifyEmailHandler } from "@examples/modules/membership/useCases/policies/notifyUserToVerifyEmail/handler.ts";
 import {
   emptyProjection,
