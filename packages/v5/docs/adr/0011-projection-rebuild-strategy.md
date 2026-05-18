@@ -63,11 +63,10 @@ The rebuild follows a strict sequence:
 9. Save new schema version and final checkpoint position to projection store
 10. Projection store rebuilding status is cleared — queries resume normally
 11. Technical event written: `ProjectionRebuildCompleted`
-12. Projector enters normal channel receive loop
+12. Projector resumes its normal polling loop from the saved checkpoint
 
-Events continue to arrive on the channel during rebuild. The projector does not process channel events during rebuild —
-they accumulate in the channel buffer. Once rebuild completes and the projector enters the normal loop, buffered events
-are processed in order from the checkpoint position, catching up to the present.
+The polling loop is suspended during rebuild. Once rebuild completes and the new schema version and checkpoint are
+saved, polling resumes from the new checkpoint position and catches up to the present on subsequent ticks.
 
 ---
 
@@ -85,8 +84,8 @@ ready.
 
 ## Event Sourcing During Replay
 
-During rebuild the projector reads directly from the event store rather than the channel. The event store exposes a
-load-all operation that returns all events from a given position in order:
+During rebuild the projector reads from the event store in larger batches than its normal polling tick. The event
+store exposes a load-by-position operation that returns all events from a given position in order:
 
 ```
 event store:

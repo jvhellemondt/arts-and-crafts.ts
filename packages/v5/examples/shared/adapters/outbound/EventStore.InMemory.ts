@@ -1,7 +1,7 @@
 import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
-import type { EventTail } from "@adapters/outbound/capabilities/EventTail.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { PublishEvents } from "@adapters/outbound/capabilities/PublishEvents.ts";
+import type { LoadEventStreamFrom } from "@adapters/outbound/capabilities/LoadEventStreamFrom.ts";
+import type { LoadEventsFrom } from "@adapters/outbound/capabilities/LoadEventsFrom.ts";
 import type {
   FaultSimulationMode,
   SimulateFaults,
@@ -14,13 +14,13 @@ import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
     LoadDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>,
+    LoadEventsFrom<TEvent>,
+    LoadEventStreamFrom<TEvent>,
     AppendToEventStream<TEvent, Promise<void | GatewayFailure>>,
-    SimulateFaults,
-    EventTail<TEvent>
+    SimulateFaults
 {
   private readonly tableName: string = "event_store";
   private simulation?: FaultSimulationMode;
-  private publisher?: PublishEvents<TEvent, Promise<void>>;
 
   constructor(private readonly datasource: Map<string, StoredEvent<TEvent>[]> = new Map()) {}
 
@@ -47,15 +47,17 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     return this.datasource.get(this.tableName)!;
   }
 
+  private offlineFailure(): GatewayFailure {
+    return {
+      type: "failure",
+      kind: "GatewayFailure",
+      gateway: "InMemoryEventStore",
+      reason: "The Eventstore has been set to offline mode",
+    };
+  }
+
   async load(streamName: string, aggregateId: string): Promise<TEvent[] | GatewayFailure> {
-    if (this.activeFault === "offline") {
-      return {
-        type: "failure",
-        kind: "GatewayFailure",
-        gateway: "InMemoryEventStore",
-        reason: "The Eventstore has been set to offline mode",
-      };
-    }
+    if (this.activeFault === "offline") return this.offlineFailure();
 
     const streamKey: StreamKey = `${streamName}#${aggregateId}`;
     return this.rows
@@ -63,20 +65,33 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
       .map((envelope) => envelope.event);
   }
 
+  async loadFrom(
+    globalPosition: number,
+    limit?: number,
+  ): Promise<StoredEvent<TEvent>[] | GatewayFailure> {
+    if (this.activeFault === "offline") return this.offlineFailure();
+
+    const filtered = this.rows.filter((row) => row.globalPosition >= globalPosition);
+    return limit !== undefined ? filtered.slice(0, limit) : filtered;
+  }
+
+  async loadStreamFrom(
+    streamKey: StreamKey,
+    fromVersion: number,
+  ): Promise<StoredEvent<TEvent>[] | GatewayFailure> {
+    if (this.activeFault === "offline") return this.offlineFailure();
+
+    return this.rows.filter(
+      (row) => row.streamKey === streamKey && row.streamVersion >= fromVersion,
+    );
+  }
+
   async append(events: TEvent[]): Promise<void | GatewayFailure> {
-    if (this.activeFault === "offline") {
-      return {
-        type: "failure",
-        kind: "GatewayFailure",
-        gateway: "InMemoryEventStore",
-        reason: "The Eventstore has been set to offline mode",
-      };
-    }
+    if (this.activeFault === "offline") return this.offlineFailure();
 
     for (const event of events) {
       const streamKey: StreamKey = `${event.aggregateType}#${event.aggregateId}`;
       const streamVersion = this.rows.filter((e) => e.streamKey === streamKey).length + 1;
-
       this.rows.push({
         stream: event.aggregateType,
         streamKey,
@@ -86,13 +101,5 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
         event,
       });
     }
-
-    if (this.publisher) {
-      await this.publisher.publish(events);
-    }
-  }
-
-  async withEventTail(publisher: PublishEvents<TEvent, Promise<void>>): Promise<void> {
-    this.publisher = publisher;
   }
 }

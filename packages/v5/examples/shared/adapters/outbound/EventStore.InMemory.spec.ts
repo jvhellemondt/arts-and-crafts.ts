@@ -1,16 +1,16 @@
-import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
-import { InMemoryEventStore } from "./EventStore.InMemory.ts";
 import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
-import { randomUUID } from "node:crypto";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
+import type { LoadEventStreamFrom } from "@adapters/outbound/capabilities/LoadEventStreamFrom.ts";
+import type { LoadEventsFrom } from "@adapters/outbound/capabilities/LoadEventsFrom.ts";
 import type { SimulateFaults } from "@adapters/outbound/capabilities/SimulateFaults.ts";
-import type { EventTail } from "@adapters/outbound/capabilities/EventTail.ts";
-import type { PublishEvents } from "@adapters/outbound/capabilities/PublishEvents.ts";
+import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
+import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
+import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
+import { randomUUID } from "node:crypto";
+import { InMemoryEventStore } from "./EventStore.InMemory.ts";
 
 interface TestDomainEvent extends DomainEvent<"TestDomainEvent", { name: string }> {}
-
-const publishEvents: TestDomainEvent[] = [];
 
 const makeEvent = (aggregateType: string, aggregateId: string): TestDomainEvent => ({
   type: "TestDomainEvent",
@@ -30,8 +30,9 @@ describe("in-memory event store", () => {
   const aggregateId = randomUUID();
   const streamName = "users";
   let eventStore: LoadDomainEvents<TestDomainEvent, Promise<TestDomainEvent[] | GatewayFailure>> &
+    LoadEventsFrom<TestDomainEvent> &
+    LoadEventStreamFrom<TestDomainEvent> &
     AppendToEventStream<TestDomainEvent, Promise<void | GatewayFailure>> &
-    EventTail<TestDomainEvent> &
     SimulateFaults;
 
   const fixture = [
@@ -82,6 +83,68 @@ describe("in-memory event store", () => {
     await expect(eventStore.append([event])).resolves.not.toThrow();
   });
 
+  describe("loadFrom", () => {
+    it("returns all stored events from globalPosition 1", async () => {
+      await eventStore.append(fixture);
+      const result = (await eventStore.loadFrom(1)) as StoredEvent<TestDomainEvent>[];
+      expect(result).toHaveLength(3);
+      expect(result.map((row) => row.globalPosition)).toEqual([1, 2, 3]);
+      expect(result.map((row) => row.event)).toEqual(fixture);
+    });
+
+    it("filters out rows before the given globalPosition", async () => {
+      await eventStore.append(fixture);
+      const result = (await eventStore.loadFrom(2)) as StoredEvent<TestDomainEvent>[];
+      expect(result.map((row) => row.globalPosition)).toEqual([2, 3]);
+    });
+
+    it("honours the optional limit", async () => {
+      await eventStore.append(fixture);
+      const result = (await eventStore.loadFrom(1, 2)) as StoredEvent<TestDomainEvent>[];
+      expect(result.map((row) => row.globalPosition)).toEqual([1, 2]);
+    });
+
+    it("returns an empty array when nothing has been appended", async () => {
+      const result = await eventStore.loadFrom(1);
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("loadStreamFrom", () => {
+    it("returns rows of the requested stream in version order", async () => {
+      await eventStore.append(fixture);
+      const otherId = randomUUID();
+      await eventStore.append([makeEvent(streamName, otherId)]);
+      const streamKey: StreamKey = `${streamName}#${aggregateId}`;
+
+      const result = (await eventStore.loadStreamFrom(
+        streamKey,
+        1,
+      )) as StoredEvent<TestDomainEvent>[];
+
+      expect(result.map((row) => row.streamVersion)).toEqual([1, 2, 3]);
+      expect(result.map((row) => row.event)).toEqual(fixture);
+    });
+
+    it("filters out versions below the requested fromVersion", async () => {
+      await eventStore.append(fixture);
+      const streamKey: StreamKey = `${streamName}#${aggregateId}`;
+
+      const result = (await eventStore.loadStreamFrom(
+        streamKey,
+        2,
+      )) as StoredEvent<TestDomainEvent>[];
+
+      expect(result.map((row) => row.streamVersion)).toEqual([2, 3]);
+    });
+
+    it("returns an empty array for an unknown stream", async () => {
+      await eventStore.append(fixture);
+      const result = await eventStore.loadStreamFrom(`${streamName}#missing` as StreamKey, 1);
+      expect(result).toEqual([]);
+    });
+  });
+
   describe("should simulate offline fault", async () => {
     beforeEach(() => {
       eventStore.simulate("offline");
@@ -112,25 +175,28 @@ describe("in-memory event store", () => {
       });
     });
 
+    it("should return gateway failure from loadFrom", async () => {
+      const response = await eventStore.loadFrom(0);
+      expect(response).toMatchObject({
+        kind: "GatewayFailure",
+        gateway: "InMemoryEventStore",
+      });
+    });
+
+    it("should return gateway failure from loadStreamFrom", async () => {
+      const response = await eventStore.loadStreamFrom(`${streamName}#${aggregateId}`, 1);
+      expect(response).toMatchObject({
+        kind: "GatewayFailure",
+        gateway: "InMemoryEventStore",
+      });
+    });
+
     it("should restore the event store to online state", async () => {
       eventStore.restore();
       expect(eventStore.isSimulating).toBe(false);
       await Promise.all(fixture.map((event) => eventStore.append([event])));
       const events = await eventStore.load(streamName, aggregateId);
       expect(events).toEqual(fixture);
-    });
-  });
-
-  describe("with event publisher", async () => {
-    it("should publish events", async () => {
-      const publisher: PublishEvents<TestDomainEvent, Promise<void>> = {
-        publish: async (events) => {
-          publishEvents.push(...events);
-        },
-      };
-      eventStore.withEventTail(publisher);
-      await eventStore.append(fixture);
-      expect(publishEvents).toEqual(fixture);
     });
   });
 });

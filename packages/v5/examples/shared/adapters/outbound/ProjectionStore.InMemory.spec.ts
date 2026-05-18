@@ -32,6 +32,19 @@ describe("InMemoryProjectionStore", () => {
     expect(await store.load()).toEqual(final);
   });
 
+  describe("checkpoint", () => {
+    it("defaults to 0 before any advance", async () => {
+      expect(await store.loadCheckpoint()).toBe(0);
+    });
+
+    it("returns the most recently advanced position", async () => {
+      await store.advanceCheckpoint(7);
+      expect(await store.loadCheckpoint()).toBe(7);
+      await store.advanceCheckpoint(42);
+      expect(await store.loadCheckpoint()).toBe(42);
+    });
+  });
+
   describe("simulating offline fault", () => {
     beforeEach(() => {
       store.simulate("offline");
@@ -59,6 +72,28 @@ describe("InMemoryProjectionStore", () => {
         kind: "GatewayFailure",
         gateway: "InMemoryProjectionStore",
       });
+    });
+
+    it("returns a GatewayFailure on loadCheckpoint", async () => {
+      const result = await store.loadCheckpoint();
+      expect(result).toMatchObject({
+        kind: "GatewayFailure",
+        gateway: "InMemoryProjectionStore",
+      });
+    });
+
+    it("returns a GatewayFailure on advanceCheckpoint", async () => {
+      const result = await store.advanceCheckpoint(1);
+      expect(result).toMatchObject({
+        kind: "GatewayFailure",
+        gateway: "InMemoryProjectionStore",
+      });
+    });
+
+    it("does not mutate the checkpoint when advance is rejected", async () => {
+      await store.advanceCheckpoint(99);
+      store.restore();
+      expect(await store.loadCheckpoint()).toBe(0);
     });
 
     it("does not mutate the state when save is rejected", async () => {
