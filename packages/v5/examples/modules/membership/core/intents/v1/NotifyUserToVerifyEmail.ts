@@ -1,7 +1,6 @@
 import type { Intent } from "@core/shapes/Intent.ts";
 
 type NotifyUserToVerifyEmailV1Payload = {
-  aggregateId: string;
   email: string;
   name: string;
 };
