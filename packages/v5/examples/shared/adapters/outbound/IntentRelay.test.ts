@@ -21,6 +21,10 @@ const makeNotify = (channel: "email" | "push" = "email"): NotifyIntent => ({
   timestamp: Date.now(),
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
   payload: { channel },
+  commandType: "RegisterMembership",
+  commandId: randomUUID(),
+  aggregateType: "Membership",
+  aggregateId: randomUUID(),
 });
 
 const makeWelcome = (name = "Jane"): WelcomeIntent => ({
@@ -30,6 +34,10 @@ const makeWelcome = (name = "Jane"): WelcomeIntent => ({
   timestamp: Date.now(),
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
   payload: { name },
+  commandType: "RegisterMembership",
+  commandId: randomUUID(),
+  aggregateType: "Membership",
+  aggregateId: randomUUID(),
 });
 
 class RecordingHandler<T extends Intent> implements HandleIntent<T> {
@@ -43,11 +51,11 @@ class RecordingHandler<T extends Intent> implements HandleIntent<T> {
 
 describe("IntentRelay", () => {
   let datasource: Map<string, OutboxEnvelope<TestIntent>[]>;
-  let outbox: InMemoryOutbox<TestIntent>;
+  let outbox: InMemoryOutbox<TestIntent, never>;
 
   beforeEach(() => {
     datasource = new Map();
-    outbox = new InMemoryOutbox<TestIntent>(datasource);
+    outbox = new InMemoryOutbox<TestIntent, never>(datasource);
   });
 
   it("should resolve and call no handlers when the outbox is empty", async () => {
@@ -126,7 +134,6 @@ describe("IntentRelay", () => {
 
   it("should stringify non-Error throws", async () => {
     const failing = new RecordingHandler<NotifyIntent>(async () => {
-      // eslint-disable-next-line no-throw-literal
       throw "oops";
     });
     const n = makeNotify();
@@ -191,8 +198,7 @@ describe("IntentRelay", () => {
 
   it("should tolerate markDispatched returning a GatewayFailure", async () => {
     const offlineFailure: GatewayFailure = {
-      type: "failure",
-      kind: "GatewayFailure",
+      code: "GATEWAY_FAILURE",
       gateway: "FakeOutbox",
       reason: "boom",
     };
@@ -231,8 +237,7 @@ describe("IntentRelay", () => {
       loadPending: async () => [envelope],
       markDispatched: async () => undefined,
       markFailed: async () => ({
-        type: "failure",
-        kind: "GatewayFailure",
+        code: "GATEWAY_FAILURE",
         gateway: "FakeOutbox",
         reason: "boom",
       }),

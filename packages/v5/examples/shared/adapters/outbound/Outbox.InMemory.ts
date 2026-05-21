@@ -12,10 +12,7 @@ import type { Intent } from "@core/shapes/Intent.ts";
 import type { StageNotifications } from "@adapters/outbound/capabilities/StageNotifications.ts";
 import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
 
-export class InMemoryOutbox<
-  TIntent extends Intent = Intent,
-  TNotification extends Notification = Notification,
->
+export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notification>
   implements
     StageIntents<TIntent, Promise<void | GatewayFailure>>,
     StageNotifications<TNotification, Promise<void | GatewayFailure>>,
@@ -56,8 +53,7 @@ export class InMemoryOutbox<
 
   private offlineFailure(): GatewayFailure {
     return {
-      type: "failure",
-      kind: "GatewayFailure",
+      code: "GATEWAY_FAILURE",
       gateway: "InMemoryIntentOutbox",
       reason: "The Outbox has been set to offline mode",
     };
@@ -92,8 +88,7 @@ export class InMemoryOutbox<
     const row = this.rows.find((r) => r.entry.id === intentId);
     if (!row) {
       return {
-        type: "failure",
-        kind: "GatewayFailure",
+        code: "GATEWAY_FAILURE",
         gateway: "InMemoryIntentOutbox",
         reason: `Intent ${intentId} not found in outbox`,
       };
@@ -108,8 +103,7 @@ export class InMemoryOutbox<
     const row = this.rows.find((r) => r.entry.id === intentId);
     if (!row) {
       return {
-        type: "failure",
-        kind: "GatewayFailure",
+        code: "GATEWAY_FAILURE",
         gateway: "InMemoryIntentOutbox",
         reason: `Intent ${intentId} not found in outbox`,
       };
