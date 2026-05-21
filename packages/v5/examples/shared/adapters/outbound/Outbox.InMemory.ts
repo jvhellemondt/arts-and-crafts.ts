@@ -24,7 +24,7 @@ export class InMemoryOutbox<
     MarkIntentFailed,
     SimulateFaults
 {
-  private readonly tableName: string = "intent_outbox";
+  private readonly tableName: string = "outbox";
   private simulation?: FaultSimulationMode;
 
   constructor(
