@@ -13,10 +13,19 @@ import { createHonoApp } from "./apps/hono/index.ts";
 import type { HandleIntent } from "@useCases/policy/capabilities/HandleIntent.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
+import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
+import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
+import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
+import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 
-const eventStore = new InMemoryEventStore<MembershipEventV1>();
+const eventStoreDatasource = new Map<string, StoredEvent<MembershipEventV1>[]>([]);
+const outboxDatasource = new Map<
+  string,
+  OutboxEnvelope<NotifyUserToVerifyEmailV1 | OpenMembershipRejected>[]
+>([]);
 
-const outbox = new InMemoryOutbox<MembershipIntents>();
+const eventStore = new InMemoryEventStore<MembershipEventV1>(eventStoreDatasource);
+const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(outboxDatasource);
 
 const emailGateway = new InMemoryEmailGateway();
 

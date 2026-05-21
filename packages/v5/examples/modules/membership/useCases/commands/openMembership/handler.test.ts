@@ -23,13 +23,13 @@ const makeCommand = (id: typeof aggregateId) =>
 
 describe("OpenMembershipHandler", () => {
   let eventStore: InMemoryEventStore<MembershipEventV1>;
-  let outbox: InMemoryOutbox<NotifyUserToVerifyEmailV1>;
+  let outbox: InMemoryOutbox<NotifyUserToVerifyEmailV1, never>;
   let repository: MembershipRepository;
   let handler: OpenMembershipHandler;
 
   beforeEach(() => {
     eventStore = new InMemoryEventStore<MembershipEventV1>();
-    outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1>();
+    outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, never>();
     repository = new MembershipRepository(eventStore);
     handler = new OpenMembershipHandler(repository, outbox);
   });

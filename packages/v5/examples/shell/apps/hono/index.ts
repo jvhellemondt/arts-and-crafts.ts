@@ -18,8 +18,7 @@ import type { StageIntents } from "@core/capabilities/StageIntents.ts";
 import type { StageNotifications } from "@adapters/outbound/capabilities/StageNotifications.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
-import type { MembershipAlreadyExists } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
-import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
+import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 import { OpenMembershipHandler } from "@examples/modules/membership/useCases/commands/openMembership/handler.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
@@ -31,10 +30,7 @@ export function createHonoApp(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
     AppendToEventStream<MembershipEventV1, Promise<void | GatewayFailure>>,
   outbox: StageIntents<MembershipIntents, Promise<void | GatewayFailure>> &
-    StageNotifications<
-      Notification<"OpenMembershipRejected", MembershipAlreadyExists>,
-      Promise<void | GatewayFailure>
-    >,
+    StageNotifications<OpenMembershipRejected, Promise<void | GatewayFailure>>,
   listMembershipsProjectionLoader: LoadProjection<ListMembershipsProjection>,
 ) {
   const membershipRepository = new MembershipRepository(eventStore);
