@@ -2,11 +2,11 @@ import type { Intent } from "@core/shapes/Intent.ts";
 import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
 
 export type OutboxEnvelope<TEntry extends Intent | Notification> = {
-  status: "pending" | "dispatched" | "failed";
-  stagedAt: number;
-  attemptCount: number;
-  dispatchedAt?: number;
-  failedAt?: number;
-  lastError?: string;
-  entry: TEntry;
+  readonly status: "pending" | "dispatched" | "failed";
+  readonly stagedAt: number;
+  readonly attemptCount: number;
+  readonly dispatchedAt?: number;
+  readonly failedAt?: number;
+  readonly lastError?: string;
+  readonly entry: TEntry;
 };

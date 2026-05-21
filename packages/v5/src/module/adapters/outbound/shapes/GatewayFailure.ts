@@ -22,7 +22,7 @@ import type { Failure } from "@core/shapes/Failure.ts";
  *   cause: originalError,
  * };
  */
-export type GatewayFailure = Failure & {
-  readonly kind: "GatewayFailure";
+export type GatewayFailure<TCode = string> = Failure<TCode> & {
+  readonly code: "GATEWAY_FAILURE";
   readonly gateway: string;
 };

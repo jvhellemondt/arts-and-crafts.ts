@@ -7,7 +7,7 @@
 import type { Message } from "./Message.ts";
 
 export interface DomainEvent<TType = string, TPayload = unknown> extends Message<TType, TPayload> {
-  kind: "domain";
-  aggregateType: string;
-  aggregateId: string;
+  readonly kind: "domain";
+  readonly commandId: string;
+  readonly commandType: string;
 }

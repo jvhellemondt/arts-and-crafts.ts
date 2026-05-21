@@ -1,12 +1,12 @@
 export interface Metadata {
   /** Correlates a flow across services (end-to-end). */
-  correlationId: string;
+  readonly correlationId: string;
   /** Points to the immediate cause (often previous message id). */
-  causationId: string;
+  readonly causationId: string;
   /** Tenant identifier for multi-tenant systems. */
-  tenantId?: string;
+  readonly tenantId?: string;
   /** Actor or user responsible for the change. */
-  userId?: string;
+  readonly actorId?: string;
 
   /** Room for additive extensions. */
   [key: string]: unknown;

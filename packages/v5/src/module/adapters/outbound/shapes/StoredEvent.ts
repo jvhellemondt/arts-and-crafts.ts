@@ -7,15 +7,15 @@ import type { StreamKey } from "./StreamKey.ts";
  */
 export type StoredEvent<TEvent extends DomainEvent> = {
   /** The stream name, e.g., `${aggregateType}`. */
-  stream: string;
+  readonly stream: string;
   /** Stream key, e.g., `${aggregateType}#${aggregateId}`. */
-  streamKey: StreamKey;
+  readonly streamKey: StreamKey;
   /** Version within the stream */
-  streamVersion: number;
+  readonly streamVersion: number;
   /** Global position in the store */
-  globalPosition: number;
+  readonly globalPosition: number;
   /** Write-time, distinct from event.timestamp */
-  insertedAt: number;
+  readonly insertedAt: number;
   /** The actual domain event. */
-  event: TEvent;
+  readonly event: TEvent;
 };

@@ -1,3 +1,3 @@
 export type WithIdentifier<T = object> = {
-  id: string;
+  readonly id: string;
 } & T;

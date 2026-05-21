@@ -10,9 +10,8 @@
  * exceptions. A `Failure` is always unexpected — if the domain explicitly
  * said no, that is a `Rejection`, not a `Failure`.
  */
-export type Failure = {
-  readonly type: "failure";
-  readonly kind: string;
+export interface Failure<TCode = string> {
+  readonly code: TCode;
   readonly reason: string;
   readonly cause?: unknown;
-};
+}

@@ -1,4 +1,10 @@
-export type Rejection<TCode extends string = string> = {
+export interface Rejection<TCode = string> {
   readonly code: TCode;
   readonly reason: string;
-};
+  readonly validationErrors?: {
+    readonly code: string;
+    readonly field?: string;
+    readonly message?: string;
+    readonly expected?: string;
+  }[];
+}
