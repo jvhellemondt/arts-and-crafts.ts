@@ -61,7 +61,7 @@ describe("InMemoryProjectionStore", () => {
     it("returns a GatewayFailure on load", async () => {
       const result = await store.load();
       expect(result).toMatchObject({
-        kind: "GatewayFailure",
+        code: "GATEWAY_FAILURE",
         gateway: "InMemoryProjectionStore",
       });
     });
@@ -69,7 +69,7 @@ describe("InMemoryProjectionStore", () => {
     it("returns a GatewayFailure on save", async () => {
       const result = await store.save({ byId: { a: { id: "a", value: 1 } } });
       expect(result).toMatchObject({
-        kind: "GatewayFailure",
+        code: "GATEWAY_FAILURE",
         gateway: "InMemoryProjectionStore",
       });
     });
@@ -77,7 +77,7 @@ describe("InMemoryProjectionStore", () => {
     it("returns a GatewayFailure on loadCheckpoint", async () => {
       const result = await store.loadCheckpoint();
       expect(result).toMatchObject({
-        kind: "GatewayFailure",
+        code: "GATEWAY_FAILURE",
         gateway: "InMemoryProjectionStore",
       });
     });
@@ -85,7 +85,7 @@ describe("InMemoryProjectionStore", () => {
     it("returns a GatewayFailure on advanceCheckpoint", async () => {
       const result = await store.advanceCheckpoint(1);
       expect(result).toMatchObject({
-        kind: "GatewayFailure",
+        code: "GATEWAY_FAILURE",
         gateway: "InMemoryProjectionStore",
       });
     });

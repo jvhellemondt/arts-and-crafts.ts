@@ -50,12 +50,12 @@ describe("OpenMembershipHandler", () => {
   it("returns a GatewayFailure when the event store is offline", async () => {
     eventStore.simulate("offline");
     const result = await handler.handle(makeCommand(aggregateId));
-    expect(result).toMatchObject([{ kind: "GatewayFailure", gateway: "InMemoryEventStore" }]);
+    expect(result).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" }]);
   });
 
   it("returns GatewayFailures when the outbox is offline", async () => {
     outbox.simulate("offline");
     const result = await handler.handle(makeCommand(aggregateId));
-    expect(result).toMatchObject([{ kind: "GatewayFailure", gateway: "InMemoryIntentOutbox" }]);
+    expect(result).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" }]);
   });
 });

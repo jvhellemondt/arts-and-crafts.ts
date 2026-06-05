@@ -4,7 +4,7 @@ export function isFailure(result: unknown): result is GatewayFailure {
   return (
     typeof result === "object" &&
     result !== null &&
-    "type" in result &&
-    result.type === "failure"
+    "kind" in result &&
+    result.kind === "failure"
   );
 }

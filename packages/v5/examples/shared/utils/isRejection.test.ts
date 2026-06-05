@@ -29,7 +29,7 @@ const accepted: Accepted<TestEvent, TestIntent> = {
 
 const rejected: Rejected<TestRejection> = {
   accepted: false,
-  rejection: { type: "rejection", code: "TEST_REJECTED", reason: "Test rejection" },
+  rejection: { kind: "rejection", code: "TEST_REJECTED", reason: "Test rejection" },
 };
 
 describe("isRejection", () => {

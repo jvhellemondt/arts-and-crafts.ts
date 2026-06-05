@@ -42,7 +42,7 @@ export class InMemoryProjectionStore<TState>
 
   private offlineFailure(): GatewayFailure {
     return {
-      type: 'failure',
+      kind: "failure",
       code: "GATEWAY_FAILURE",
       gateway: "InMemoryProjectionStore",
       reason: "The ProjectionStore has been set to offline mode",

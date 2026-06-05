@@ -8,6 +8,13 @@ import type { Message } from "./Message.ts";
 
 export interface DomainEvent<TType = string, TPayload = unknown> extends Message<TType, TPayload> {
   readonly kind: "domain";
+  readonly aggregateType: string;
+  readonly aggregateId: string;
+  /**
+   * Typed domain provenance: the command that produced this event. This is the
+   * domain-level cause and is intentionally distinct from `Metadata.causationId`,
+   * the generic infrastructure tracing pointer.
+   */
   readonly commandId: string;
   readonly commandType: string;
 }

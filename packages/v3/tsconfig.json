@@ -29,6 +29,7 @@
 
     "noEmit": true,
     "verbatimModuleSyntax": true,
+    "ignoreDeprecations": "6.0",
     "skipLibCheck": true
   },
   "include": ["./src/**/*", "vitest.config.ts", "tsup.config.ts"],

@@ -2,7 +2,7 @@ import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts
 import { isFailure } from "./isFailure.ts";
 
 const gatewayFailure: GatewayFailure = {
-  type: "failure",
+  kind: "failure",
   code: "GATEWAY_FAILURE",
   gateway: "EventStore",
   reason: "Connection refused",
@@ -29,11 +29,11 @@ describe("isFailure", () => {
     expect(isFailure(42)).toBe(false);
   });
 
-  it("returns false for an object without a type property", () => {
-    expect(isFailure({ kind: "GatewayFailure", reason: "oops" })).toBe(false);
+  it("returns false for an object without a kind property", () => {
+    expect(isFailure({ code: "GATEWAY_FAILURE", reason: "oops" })).toBe(false);
   });
 
-  it("returns false for an object with a different type value", () => {
-    expect(isFailure({ type: "success" })).toBe(false);
+  it("returns false for a rejection (different kind value)", () => {
+    expect(isFailure({ kind: "rejection", code: "SOME_REJECTION" })).toBe(false);
   });
 });

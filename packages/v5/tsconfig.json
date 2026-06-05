@@ -30,6 +30,7 @@
 
     "noEmit": true,
     "verbatimModuleSyntax": true,
+    "ignoreDeprecations": "6.0",
     "skipLibCheck": true
   },
   "include": ["./src/**/*", "./examples/**/*", "vitest.config.ts", "tsup.config.ts"],
