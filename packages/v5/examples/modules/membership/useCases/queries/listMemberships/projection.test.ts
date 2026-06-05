@@ -2,22 +2,23 @@ import type { MembershipEventV1 } from "@examples/modules/membership/core/events
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { randomUUID } from "node:crypto";
 import { apply, emptyProjection, type ListMembershipsProjection } from "./projection.ts";
+import { MEMBERSHIP_AGGREGATE } from "@examples/modules/membership/core/state.ts";
+import { OPEN_MEMBERSHIP } from "../../commands/openMembership/command.ts";
 
-const makeOpened = (
-  overrides: Partial<MembershipOpenedV1["payload"]> = {},
-): MembershipOpenedV1 => ({
+const makeOpened = (overrides: Partial<{ aggregateId: string }> = {}): MembershipOpenedV1 => ({
   type: "MembershipOpened.v1",
   kind: "domain",
-  aggregateType: "Membership",
   aggregateId: overrides.aggregateId ?? randomUUID(),
+  aggregateType: MEMBERSHIP_AGGREGATE,
   timestamp: Date.now(),
   id: randomUUID(),
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
   payload: {
-    aggregateId: overrides.aggregateId ?? randomUUID(),
-    name: overrides.name ?? "Ada Lovelace",
-    email: overrides.email ?? "ada@example.com",
+    name: "Ada Lovelace",
+    email: "ada@example.com",
   },
+  commandId: randomUUID(),
+  commandType: OPEN_MEMBERSHIP,
 });
 
 describe("listMemberships projection", () => {
@@ -27,11 +28,7 @@ describe("listMemberships projection", () => {
 
   it("adds an entry for MembershipOpened.v1", () => {
     const id = randomUUID();
-    const event = makeOpened({
-      aggregateId: id,
-      name: "Ada Lovelace",
-      email: "ada@example.com",
-    });
+    const event = makeOpened({ aggregateId: id });
 
     const next = apply(emptyProjection, event);
 

@@ -1,6 +1,9 @@
-import type { MembershipState } from "@examples/modules/membership/core/state.ts";
+import {
+  MEMBERSHIP_AGGREGATE,
+  type MembershipState,
+} from "@examples/modules/membership/core/state.ts";
 import type { OpenMembershipDecision } from "./decision.ts";
-import type { OpenMembershipCommand } from "./command.ts";
+import { OPEN_MEMBERSHIP, type OpenMembershipCommand } from "./command.ts";
 import { v7 as uuidv7 } from "uuid";
 import { MembershipDoesNotAlreadyExist } from "./specifications/MembershipDoesNotAlreadyExist.ts";
 
@@ -13,6 +16,7 @@ export function decideOpenMembership(
     return {
       accepted: false,
       rejection: {
+        type: 'rejection',
         reason: "Membership already exists",
         code: "MEMBERSHIP_ALREADY_EXISTS",
       },
@@ -25,13 +29,14 @@ export function decideOpenMembership(
         type: "MembershipOpened.v1",
         id: uuidv7(),
         payload: {
-          aggregateId: state.id,
           name: command.payload.name,
           email: command.payload.email,
         },
         kind: "domain",
-        aggregateType: "Membership",
         aggregateId: state.id,
+        aggregateType: MEMBERSHIP_AGGREGATE,
+        commandId: command.id,
+        commandType: OPEN_MEMBERSHIP,
         timestamp: new Date().getTime(),
         metadata: command.metadata,
       },
@@ -41,13 +46,16 @@ export function decideOpenMembership(
         kind: "intent",
         type: "NotifyUserToVerifyEmail.v1",
         payload: {
-          aggregateId: state.id,
           name: command.payload.name,
           email: command.payload.email,
         },
         timestamp: new Date().getTime(),
         metadata: command.metadata,
         id: uuidv7(),
+        aggregateId: state.id,
+        aggregateType: MEMBERSHIP_AGGREGATE,
+        commandId: command.id,
+        commandType: OPEN_MEMBERSHIP,
       },
     ],
   };

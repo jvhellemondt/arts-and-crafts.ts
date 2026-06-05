@@ -1,16 +1,20 @@
 import { randomUUID } from "node:crypto";
 import type { MembershipOpenedV1 } from "./events/v1/MembershipOpenedV1.ts";
 import { evolveMembership } from "./evolve.ts";
+import { OPEN_MEMBERSHIP } from "../useCases/commands/openMembership/command.ts";
+import { MEMBERSHIP_AGGREGATE } from "./state.ts";
 
 const makeMembershipOpenedV1 = (aggregateId: string): MembershipOpenedV1 => ({
   type: "MembershipOpened.v1",
   kind: "domain",
-  aggregateType: "Membership",
+  aggregateType: MEMBERSHIP_AGGREGATE,
   aggregateId,
   timestamp: Date.now(),
   id: randomUUID(),
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
-  payload: { aggregateId, name: "Jane Doe", email: "jane@example.com" },
+  payload: { name: "Jane Doe", email: "jane@example.com" },
+  commandId: randomUUID(),
+  commandType: OPEN_MEMBERSHIP,
 });
 
 describe("evolveMembership", () => {

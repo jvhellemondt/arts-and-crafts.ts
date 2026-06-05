@@ -198,6 +198,7 @@ describe("IntentRelay", () => {
 
   it("should tolerate markDispatched returning a GatewayFailure", async () => {
     const offlineFailure: GatewayFailure = {
+      type: 'failure',
       code: "GATEWAY_FAILURE",
       gateway: "FakeOutbox",
       reason: "boom",
@@ -237,6 +238,7 @@ describe("IntentRelay", () => {
       loadPending: async () => [envelope],
       markDispatched: async () => undefined,
       markFailed: async () => ({
+        type: 'failure',
         code: "GATEWAY_FAILURE",
         gateway: "FakeOutbox",
         reason: "boom",

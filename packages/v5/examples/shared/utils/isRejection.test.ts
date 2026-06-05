@@ -16,6 +16,8 @@ const accepted: Accepted<TestEvent, TestIntent> = {
       kind: "domain",
       aggregateType: "Test",
       aggregateId: "1",
+      commandId: "1",
+      commandType: "EventTest",
       id: "1",
       timestamp: Date.now(),
       metadata: { correlationId: "1", causationId: "1" },
@@ -27,7 +29,7 @@ const accepted: Accepted<TestEvent, TestIntent> = {
 
 const rejected: Rejected<TestRejection> = {
   accepted: false,
-  rejection: { code: "TEST_REJECTED", reason: "Test rejection" },
+  rejection: { type: "rejection", code: "TEST_REJECTED", reason: "Test rejection" },
 };
 
 describe("isRejection", () => {

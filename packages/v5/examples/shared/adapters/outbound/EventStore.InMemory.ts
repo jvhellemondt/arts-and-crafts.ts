@@ -49,8 +49,8 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
 
   private offlineFailure(): GatewayFailure {
     return {
-      type: "failure",
-      kind: "GatewayFailure",
+      type: 'failure',
+      code: "GATEWAY_FAILURE",
       gateway: "InMemoryEventStore",
       reason: "The Eventstore has been set to offline mode",
     };

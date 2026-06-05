@@ -18,6 +18,8 @@ const makeEvent = (aggregateType: string, aggregateId: string): TestDomainEvent 
   kind: "domain",
   aggregateType,
   aggregateId,
+  commandId: randomUUID(),
+  commandType: "TestDomainEventCommand",
   timestamp: Date.now(),
   metadata: {
     correlationId: randomUUID(),

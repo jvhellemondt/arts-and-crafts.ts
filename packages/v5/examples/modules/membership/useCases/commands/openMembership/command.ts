@@ -6,6 +6,8 @@ import { email } from "../../../core/domain/Email.ts";
 import { type AggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
 import { v7 as uuidv7 } from "uuid";
 
+export const OPEN_MEMBERSHIP = "OpenMembership";
+
 export const openMembershipCommandPayload = z.object({
   name,
   email,
@@ -17,9 +19,9 @@ export function createOpenMembershipCommand(
   aggregateId: AggregateId["parsed"],
   payload: OpenMembershipCommandPayload,
   metadata: Metadata,
-): Command<"OpenMembership", OpenMembershipCommandPayload> {
+): Command<typeof OPEN_MEMBERSHIP, OpenMembershipCommandPayload> {
   return {
-    type: "OpenMembership",
+    type: OPEN_MEMBERSHIP,
     kind: "command",
     timestamp: new Date().getTime(),
     id: uuidv7(),

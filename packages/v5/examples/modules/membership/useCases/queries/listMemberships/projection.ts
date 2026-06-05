@@ -19,8 +19,8 @@ export function apply(
     case "MembershipOpened.v1":
       return {
         ...state,
-        [event.payload.aggregateId]: {
-          id: event.payload.aggregateId,
+        [event.aggregateId]: {
+          id: event.aggregateId,
           name: event.payload.name,
           email: event.payload.email,
           status: "open",

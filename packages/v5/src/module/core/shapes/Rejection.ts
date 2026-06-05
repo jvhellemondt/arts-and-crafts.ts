@@ -1,4 +1,5 @@
 export interface Rejection<TCode = string> {
+  readonly type: 'rejection';
   readonly code: TCode;
   readonly reason: string;
   readonly validationErrors?: {

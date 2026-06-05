@@ -12,8 +12,8 @@ import type { ListMembershipsProjection } from "./projection.ts";
 import { ListMembershipsProjector } from "./projector.ts";
 
 const stubFailure: GatewayFailure = {
-  type: "failure",
-  kind: "GatewayFailure",
+  type: 'failure',
+  code: "GATEWAY_FAILURE",
   gateway: "Stub",
   reason: "stub failure",
 };
@@ -31,20 +31,21 @@ const stubStore = (overrides: Partial<StubStore>): StubStore => ({
   ...overrides,
 });
 
-const makeEvent = (overrides: Partial<MembershipOpenedV1["payload"]> = {}): MembershipOpenedV1 => {
+const makeEvent = (overrides: Partial<{ aggregateId: string }> = {}): MembershipOpenedV1 => {
   const aggregateId = overrides.aggregateId ?? randomUUID();
   return {
     type: "MembershipOpened.v1",
     kind: "domain",
     aggregateType: "Membership",
     aggregateId,
+    commandId: "",
+    commandType: "",
     timestamp: Date.now(),
     id: randomUUID(),
     metadata: { correlationId: randomUUID(), causationId: randomUUID() },
     payload: {
-      aggregateId,
-      name: overrides.name ?? "Ada Lovelace",
-      email: overrides.email ?? "ada@example.com",
+      name: "Ada Lovelace",
+      email: "ada@example.com",
     },
   };
 };
@@ -97,9 +98,7 @@ describe("ListMembershipsProjector", () => {
       await projector.tick();
 
       const state = (await projectionStore.load()) as ListMembershipsProjection;
-      expect(Object.keys(state)).toEqual(
-        expect.arrayContaining(["id-1", "id-2", "id-3", "id-4"]),
-      );
+      expect(Object.keys(state)).toEqual(expect.arrayContaining(["id-1", "id-2", "id-3", "id-4"]));
       expect(await projectionStore.loadCheckpoint()).toBe(4);
     });
 

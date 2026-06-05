@@ -5,6 +5,8 @@ import type { Name } from "./domain/Name.ts";
 import type { SignedAt } from "./domain/SignedAt.ts";
 import type { TosAcceptance } from "./domain/TosAcceptance.ts";
 
+export const MEMBERSHIP_AGGREGATE = "Membership";
+
 export type MembershipState =
   | { status: "initial"; id: AggregateId["input"] }
   | {

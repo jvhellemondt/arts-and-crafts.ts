@@ -1,5 +1,6 @@
 import type { Metadata } from "@core/shapes/Metadata.ts";
 import { membershipStatus } from "@examples/modules/membership/core/domain/MembershipStatus.ts";
+import { MEMBERSHIP_AGGREGATE } from "@examples/modules/membership/core/state.ts";
 import type { Query } from "@useCases/query/shapes/Query.ts";
 import { v7 as uuidv7 } from "uuid";
 import z from "zod";
@@ -19,6 +20,8 @@ export function createListMembershipsQuery(
     kind: "query",
     timestamp: new Date().getTime(),
     id: uuidv7(),
+    aggregateType: MEMBERSHIP_AGGREGATE,
+    aggregateId: "",
     payload,
     metadata,
   };

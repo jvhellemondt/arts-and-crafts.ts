@@ -2,20 +2,22 @@ import { InMemoryEmailGateway } from "@examples/shared/adapters/outbound/EmailGa
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import { NotifyUserToVerifyEmailHandler } from "./handler.ts";
 import { randomUUID } from "node:crypto";
+import { MEMBERSHIP_AGGREGATE } from "@examples/modules/membership/core/state.ts";
+import { OPEN_MEMBERSHIP } from "../../commands/openMembership/command.ts";
 
-const makeIntent = (
-  overrides: Partial<NotifyUserToVerifyEmailV1["payload"]> = {},
-): NotifyUserToVerifyEmailV1 => ({
+const makeIntent = (): NotifyUserToVerifyEmailV1 => ({
   kind: "intent",
   type: "NotifyUserToVerifyEmail.v1",
   id: randomUUID(),
   timestamp: Date.now(),
+  aggregateId: randomUUID(),
+  aggregateType: MEMBERSHIP_AGGREGATE,
+  commandId: randomUUID(),
+  commandType: OPEN_MEMBERSHIP,
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
   payload: {
-    aggregateId: randomUUID(),
     email: "jane@example.com",
     name: "Jane Doe",
-    ...overrides,
   },
 });
 

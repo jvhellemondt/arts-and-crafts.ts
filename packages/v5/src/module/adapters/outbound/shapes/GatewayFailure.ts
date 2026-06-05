@@ -23,6 +23,7 @@ import type { Failure } from "@core/shapes/Failure.ts";
  * };
  */
 export type GatewayFailure<TCode = string> = Failure<TCode> & {
+  readonly type: "failure";
   readonly code: "GATEWAY_FAILURE";
   readonly gateway: string;
 };

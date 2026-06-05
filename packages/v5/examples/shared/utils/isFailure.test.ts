@@ -3,7 +3,7 @@ import { isFailure } from "./isFailure.ts";
 
 const gatewayFailure: GatewayFailure = {
   type: "failure",
-  kind: "GatewayFailure",
+  code: "GATEWAY_FAILURE",
   gateway: "EventStore",
   reason: "Connection refused",
 };

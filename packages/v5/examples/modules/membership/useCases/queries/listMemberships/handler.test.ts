@@ -58,8 +58,8 @@ describe("ListMembershipsHandler", () => {
 
   it("surfaces a GatewayFailure from the projection store", async () => {
     const failure: GatewayFailure = {
-      type: "failure",
-      kind: "GatewayFailure",
+      type: 'failure',
+      code: "GATEWAY_FAILURE",
       gateway: "InMemoryProjectionStore",
       reason: "offline",
     };
