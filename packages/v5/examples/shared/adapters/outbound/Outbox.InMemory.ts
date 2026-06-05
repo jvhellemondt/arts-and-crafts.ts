@@ -53,7 +53,7 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
 
   private offlineFailure(): GatewayFailure {
     return {
-      type: "failure",
+      kind: "failure",
       code: "GATEWAY_FAILURE",
       gateway: "InMemoryIntentOutbox",
       reason: "The Outbox has been set to offline mode",
@@ -89,7 +89,7 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
     const row = this.rows.find((r) => r.entry.id === intentId);
     if (!row) {
       return {
-        type: "failure",
+        kind: "failure",
         code: "GATEWAY_FAILURE",
         gateway: "InMemoryIntentOutbox",
         reason: `Intent ${intentId} not found in outbox`,
@@ -105,7 +105,7 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
     const row = this.rows.find((r) => r.entry.id === intentId);
     if (!row) {
       return {
-        type: "failure",
+        kind: "failure",
         code: "GATEWAY_FAILURE",
         gateway: "InMemoryIntentOutbox",
         reason: `Intent ${intentId} not found in outbox`,

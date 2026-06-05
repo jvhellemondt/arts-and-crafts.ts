@@ -34,6 +34,7 @@ const makeNotification = (reason: string): TestNotification => ({
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
   id: randomUUID(),
   details: {
+    kind: "rejection",
     code: "MembershipOpeningRejected",
     reason: "Invalid",
   },
@@ -73,19 +74,19 @@ describe("InMemoryIntentOutbox", () => {
       attemptCount: 0,
       entry: makeIntent("email"),
     };
-    datasource.set("intent_outbox", [existing]);
+    datasource.set("outbox", [existing]);
     outbox = new InMemoryOutbox<TestIntent, TestNotification>(datasource);
 
     await outbox.stage(intentFixture);
 
-    expect(datasource.get("intent_outbox")).toHaveLength(intentFixture.length + 1);
+    expect(datasource.get("outbox")).toHaveLength(intentFixture.length + 1);
   });
 
   describe("staging intents", () => {
     it("should stage intents as pending envelopes", async () => {
       await outbox.stage(intentFixture);
 
-      const rows = datasource.get("intent_outbox");
+      const rows = datasource.get("outbox");
       expect(rows).toHaveLength(intentFixture.length);
       expect(rows?.every((r) => r.status === "pending")).toBe(true);
       expect(rows?.map((r) => r.entry)).toEqual(intentFixture);
@@ -94,7 +95,7 @@ describe("InMemoryIntentOutbox", () => {
     it("should stage intents with attemptCount of 0 and no dispatched/failed metadata", async () => {
       await outbox.stage(intentFixture);
 
-      const rows = datasource.get("intent_outbox");
+      const rows = datasource.get("outbox");
       expect(rows?.every((r) => r.attemptCount === 0)).toBe(true);
       expect(rows?.every((r) => r.dispatchedAt === undefined)).toBe(true);
       expect(rows?.every((r) => r.failedAt === undefined)).toBe(true);
@@ -106,7 +107,7 @@ describe("InMemoryIntentOutbox", () => {
     it("should stage notifications as pending envelopes", async () => {
       await outbox.stage(notificationFixture);
 
-      const rows = datasource.get("intent_outbox");
+      const rows = datasource.get("outbox");
       expect(rows).toHaveLength(notificationFixture.length);
       expect(rows?.every((r) => r.status === "pending")).toBe(true);
       expect(rows?.map((r) => r.entry)).toEqual(notificationFixture);
@@ -116,7 +117,7 @@ describe("InMemoryIntentOutbox", () => {
       await outbox.stage(intentFixture);
       await outbox.stage(notificationFixture);
 
-      expect(datasource.get("intent_outbox")).toHaveLength(
+      expect(datasource.get("outbox")).toHaveLength(
         intentFixture.length + notificationFixture.length,
       );
     });
@@ -133,19 +134,19 @@ describe("InMemoryIntentOutbox", () => {
 
     it("should return a GatewayFailure when staging intents", async () => {
       const result = await outbox.stage(intentFixture);
-      expect(result).toMatchObject({ kind: "GatewayFailure" });
+      expect(result).toMatchObject({ code: "GATEWAY_FAILURE" });
     });
 
     it("should return a GatewayFailure when staging notifications", async () => {
       const result = await outbox.stage(notificationFixture);
-      expect(result).toMatchObject({ kind: "GatewayFailure" });
+      expect(result).toMatchObject({ code: "GATEWAY_FAILURE" });
     });
 
     it("should not stage any entries while offline", async () => {
       await outbox.stage(intentFixture);
       await outbox.stage(notificationFixture);
 
-      expect(datasource.get("intent_outbox")).toBeUndefined();
+      expect(datasource.get("outbox")).toBeUndefined();
     });
 
     it("should restore to online state", async () => {
@@ -153,7 +154,7 @@ describe("InMemoryIntentOutbox", () => {
 
       expect(outbox.isSimulating).toBe(false);
       await outbox.stage(intentFixture);
-      expect(datasource.get("intent_outbox")).toHaveLength(intentFixture.length);
+      expect(datasource.get("outbox")).toHaveLength(intentFixture.length);
     });
   });
 
@@ -198,7 +199,7 @@ describe("InMemoryIntentOutbox", () => {
     it("should return a GatewayFailure when offline", async () => {
       outbox.simulate("offline");
       const result = await outbox.loadPending();
-      expect(result).toMatchObject({ kind: "GatewayFailure", gateway: "InMemoryIntentOutbox" });
+      expect(result).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" });
     });
   });
 
@@ -211,7 +212,7 @@ describe("InMemoryIntentOutbox", () => {
       const result = await outbox.markDispatched(target.id);
 
       expect(result).toBeUndefined();
-      const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === target.id);
+      const row = datasource.get("outbox")?.find((r) => r.entry.id === target.id);
       expect(row?.status).toBe("dispatched");
       expect(row?.dispatchedAt).toBeGreaterThanOrEqual(before);
     });
@@ -219,7 +220,7 @@ describe("InMemoryIntentOutbox", () => {
     it("should return a GatewayFailure for an unknown id", async () => {
       const result = await outbox.markDispatched("does-not-exist");
       expect(result).toMatchObject({
-        kind: "GatewayFailure",
+        code: "GATEWAY_FAILURE",
         gateway: "InMemoryIntentOutbox",
         reason: expect.stringContaining("does-not-exist"),
       });
@@ -228,7 +229,7 @@ describe("InMemoryIntentOutbox", () => {
     it("should return a GatewayFailure when offline", async () => {
       outbox.simulate("offline");
       const result = await outbox.markDispatched("any-id");
-      expect(result).toMatchObject({ kind: "GatewayFailure", gateway: "InMemoryIntentOutbox" });
+      expect(result).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" });
     });
   });
 
@@ -241,7 +242,7 @@ describe("InMemoryIntentOutbox", () => {
       const result = await outbox.markFailed(target.id, "smtp down");
 
       expect(result).toBeUndefined();
-      const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === target.id);
+      const row = datasource.get("outbox")?.find((r) => r.entry.id === target.id);
       expect(row?.status).toBe("failed");
       expect(row?.lastError).toBe("smtp down");
       expect(row?.failedAt).toBeGreaterThanOrEqual(before);
@@ -255,7 +256,7 @@ describe("InMemoryIntentOutbox", () => {
       await outbox.markFailed(target.id, "first");
       await outbox.markFailed(target.id, "second");
 
-      const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === target.id);
+      const row = datasource.get("outbox")?.find((r) => r.entry.id === target.id);
       expect(row?.attemptCount).toBe(2);
       expect(row?.lastError).toBe("second");
     });
@@ -263,7 +264,7 @@ describe("InMemoryIntentOutbox", () => {
     it("should return a GatewayFailure for an unknown id", async () => {
       const result = await outbox.markFailed("does-not-exist", "nope");
       expect(result).toMatchObject({
-        kind: "GatewayFailure",
+        code: "GATEWAY_FAILURE",
         gateway: "InMemoryIntentOutbox",
         reason: expect.stringContaining("does-not-exist"),
       });
@@ -272,7 +273,7 @@ describe("InMemoryIntentOutbox", () => {
     it("should return a GatewayFailure when offline", async () => {
       outbox.simulate("offline");
       const result = await outbox.markFailed("any-id", "nope");
-      expect(result).toMatchObject({ kind: "GatewayFailure", gateway: "InMemoryIntentOutbox" });
+      expect(result).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" });
     });
   });
 });

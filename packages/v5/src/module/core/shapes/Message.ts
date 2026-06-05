@@ -14,6 +14,12 @@ export interface Message<TType = string, TPayload = unknown> extends WithIdentif
   readonly payload: TPayload;
   readonly metadata: Metadata;
   readonly timestamp: number;
-  readonly aggregateType: string;
-  readonly aggregateId: string;
+  /**
+   * Aggregate coordinates. Optional on the base because not every message is
+   * scoped to a single aggregate instance (e.g. a collection `Query`).
+   * Aggregate-bound messages — `Command`, `DomainEvent`, `Intent`,
+   * `Notification` — re-declare these as required.
+   */
+  readonly aggregateType?: string;
+  readonly aggregateId?: string;
 }

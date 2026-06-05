@@ -16,14 +16,14 @@ import type { Failure } from "@core/shapes/Failure.ts";
  *
  * @example
  * const failure: GatewayFailure = {
- *   kind: 'GatewayFailure',
+ *   kind: 'failure',
+ *   code: 'GATEWAY_FAILURE',
  *   gateway: 'EventStore',
  *   reason: 'Connection refused',
  *   cause: originalError,
  * };
  */
 export type GatewayFailure<TCode = string> = Failure<TCode> & {
-  readonly type: "failure";
   readonly code: "GATEWAY_FAILURE";
   readonly gateway: string;
 };

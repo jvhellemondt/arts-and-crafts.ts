@@ -96,7 +96,7 @@ describe("MembershipRepository", () => {
 
       const state = await repository.load(randomUUID());
 
-      expect(state).toMatchObject({ kind: "GatewayFailure" });
+      expect(state).toMatchObject({ code: "GATEWAY_FAILURE" });
     });
   });
 });

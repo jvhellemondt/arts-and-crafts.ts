@@ -106,7 +106,7 @@ describe("IntentRelay", () => {
     );
     await relay.relay();
 
-    const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === n.id);
+    const row = datasource.get("outbox")?.find((r) => r.entry.id === n.id);
     expect(row?.status).toBe("dispatched");
     expect(row?.dispatchedAt).toBeDefined();
   });
@@ -126,7 +126,7 @@ describe("IntentRelay", () => {
     );
     await relay.relay();
 
-    const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === n.id);
+    const row = datasource.get("outbox")?.find((r) => r.entry.id === n.id);
     expect(row?.status).toBe("failed");
     expect(row?.lastError).toBe("smtp down");
     expect(row?.attemptCount).toBe(1);
@@ -147,7 +147,7 @@ describe("IntentRelay", () => {
     );
     await relay.relay();
 
-    const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === n.id);
+    const row = datasource.get("outbox")?.find((r) => r.entry.id === n.id);
     expect(row?.lastError).toBe("oops");
   });
 
@@ -158,7 +158,7 @@ describe("IntentRelay", () => {
     const relay = new IntentRelay<TestIntent>(outbox, new Map<string, HandleIntent<TestIntent>>());
     await relay.relay();
 
-    const row = datasource.get("intent_outbox")?.find((r) => r.entry.id === w.id);
+    const row = datasource.get("outbox")?.find((r) => r.entry.id === w.id);
     expect(row?.status).toBe("failed");
     expect(row?.lastError).toContain("Welcome.v1");
   });
@@ -198,7 +198,7 @@ describe("IntentRelay", () => {
 
   it("should tolerate markDispatched returning a GatewayFailure", async () => {
     const offlineFailure: GatewayFailure = {
-      type: 'failure',
+      kind: "failure",
       code: "GATEWAY_FAILURE",
       gateway: "FakeOutbox",
       reason: "boom",
@@ -238,7 +238,7 @@ describe("IntentRelay", () => {
       loadPending: async () => [envelope],
       markDispatched: async () => undefined,
       markFailed: async () => ({
-        type: 'failure',
+        kind: "failure",
         code: "GATEWAY_FAILURE",
         gateway: "FakeOutbox",
         reason: "boom",
@@ -277,7 +277,7 @@ describe("IntentRelay", () => {
 
     await relay.relay();
 
-    const rows = datasource.get("intent_outbox") ?? [];
+    const rows = datasource.get("outbox") ?? [];
     expect(rows.find((r) => r.entry.id === n.id)?.status).toBe("failed");
     expect(rows.find((r) => r.entry.id === w.id)?.status).toBe("dispatched");
     expect(succeeding.received).toEqual([w]);

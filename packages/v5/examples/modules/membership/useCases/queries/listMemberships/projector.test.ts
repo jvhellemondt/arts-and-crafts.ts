@@ -12,7 +12,7 @@ import type { ListMembershipsProjection } from "./projection.ts";
 import { ListMembershipsProjector } from "./projector.ts";
 
 const stubFailure: GatewayFailure = {
-  type: 'failure',
+  kind: "failure",
   code: "GATEWAY_FAILURE",
   gateway: "Stub",
   reason: "stub failure",

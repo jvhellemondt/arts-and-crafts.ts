@@ -16,7 +16,7 @@ export function decideOpenMembership(
     return {
       accepted: false,
       rejection: {
-        type: 'rejection',
+        kind: "rejection",
         reason: "Membership already exists",
         code: "MEMBERSHIP_ALREADY_EXISTS",
       },
