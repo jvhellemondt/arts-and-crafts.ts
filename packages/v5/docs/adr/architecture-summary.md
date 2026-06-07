@@ -16,13 +16,13 @@ The structure follows three levels: bounded context at the top, business context
 
 ## Functional Core
 
-The core is pure — no I/O, no side effects, no infrastructure dependencies. Per module it contains events, intents, an evolve function, and shared projection mappings.
+The core is pure — no I/O, no side effects, no infrastructure dependencies. Per module it contains events, intents, and shared projection mappings; each command owns its decision state and the evolve that folds its boundary, rather than sharing a module-wide aggregate state. See **ADR-0014**.
 
 **Events** are domain facts. They live at the module level and are shared across all use cases within that module.
 
 **Intents** that are domain-expressed consequences of a decision also live at module level. Cross-cutting intents such as rejection notifications are added by the application layer, not the decider.
 
-**Evolve** is a pure state evolution function that folds a single event into the current state. State reconstruction happens before every command by folding the events inside the command's consistency boundary through evolve. See **ADR-0005** and **ADR-0014**.
+**Evolve** is a pure state evolution function that folds a single event into the current state. It is owned by the command (one decision state per command), and state reconstruction happens before every command by folding the events inside that command's consistency boundary through its evolve. See **ADR-0005** and **ADR-0014**.
 
 **The decider** is use case specific and co-located with its command. It is always a pure function taking current state and a command, returning a Decision. It never expresses how outcomes are communicated to callers.
 

@@ -1,20 +1,15 @@
 import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
-import type { MembershipState } from "@examples/modules/membership/core/state.ts";
+import type { OpenMembershipState } from "./state.ts";
 import { randomUUID } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 import { decideOpenMembership } from "./decide.ts";
 import { aggregateId as aggregateIdSchema } from "@examples/modules/membership/core/domain/AggregateId.ts";
 
-const aggregateId = aggregateIdSchema.parse(uuidv7())
+const aggregateId = aggregateIdSchema.parse(uuidv7());
 
 const makeMetadata = () => ({
   correlationId: randomUUID(),
   causationId: randomUUID(),
-});
-
-const makeInitialState = (): MembershipState => ({
-  status: "initial",
-  id: aggregateId,
 });
 
 const makeCommand = () =>
@@ -28,17 +23,15 @@ const makeCommand = () =>
   );
 
 describe("decideOpenMembership", () => {
-  describe("given the membership is in initial state", () => {
-    it("should accept the decision", () => {
-      const state = makeInitialState();
-      const command = makeCommand();
-      const decision = decideOpenMembership(state, command);
+  describe("given the membership does not exist", () => {
+    const state: OpenMembershipState = { exists: false };
 
+    it("should accept the decision", () => {
+      const decision = decideOpenMembership(state, makeCommand());
       expect(decision.accepted).toBe(true);
     });
 
-    it("should emit a MembershipOpened event", () => {
-      const state = makeInitialState();
+    it("should emit a MembershipOpened event tagged with the subject and command", () => {
       const command = makeCommand();
       const decision = decideOpenMembership(state, command);
 
@@ -50,7 +43,7 @@ describe("decideOpenMembership", () => {
         type: "MembershipOpened.v1",
         kind: "domain",
         tags: [
-          { key: "membership", value: state.id },
+          { key: "membership", value: aggregateId },
           { key: "command", value: command.id },
         ],
         payload: {
@@ -60,8 +53,7 @@ describe("decideOpenMembership", () => {
       });
     });
 
-    it("should stage a NotifyUserToVerifyEmailV1 intent", () => {
-      const state = makeInitialState();
+    it("should stage a NotifyUserToVerifyEmailV1 intent tagged with the subject", () => {
       const command = makeCommand();
       const decision = decideOpenMembership(state, command);
 
@@ -72,6 +64,7 @@ describe("decideOpenMembership", () => {
       expect(decision.intents[0]).toMatchObject({
         type: "NotifyUserToVerifyEmail.v1",
         kind: "intent",
+        tags: [{ key: "membership", value: aggregateId }],
         payload: {
           name: command.payload.name,
           email: command.payload.email,
@@ -80,15 +73,10 @@ describe("decideOpenMembership", () => {
     });
   });
 
-  describe.each<{ status: MembershipState["status"] }>([
-    { status: "open" },
-    { status: "active" },
-    { status: "closed" },
-  ])("given the membership is in $status state", ({ status }) => {
+  describe("given the membership already exists", () => {
     it("should reject with MEMBERSHIP_ALREADY_EXISTS", () => {
-      const state = { status, id: randomUUID() } as MembershipState;
-      const command = makeCommand();
-      const decision = decideOpenMembership(state, command);
+      const state: OpenMembershipState = { exists: true };
+      const decision = decideOpenMembership(state, makeCommand());
 
       expect(decision.accepted).toBe(false);
       if (decision.accepted) return;

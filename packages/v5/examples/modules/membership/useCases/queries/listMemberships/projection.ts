@@ -1,5 +1,5 @@
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
-import { MEMBERSHIP_TAG_KEY } from "@examples/modules/membership/core/state.ts";
+import { MEMBERSHIP_TAG_KEY } from "@examples/modules/membership/core/tags.ts";
 import { subjectOf } from "@examples/shared/utils/subjectOf.ts";
 
 export interface MembershipSummary {

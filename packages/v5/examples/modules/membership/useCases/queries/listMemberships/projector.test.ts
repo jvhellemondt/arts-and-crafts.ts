@@ -7,7 +7,7 @@ import type { MembershipEventV1 } from "@examples/modules/membership/core/events
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
-import { membershipTag } from "@examples/modules/membership/core/state.ts";
+import { membershipTag } from "@examples/modules/membership/core/tags.ts";
 import { randomUUID } from "node:crypto";
 import type { ListMembershipsProjection } from "./projection.ts";
 import { ListMembershipsProjector } from "./projector.ts";

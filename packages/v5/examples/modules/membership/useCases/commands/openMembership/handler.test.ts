@@ -1,6 +1,6 @@
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
-import { MembershipDecisionModel } from "@examples/modules/membership/core/decisionModel.ts";
+import { OpenMembershipRepository } from "./repository.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
@@ -24,14 +24,14 @@ const makeCommand = (id: typeof aggregateId) =>
 describe("OpenMembershipHandler", () => {
   let eventStore: InMemoryEventStore<MembershipEventV1>;
   let outbox: InMemoryOutbox<NotifyUserToVerifyEmailV1, never>;
-  let decisionModel: MembershipDecisionModel;
+  let repository: OpenMembershipRepository;
   let handler: OpenMembershipHandler;
 
   beforeEach(() => {
     eventStore = new InMemoryEventStore<MembershipEventV1>();
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, never>();
-    decisionModel = new MembershipDecisionModel(eventStore);
-    handler = new OpenMembershipHandler(decisionModel, outbox);
+    repository = new OpenMembershipRepository(eventStore);
+    handler = new OpenMembershipHandler(repository, outbox);
   });
 
   it("returns void when the membership is successfully opened", async () => {

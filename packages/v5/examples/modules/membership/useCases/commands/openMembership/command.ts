@@ -4,7 +4,7 @@ import { z } from "zod";
 import { name } from "../../../core/domain/Name.ts";
 import { email } from "../../../core/domain/Email.ts";
 import { type AggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
-import { membershipTag } from "@examples/modules/membership/core/state.ts";
+import { membershipTag } from "@examples/modules/membership/core/tags.ts";
 import { v7 as uuidv7 } from "uuid";
 
 export const OPEN_MEMBERSHIP = "OpenMembership";

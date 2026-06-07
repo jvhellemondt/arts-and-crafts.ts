@@ -83,13 +83,13 @@ with their `commandId`, which lets a retried command be deduplicated through the
 ```mermaid
 sequenceDiagram
     participant H as Command Handler
-    participant D as Decision Model
+    participant R as Repository (per command)
     participant S as Event Store
     H->>H: buildQuery(command)
-    H->>D: build(query)
-    D->>S: read(query)
-    S-->>D: { events, position }
-    D-->>H: { state, position }
+    H->>R: load(query)
+    R->>S: read(query)
+    S-->>R: { events, position }
+    R-->>H: { state, position }
     H->>H: decide(state, command)
     alt Accepted
         H->>S: append(events, { query, after: position })
@@ -103,7 +103,10 @@ sequenceDiagram
 
 Supersedes **ADR-0005** (command handling pattern): the lifecycle becomes
 buildQuery → read+fold → decide → conditional append, and `LoadAggregateState`/`expectedVersion` are
-removed in favour of `BuildDecisionModel`/`AppendCondition`.
+removed in favour of a per-command `Repository` (`load(query)` + conditional `store`) and
+`AppendCondition`. There is one repository per command — the boundary belongs to the decision, not to
+an aggregate — and each command folds the boundary into its own decision state rather than a shared
+module-wide state.
 
 Amends **ADR-0013** (event store read model): `LoadDomainEvents` and `LoadEventStreamFrom` are removed,
 `StoredEvent` drops `stream`/`streamKey`/`streamVersion`, and the event-relay partition key (ADR-0009)

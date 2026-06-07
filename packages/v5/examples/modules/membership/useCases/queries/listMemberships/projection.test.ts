@@ -2,7 +2,7 @@ import type { MembershipEventV1 } from "@examples/modules/membership/core/events
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { randomUUID } from "node:crypto";
 import { apply, emptyProjection, type ListMembershipsProjection } from "./projection.ts";
-import { membershipTag } from "@examples/modules/membership/core/state.ts";
+import { membershipTag } from "@examples/modules/membership/core/tags.ts";
 import { OPEN_MEMBERSHIP } from "../../commands/openMembership/command.ts";
 
 const makeOpened = (overrides: Partial<{ id: string }> = {}): MembershipOpenedV1 => ({

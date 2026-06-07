@@ -13,7 +13,7 @@ import { createListMembershipsRoute } from "./routes/createListMembershipsRoute.
 import { OpenMembershipHonoAdapter } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
 import { ListMembershipsHonoAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
 import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
-import { MembershipDecisionModel } from "@examples/modules/membership/core/decisionModel.ts";
+import { OpenMembershipRepository } from "@examples/modules/membership/useCases/commands/openMembership/repository.ts";
 import type { StageIntents } from "@core/capabilities/StageIntents.ts";
 import type { StageNotifications } from "@adapters/outbound/capabilities/StageNotifications.ts";
 import type { AppendConflict } from "@adapters/outbound/shapes/AppendConflict.ts";
@@ -34,7 +34,7 @@ export function createHonoApp(
     StageNotifications<OpenMembershipRejected, Promise<void | GatewayFailure>>,
   listMembershipsProjectionLoader: LoadProjection<ListMembershipsProjection>,
 ) {
-  const membershipRepository = new MembershipDecisionModel(eventStore);
+  const openMembershipRepository = new OpenMembershipRepository(eventStore);
 
   const app = new Hono();
   app.use(
@@ -49,7 +49,7 @@ export function createHonoApp(
     trimTrailingSlash(),
   );
 
-  const openMembershipHandler = new OpenMembershipHandler(membershipRepository, outbox);
+  const openMembershipHandler = new OpenMembershipHandler(openMembershipRepository, outbox);
   const openMembershipAdapter = new OpenMembershipHonoAdapter(openMembershipHandler);
   app.route("/", createOpenMembershipRoute(openMembershipAdapter));
 

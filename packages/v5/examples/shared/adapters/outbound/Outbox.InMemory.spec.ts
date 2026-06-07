@@ -3,7 +3,7 @@ import type { Intent } from "@core/shapes/Intent.ts";
 import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
 import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
 import { randomUUID } from "node:crypto";
-import { membershipTag } from "@examples/modules/membership/core/state.ts";
+import { membershipTag } from "@examples/modules/membership/core/tags.ts";
 import { OPEN_MEMBERSHIP } from "@examples/modules/membership/useCases/commands/openMembership/command.ts";
 
 interface TestIntent extends Intent<"NotifyUser", { channel: "email" | "push" }> {}
