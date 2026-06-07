@@ -76,7 +76,7 @@ describe("createOpenMembershipRoute", () => {
     const res = await route.request(makeRequest());
     const { id } = await res.json();
     expect(handledCommands).toHaveLength(1);
-    expect(handledCommands[0].aggregateId).toBe(id);
+    expect(handledCommands[0].tags).toContainEqual({ key: "membership", value: id });
   });
 
   it("returns 400 for an invalid body", async () => {

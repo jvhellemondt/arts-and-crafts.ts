@@ -7,6 +7,7 @@ import type { MembershipEventV1 } from "@examples/modules/membership/core/events
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
+import { membershipTag } from "@examples/modules/membership/core/state.ts";
 import { randomUUID } from "node:crypto";
 import type { ListMembershipsProjection } from "./projection.ts";
 import { ListMembershipsProjector } from "./projector.ts";
@@ -31,13 +32,12 @@ const stubStore = (overrides: Partial<StubStore>): StubStore => ({
   ...overrides,
 });
 
-const makeEvent = (overrides: Partial<{ aggregateId: string }> = {}): MembershipOpenedV1 => {
-  const aggregateId = overrides.aggregateId ?? randomUUID();
+const makeEvent = (overrides: Partial<{ id: string }> = {}): MembershipOpenedV1 => {
+  const id = overrides.id ?? randomUUID();
   return {
     type: "MembershipOpened.v1",
     kind: "domain",
-    aggregateType: "Membership",
-    aggregateId,
+    tags: [membershipTag(id)],
     commandId: "",
     commandType: "",
     timestamp: Date.now(),
@@ -57,7 +57,7 @@ describe("ListMembershipsProjector", () => {
       const eventStore = new InMemoryEventStore<MembershipEventV1>();
       const projector = new ListMembershipsProjector(projectionStore, eventStore);
 
-      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      await eventStore.append([makeEvent({ id: "id-1" })]);
       await projector.tick();
 
       expect(await projectionStore.load()).toMatchObject({
@@ -71,9 +71,9 @@ describe("ListMembershipsProjector", () => {
       const projector = new ListMembershipsProjector(projectionStore, eventStore);
 
       await eventStore.append([
-        makeEvent({ aggregateId: "id-1" }),
-        makeEvent({ aggregateId: "id-2" }),
-        makeEvent({ aggregateId: "id-3" }),
+        makeEvent({ id: "id-1" }),
+        makeEvent({ id: "id-2" }),
+        makeEvent({ id: "id-3" }),
       ]);
       await projector.tick();
 
@@ -86,14 +86,14 @@ describe("ListMembershipsProjector", () => {
       const projector = new ListMembershipsProjector(projectionStore, eventStore);
 
       await eventStore.append([
-        makeEvent({ aggregateId: "id-1" }),
-        makeEvent({ aggregateId: "id-2" }),
+        makeEvent({ id: "id-1" }),
+        makeEvent({ id: "id-2" }),
       ]);
       await projector.tick();
 
       await eventStore.append([
-        makeEvent({ aggregateId: "id-3" }),
-        makeEvent({ aggregateId: "id-4" }),
+        makeEvent({ id: "id-3" }),
+        makeEvent({ id: "id-4" }),
       ]);
       await projector.tick();
 
@@ -118,7 +118,7 @@ describe("ListMembershipsProjector", () => {
       const eventStore = new InMemoryEventStore<MembershipEventV1>();
       const projector = new ListMembershipsProjector(projectionStore, eventStore);
 
-      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      await eventStore.append([makeEvent({ id: "id-1" })]);
       projectionStore.simulate("offline");
       await projector.tick();
 
@@ -132,7 +132,7 @@ describe("ListMembershipsProjector", () => {
       const eventStore = new InMemoryEventStore<MembershipEventV1>();
       const projector = new ListMembershipsProjector(projectionStore, eventStore);
 
-      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      await eventStore.append([makeEvent({ id: "id-1" })]);
       eventStore.simulate("offline");
       await projector.tick();
 
@@ -152,7 +152,7 @@ describe("ListMembershipsProjector", () => {
       });
       const projector = new ListMembershipsProjector(store, eventStore);
 
-      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      await eventStore.append([makeEvent({ id: "id-1" })]);
       await projector.tick();
 
       expect(advanced).toEqual([]);
@@ -169,7 +169,7 @@ describe("ListMembershipsProjector", () => {
       });
       const projector = new ListMembershipsProjector(store, eventStore);
 
-      await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
+      await eventStore.append([makeEvent({ id: "id-1" })]);
       await projector.tick();
 
       expect(advanced).toEqual([]);
@@ -187,8 +187,8 @@ describe("ListMembershipsProjector", () => {
       const projector = new ListMembershipsProjector(store, eventStore);
 
       await eventStore.append([
-        makeEvent({ aggregateId: "id-1" }),
-        makeEvent({ aggregateId: "id-2" }),
+        makeEvent({ id: "id-1" }),
+        makeEvent({ id: "id-2" }),
       ]);
       await projector.tick();
 
@@ -201,9 +201,9 @@ describe("ListMembershipsProjector", () => {
       const projector = new ListMembershipsProjector(projectionStore, eventStore, 2);
 
       await eventStore.append([
-        makeEvent({ aggregateId: "id-1" }),
-        makeEvent({ aggregateId: "id-2" }),
-        makeEvent({ aggregateId: "id-3" }),
+        makeEvent({ id: "id-1" }),
+        makeEvent({ id: "id-2" }),
+        makeEvent({ id: "id-3" }),
       ]);
       await projector.tick();
 

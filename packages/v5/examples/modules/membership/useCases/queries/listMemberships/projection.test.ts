@@ -2,14 +2,13 @@ import type { MembershipEventV1 } from "@examples/modules/membership/core/events
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { randomUUID } from "node:crypto";
 import { apply, emptyProjection, type ListMembershipsProjection } from "./projection.ts";
-import { MEMBERSHIP_AGGREGATE } from "@examples/modules/membership/core/state.ts";
+import { membershipTag } from "@examples/modules/membership/core/state.ts";
 import { OPEN_MEMBERSHIP } from "../../commands/openMembership/command.ts";
 
-const makeOpened = (overrides: Partial<{ aggregateId: string }> = {}): MembershipOpenedV1 => ({
+const makeOpened = (overrides: Partial<{ id: string }> = {}): MembershipOpenedV1 => ({
   type: "MembershipOpened.v1",
   kind: "domain",
-  aggregateId: overrides.aggregateId ?? randomUUID(),
-  aggregateType: MEMBERSHIP_AGGREGATE,
+  tags: [membershipTag(overrides.id ?? randomUUID())],
   timestamp: Date.now(),
   id: randomUUID(),
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
@@ -28,7 +27,7 @@ describe("listMemberships projection", () => {
 
   it("adds an entry for MembershipOpened.v1", () => {
     const id = randomUUID();
-    const event = makeOpened({ aggregateId: id });
+    const event = makeOpened({ id });
 
     const next = apply(emptyProjection, event);
 
@@ -40,11 +39,17 @@ describe("listMemberships projection", () => {
     });
   });
 
+  it("ignores a MembershipOpened.v1 event without a membership tag", () => {
+    const event: MembershipOpenedV1 = { ...makeOpened(), tags: [] };
+    const state: ListMembershipsProjection = {};
+    expect(apply(state, event)).toBe(state);
+  });
+
   it("preserves existing entries when applying a new event", () => {
     const firstId = randomUUID();
     const secondId = randomUUID();
-    const afterFirst = apply(emptyProjection, makeOpened({ aggregateId: firstId }));
-    const afterSecond = apply(afterFirst, makeOpened({ aggregateId: secondId }));
+    const afterFirst = apply(emptyProjection, makeOpened({ id: firstId }));
+    const afterSecond = apply(afterFirst, makeOpened({ id: secondId }));
 
     expect(Object.keys(afterSecond)).toEqual(expect.arrayContaining([firstId, secondId]));
   });

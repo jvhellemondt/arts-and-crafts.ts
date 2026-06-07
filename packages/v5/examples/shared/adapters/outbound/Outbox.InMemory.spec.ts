@@ -3,7 +3,7 @@ import type { Intent } from "@core/shapes/Intent.ts";
 import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
 import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
 import { randomUUID } from "node:crypto";
-import { MEMBERSHIP_AGGREGATE } from "@examples/modules/membership/core/state.ts";
+import { membershipTag } from "@examples/modules/membership/core/state.ts";
 import { OPEN_MEMBERSHIP } from "@examples/modules/membership/useCases/commands/openMembership/command.ts";
 
 interface TestIntent extends Intent<"NotifyUser", { channel: "email" | "push" }> {}
@@ -22,8 +22,7 @@ const makeIntent = (channel: "email" | "push"): TestIntent => ({
   timestamp: Date.now(),
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
   id: randomUUID(),
-  aggregateType: MEMBERSHIP_AGGREGATE,
-  aggregateId: randomUUID(),
+  tags: [membershipTag(randomUUID())],
 });
 
 const makeNotification = (reason: string): TestNotification => ({
@@ -40,8 +39,7 @@ const makeNotification = (reason: string): TestNotification => ({
   },
   commandType: OPEN_MEMBERSHIP,
   commandId: randomUUID(),
-  aggregateType: MEMBERSHIP_AGGREGATE,
-  aggregateId: randomUUID(),
+  tags: [membershipTag(randomUUID())],
 });
 
 describe("InMemoryIntentOutbox", () => {

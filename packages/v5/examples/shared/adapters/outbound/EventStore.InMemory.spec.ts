@@ -1,47 +1,44 @@
 import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
-import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { LoadEventStreamFrom } from "@adapters/outbound/capabilities/LoadEventStreamFrom.ts";
 import type { LoadEventsFrom } from "@adapters/outbound/capabilities/LoadEventsFrom.ts";
+import type { ReadEvents } from "@adapters/outbound/capabilities/ReadEvents.ts";
 import type { SimulateFaults } from "@adapters/outbound/capabilities/SimulateFaults.ts";
+import type { AppendConflict } from "@adapters/outbound/shapes/AppendConflict.ts";
+import type { DcbQuery } from "@adapters/outbound/shapes/DcbQuery.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { ReadResult } from "@adapters/outbound/shapes/ReadResult.ts";
 import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
-import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
+import type { Tag } from "@core/shapes/Tag.ts";
 import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 import { randomUUID } from "node:crypto";
 import { InMemoryEventStore } from "./EventStore.InMemory.ts";
 
 interface TestDomainEvent extends DomainEvent<"TestDomainEvent", { name: string }> {}
+interface OtherDomainEvent extends DomainEvent<"OtherDomainEvent", { name: string }> {}
+type AnyTestEvent = TestDomainEvent | OtherDomainEvent;
 
-const makeEvent = (aggregateType: string, aggregateId: string): TestDomainEvent => ({
-  type: "TestDomainEvent",
+const makeEvent = <TType extends AnyTestEvent["type"]>(
+  type: TType,
+  tags: Tag[],
+): AnyTestEvent => ({
+  type,
   payload: { name: "Elon Musk" },
   kind: "domain",
-  aggregateType,
-  aggregateId,
+  tags,
   commandId: randomUUID(),
   commandType: "TestDomainEventCommand",
   timestamp: Date.now(),
-  metadata: {
-    correlationId: randomUUID(),
-    causationId: randomUUID(),
-  },
+  metadata: { correlationId: randomUUID(), causationId: randomUUID() },
   id: randomUUID(),
-});
+}) as AnyTestEvent;
+
+const subjectTag = (value: string): Tag => ({ key: "subject", value });
+const queryFor = (criteria: DcbQuery["criteria"]): DcbQuery => ({ criteria });
 
 describe("in-memory event store", () => {
-  const aggregateId = randomUUID();
-  const streamName = "users";
-  let eventStore: LoadDomainEvents<TestDomainEvent, Promise<TestDomainEvent[] | GatewayFailure>> &
-    LoadEventsFrom<TestDomainEvent> &
-    LoadEventStreamFrom<TestDomainEvent> &
-    AppendToEventStream<TestDomainEvent, Promise<void | GatewayFailure>> &
+  let eventStore: ReadEvents<AnyTestEvent> &
+    LoadEventsFrom<AnyTestEvent> &
+    AppendToEventStream<AnyTestEvent, Promise<void | GatewayFailure | AppendConflict>> &
     SimulateFaults;
-
-  const fixture = [
-    makeEvent(streamName, aggregateId),
-    makeEvent(streamName, aggregateId),
-    makeEvent(streamName, aggregateId),
-  ];
 
   beforeEach(() => {
     eventStore = new InMemoryEventStore();
@@ -51,58 +48,98 @@ describe("in-memory event store", () => {
     expect(InMemoryEventStore).toBeDefined();
   });
 
-  it.each([
-    { _streamName: streamName, expected: fixture },
-    { _streamName: "test", expected: [] },
-  ])("should load domain events for '$streamName'", async ({ _streamName, expected }) => {
-    await Promise.all(fixture.map((event) => eventStore.append([event])));
-    const events = await eventStore.load(_streamName, aggregateId);
-    expect(events).toEqual(expected);
-  });
+  describe("read", () => {
+    it("returns events matching a tag criterion with the store-wide position", async () => {
+      const id = randomUUID();
+      await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(id)])]);
+      await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(randomUUID())])]);
 
-  it("should return empty array if no events were appended", async () => {
-    const events = await eventStore.load(streamName, aggregateId);
-    expect(events).toEqual([]);
-  });
+      const result = (await eventStore.read(
+        queryFor([{ tags: [subjectTag(id)] }]),
+      )) as ReadResult<AnyTestEvent>;
 
-  it.each<{ events: TestDomainEvent[] }>([
-    { events: [makeEvent(streamName, randomUUID())] },
-    {
-      events: [
-        makeEvent(streamName, randomUUID()),
-        makeEvent(streamName, randomUUID()),
-        makeEvent(streamName, randomUUID()),
-      ],
-    },
-  ])("should append $events.length domain event(s)", async ({ events }) => {
-    const promise = Promise.all(events.map((event) => eventStore.append([event])));
-    await expect(promise).resolves.not.toThrow();
-  });
+      expect(result.events).toHaveLength(1);
+      expect(result.position).toBe(2);
+    });
 
-  it("should append events when events already exist in the store", async () => {
-    await eventStore.append(fixture);
-    const event = makeEvent(streamName, randomUUID());
-    await expect(eventStore.append([event])).resolves.not.toThrow();
+    it("filters by event type within a criterion", async () => {
+      const id = randomUUID();
+      await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(id)])]);
+      await eventStore.append([makeEvent("OtherDomainEvent", [subjectTag(id)])]);
+
+      const result = (await eventStore.read(
+        queryFor([{ types: ["OtherDomainEvent"], tags: [subjectTag(id)] }]),
+      )) as ReadResult<AnyTestEvent>;
+
+      expect(result.events.map((event) => event.type)).toEqual(["OtherDomainEvent"]);
+    });
+
+    it("requires every tag in a criterion to be present (AND)", async () => {
+      const id = randomUUID();
+      await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(id)])]);
+      await eventStore.append([
+        makeEvent("TestDomainEvent", [subjectTag(id), { key: "tenant", value: "acme" }]),
+      ]);
+
+      const result = (await eventStore.read(
+        queryFor([{ tags: [subjectTag(id), { key: "tenant", value: "acme" }] }]),
+      )) as ReadResult<AnyTestEvent>;
+
+      expect(result.events).toHaveLength(1);
+    });
+
+    it("matches an event against any criterion (OR)", async () => {
+      const a = randomUUID();
+      const b = randomUUID();
+      await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(a)])]);
+      await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(b)])]);
+
+      const result = (await eventStore.read(
+        queryFor([{ tags: [subjectTag(a)] }, { tags: [subjectTag(b)] }]),
+      )) as ReadResult<AnyTestEvent>;
+
+      expect(result.events).toHaveLength(2);
+    });
+
+    it("matches no events for an empty criteria list", async () => {
+      await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(randomUUID())])]);
+
+      const result = (await eventStore.read(queryFor([]))) as ReadResult<AnyTestEvent>;
+
+      expect(result.events).toEqual([]);
+      expect(result.position).toBe(1);
+    });
+
+    it("returns a GatewayFailure when offline", async () => {
+      eventStore.simulate("offline");
+      const result = await eventStore.read(queryFor([{ tags: [subjectTag("x")] }]));
+      expect(result).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" });
+    });
   });
 
   describe("loadFrom", () => {
+    const fixture = [
+      makeEvent("TestDomainEvent", [subjectTag(randomUUID())]),
+      makeEvent("TestDomainEvent", [subjectTag(randomUUID())]),
+      makeEvent("TestDomainEvent", [subjectTag(randomUUID())]),
+    ];
+
     it("returns all stored events from globalPosition 1", async () => {
       await eventStore.append(fixture);
-      const result = (await eventStore.loadFrom(1)) as StoredEvent<TestDomainEvent>[];
-      expect(result).toHaveLength(3);
+      const result = (await eventStore.loadFrom(1)) as StoredEvent<AnyTestEvent>[];
       expect(result.map((row) => row.globalPosition)).toEqual([1, 2, 3]);
       expect(result.map((row) => row.event)).toEqual(fixture);
     });
 
     it("filters out rows before the given globalPosition", async () => {
       await eventStore.append(fixture);
-      const result = (await eventStore.loadFrom(2)) as StoredEvent<TestDomainEvent>[];
+      const result = (await eventStore.loadFrom(2)) as StoredEvent<AnyTestEvent>[];
       expect(result.map((row) => row.globalPosition)).toEqual([2, 3]);
     });
 
     it("honours the optional limit", async () => {
       await eventStore.append(fixture);
-      const result = (await eventStore.loadFrom(1, 2)) as StoredEvent<TestDomainEvent>[];
+      const result = (await eventStore.loadFrom(1, 2)) as StoredEvent<AnyTestEvent>[];
       expect(result.map((row) => row.globalPosition)).toEqual([1, 2]);
     });
 
@@ -110,95 +147,75 @@ describe("in-memory event store", () => {
       const result = await eventStore.loadFrom(1);
       expect(result).toEqual([]);
     });
-  });
 
-  describe("loadStreamFrom", () => {
-    it("returns rows of the requested stream in version order", async () => {
-      await eventStore.append(fixture);
-      const otherId = randomUUID();
-      await eventStore.append([makeEvent(streamName, otherId)]);
-      const streamKey: StreamKey = `${streamName}#${aggregateId}`;
-
-      const result = (await eventStore.loadStreamFrom(
-        streamKey,
-        1,
-      )) as StoredEvent<TestDomainEvent>[];
-
-      expect(result.map((row) => row.streamVersion)).toEqual([1, 2, 3]);
-      expect(result.map((row) => row.event)).toEqual(fixture);
-    });
-
-    it("filters out versions below the requested fromVersion", async () => {
-      await eventStore.append(fixture);
-      const streamKey: StreamKey = `${streamName}#${aggregateId}`;
-
-      const result = (await eventStore.loadStreamFrom(
-        streamKey,
-        2,
-      )) as StoredEvent<TestDomainEvent>[];
-
-      expect(result.map((row) => row.streamVersion)).toEqual([2, 3]);
-    });
-
-    it("returns an empty array for an unknown stream", async () => {
-      await eventStore.append(fixture);
-      const result = await eventStore.loadStreamFrom(`${streamName}#missing` as StreamKey, 1);
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe("should simulate offline fault", async () => {
-    beforeEach(() => {
+    it("returns a GatewayFailure when offline", async () => {
       eventStore.simulate("offline");
+      const result = await eventStore.loadFrom(1);
+      expect(result).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" });
+    });
+  });
+
+  describe("append", () => {
+    it("appends without a condition", async () => {
+      const event = makeEvent("TestDomainEvent", [subjectTag(randomUUID())]);
+      await expect(eventStore.append([event])).resolves.toBeUndefined();
     });
 
-    it("should expose isSimulating property as true", () => {
+    it("succeeds with a condition when no matching event was stored after the position", async () => {
+      const id = randomUUID();
+      const query = queryFor([{ types: ["TestDomainEvent"], tags: [subjectTag(id)] }]);
+
+      const result = await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(id)])], {
+        query,
+        after: 0,
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it("does not conflict on an unrelated event stored after the position", async () => {
+      const id = randomUUID();
+      const query = queryFor([{ types: ["TestDomainEvent"], tags: [subjectTag(id)] }]);
+      await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(randomUUID())])]);
+
+      const result = await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(id)])], {
+        query,
+        after: 0,
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it("returns an AppendConflict when a matching event was stored after the position", async () => {
+      const id = randomUUID();
+      const query = queryFor([{ types: ["TestDomainEvent"], tags: [subjectTag(id)] }]);
+      await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(id)])]);
+
+      const result = await eventStore.append([makeEvent("TestDomainEvent", [subjectTag(id)])], {
+        query,
+        after: 0,
+      });
+
+      expect(result).toMatchObject({ kind: "failure", code: "APPEND_CONDITION_FAILED" });
+    });
+
+    it("returns a GatewayFailure when offline", async () => {
+      eventStore.simulate("offline");
+      const event = makeEvent("TestDomainEvent", [subjectTag(randomUUID())]);
+      const result = await eventStore.append([event]);
+      expect(result).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" });
+    });
+  });
+
+  describe("simulate", () => {
+    it("exposes isSimulating and the active fault, then restores", async () => {
+      eventStore.simulate("offline");
       expect(eventStore.isSimulating).toBe(true);
-    });
+      expect(eventStore.activeFault).toBe("offline");
 
-    it("should return gateway failure when loading events", async () => {
-      const response = await eventStore.load(streamName, aggregateId);
-      expect(response).toEqual({
-        kind: "failure",
-        code: "GATEWAY_FAILURE",
-        gateway: "InMemoryEventStore",
-        reason: "The Eventstore has been set to offline mode",
-      });
-    });
-
-    it("should return gateway failure when appending events", async () => {
-      const event = makeEvent(streamName, randomUUID());
-      const response = await eventStore.append([event]);
-      expect(response).toEqual({
-        kind: "failure",
-        code: "GATEWAY_FAILURE",
-        gateway: "InMemoryEventStore",
-        reason: "The Eventstore has been set to offline mode",
-      });
-    });
-
-    it("should return gateway failure from loadFrom", async () => {
-      const response = await eventStore.loadFrom(0);
-      expect(response).toMatchObject({
-        code: "GATEWAY_FAILURE",
-        gateway: "InMemoryEventStore",
-      });
-    });
-
-    it("should return gateway failure from loadStreamFrom", async () => {
-      const response = await eventStore.loadStreamFrom(`${streamName}#${aggregateId}`, 1);
-      expect(response).toMatchObject({
-        code: "GATEWAY_FAILURE",
-        gateway: "InMemoryEventStore",
-      });
-    });
-
-    it("should restore the event store to online state", async () => {
       eventStore.restore();
       expect(eventStore.isSimulating).toBe(false);
-      await Promise.all(fixture.map((event) => eventStore.append([event])));
-      const events = await eventStore.load(streamName, aggregateId);
-      expect(events).toEqual(fixture);
+      expect(eventStore.activeFault).toBeUndefined();
     });
   });
 });

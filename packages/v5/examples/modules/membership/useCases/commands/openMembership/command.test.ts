@@ -72,6 +72,11 @@ describe("createOpenMembershipCommand", () => {
     expect(command.metadata).toBe(VALID_METADATA);
   });
 
+  it("tags the command with its membership subject", () => {
+    const command = createOpenMembershipCommand(aggregateId, VALID_PAYLOAD, VALID_METADATA);
+    expect(command.tags).toEqual([{ key: "membership", value: aggregateId }]);
+  });
+
   it("returns a command with a UUIDv7 id", () => {
     const command = createOpenMembershipCommand(aggregateId, VALID_PAYLOAD, VALID_METADATA);
     expect(command.id).toMatch(UUID_V7_PATTERN);

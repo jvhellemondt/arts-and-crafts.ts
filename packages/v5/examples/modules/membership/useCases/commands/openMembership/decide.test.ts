@@ -49,8 +49,10 @@ describe("decideOpenMembership", () => {
       expect(decision.events[0]).toMatchObject({
         type: "MembershipOpened.v1",
         kind: "domain",
-        aggregateType: "Membership",
-        aggregateId: state.id,
+        tags: [
+          { key: "membership", value: state.id },
+          { key: "command", value: command.id },
+        ],
         payload: {
           name: command.payload.name,
           email: command.payload.email,

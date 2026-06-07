@@ -13,27 +13,28 @@ import { createListMembershipsRoute } from "./routes/createListMembershipsRoute.
 import { OpenMembershipHonoAdapter } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
 import { ListMembershipsHonoAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
 import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
-import { MembershipRepository } from "@examples/modules/membership/core/repository.ts";
+import { MembershipDecisionModel } from "@examples/modules/membership/core/decisionModel.ts";
 import type { StageIntents } from "@core/capabilities/StageIntents.ts";
 import type { StageNotifications } from "@adapters/outbound/capabilities/StageNotifications.ts";
+import type { AppendConflict } from "@adapters/outbound/shapes/AppendConflict.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
 import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 import { OpenMembershipHandler } from "@examples/modules/membership/useCases/commands/openMembership/handler.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
-import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
+import type { ReadEvents } from "@adapters/outbound/capabilities/ReadEvents.ts";
 import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
 import type { LoadProjection } from "@adapters/outbound/capabilities/LoadProjection.ts";
 import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 
 export function createHonoApp(
-  eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
-    AppendToEventStream<MembershipEventV1, Promise<void | GatewayFailure>>,
+  eventStore: ReadEvents<MembershipEventV1> &
+    AppendToEventStream<MembershipEventV1, Promise<void | GatewayFailure | AppendConflict>>,
   outbox: StageIntents<MembershipIntents, Promise<void | GatewayFailure>> &
     StageNotifications<OpenMembershipRejected, Promise<void | GatewayFailure>>,
   listMembershipsProjectionLoader: LoadProjection<ListMembershipsProjection>,
 ) {
-  const membershipRepository = new MembershipRepository(eventStore);
+  const membershipRepository = new MembershipDecisionModel(eventStore);
 
   const app = new Hono();
   app.use(

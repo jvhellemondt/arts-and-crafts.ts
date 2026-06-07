@@ -1,22 +1,35 @@
 import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
-import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { LoadEventStreamFrom } from "@adapters/outbound/capabilities/LoadEventStreamFrom.ts";
 import type { LoadEventsFrom } from "@adapters/outbound/capabilities/LoadEventsFrom.ts";
+import type { ReadEvents } from "@adapters/outbound/capabilities/ReadEvents.ts";
 import type {
   FaultSimulationMode,
   SimulateFaults,
 } from "@adapters/outbound/capabilities/SimulateFaults.ts";
+import type { AppendCondition } from "@adapters/outbound/shapes/AppendCondition.ts";
+import type { AppendConflict } from "@adapters/outbound/shapes/AppendConflict.ts";
+import type { Criterion, DcbQuery } from "@adapters/outbound/shapes/DcbQuery.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { ReadResult } from "@adapters/outbound/shapes/ReadResult.ts";
 import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
-import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
 import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
+
+function matchesCriterion(event: DomainEvent, criterion: Criterion): boolean {
+  const typeMatches = criterion.types === undefined || criterion.types.includes(event.type);
+  const tagsMatch = criterion.tags.every((tag) =>
+    event.tags.some((eventTag) => eventTag.key === tag.key && eventTag.value === tag.value),
+  );
+  return typeMatches && tagsMatch;
+}
+
+function matchesQuery(event: DomainEvent, query: DcbQuery): boolean {
+  return query.criteria.some((criterion) => matchesCriterion(event, criterion));
+}
 
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
-    LoadDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>,
+    ReadEvents<TEvent>,
     LoadEventsFrom<TEvent>,
-    LoadEventStreamFrom<TEvent>,
-    AppendToEventStream<TEvent, Promise<void | GatewayFailure>>,
+    AppendToEventStream<TEvent, Promise<void | GatewayFailure | AppendConflict>>,
     SimulateFaults
 {
   private readonly tableName: string = "event_store";
@@ -56,13 +69,13 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     };
   }
 
-  async load(streamName: string, aggregateId: string): Promise<TEvent[] | GatewayFailure> {
+  async read(query: DcbQuery): Promise<ReadResult<TEvent> | GatewayFailure> {
     if (this.activeFault === "offline") return this.offlineFailure();
 
-    const streamKey: StreamKey = `${streamName}#${aggregateId}`;
-    return this.rows
-      .filter((envelope) => envelope.streamKey === streamKey)
-      .map((envelope) => envelope.event);
+    const events = this.rows
+      .filter((row) => matchesQuery(row.event, query))
+      .map((row) => row.event);
+    return { events, position: this.rows.length };
   }
 
   async loadFrom(
@@ -75,27 +88,27 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     return limit !== undefined ? filtered.slice(0, limit) : filtered;
   }
 
-  async loadStreamFrom(
-    streamKey: StreamKey,
-    fromVersion: number,
-  ): Promise<StoredEvent<TEvent>[] | GatewayFailure> {
+  async append(
+    events: TEvent[],
+    condition?: AppendCondition,
+  ): Promise<void | GatewayFailure | AppendConflict> {
     if (this.activeFault === "offline") return this.offlineFailure();
 
-    return this.rows.filter(
-      (row) => row.streamKey === streamKey && row.streamVersion >= fromVersion,
-    );
-  }
-
-  async append(events: TEvent[]): Promise<void | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+    if (condition !== undefined) {
+      const conflict = this.rows.some(
+        (row) => row.globalPosition > condition.after && matchesQuery(row.event, condition.query),
+      );
+      if (conflict) {
+        return {
+          kind: "failure",
+          code: "APPEND_CONDITION_FAILED",
+          reason: `An event matching the append condition was stored after position ${condition.after}`,
+        };
+      }
+    }
 
     for (const event of events) {
-      const streamKey: StreamKey = `${event.aggregateType}#${event.aggregateId}`;
-      const streamVersion = this.rows.filter((e) => e.streamKey === streamKey).length + 1;
       this.rows.push({
-        stream: event.aggregateType,
-        streamKey,
-        streamVersion,
         globalPosition: this.rows.length + 1,
         insertedAt: Date.now(),
         event,

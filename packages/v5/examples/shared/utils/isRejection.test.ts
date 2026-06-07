@@ -14,8 +14,7 @@ const accepted: Accepted<TestEvent, TestIntent> = {
     {
       type: "TestEvent",
       kind: "domain",
-      aggregateType: "Test",
-      aggregateId: "1",
+      tags: [{ key: "test", value: "1" }],
       commandId: "1",
       commandType: "EventTest",
       id: "1",

@@ -1,5 +1,5 @@
 import {
-  MEMBERSHIP_AGGREGATE,
+  membershipTag,
   type MembershipState,
 } from "@examples/modules/membership/core/state.ts";
 import type { OpenMembershipDecision } from "./decision.ts";
@@ -33,8 +33,7 @@ export function decideOpenMembership(
           email: command.payload.email,
         },
         kind: "domain",
-        aggregateId: state.id,
-        aggregateType: MEMBERSHIP_AGGREGATE,
+        tags: [membershipTag(state.id), { key: "command", value: command.id }],
         commandId: command.id,
         commandType: OPEN_MEMBERSHIP,
         timestamp: new Date().getTime(),
@@ -52,8 +51,7 @@ export function decideOpenMembership(
         timestamp: new Date().getTime(),
         metadata: command.metadata,
         id: uuidv7(),
-        aggregateId: state.id,
-        aggregateType: MEMBERSHIP_AGGREGATE,
+        tags: [membershipTag(state.id)],
         commandId: command.id,
         commandType: OPEN_MEMBERSHIP,
       },

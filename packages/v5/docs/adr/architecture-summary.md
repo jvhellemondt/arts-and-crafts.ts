@@ -22,7 +22,7 @@ The core is pure — no I/O, no side effects, no infrastructure dependencies. Pe
 
 **Intents** that are domain-expressed consequences of a decision also live at module level. Cross-cutting intents such as rejection notifications are added by the application layer, not the decider.
 
-**Evolve** is a pure state evolution function that folds a single event into the current state. State reconstruction happens before every command by folding all past events through evolve. See **ADR-0005**.
+**Evolve** is a pure state evolution function that folds a single event into the current state. State reconstruction happens before every command by folding the events inside the command's consistency boundary through evolve. See **ADR-0005** and **ADR-0014**.
 
 **The decider** is use case specific and co-located with its command. It is always a pure function taking current state and a command, returning a Decision. It never expresses how outcomes are communicated to callers.
 
@@ -42,9 +42,9 @@ Each use case owns its input type (command or query), its output type (decision 
 
 ## Command Handling Pattern
 
-Every command follows the same lifecycle without exception. See **ADR-0005**.
+Every command follows the same lifecycle without exception. See **ADR-0005**, superseded by **ADR-0014**.
 
-The inbound adapter translates the transport payload into a domain command and calls the command handler. The handler loads past events from the event store, reconstructs current state by folding them through evolve, and calls the pure decider. If the decision is Accepted, the handler persists events and writes domain intents to the outbox. If the decision is Rejected, the handler writes an InformCallerOfRejection intent to the outbox as a cross-cutting application policy. Technical events are written at every meaningful boundary throughout. The result is returned to the inbound adapter which translates it to the appropriate transport response.
+The inbound adapter translates the transport payload into a domain command and calls the command handler. The command carries `tags` rather than aggregate coordinates; the handler derives a dynamic consistency boundary query from those tags, reads the matching events together with the store-wide position, reconstructs current state by folding them through evolve, and calls the pure decider. If the decision is Accepted, the handler appends events under an append condition (the query plus the read position) and writes domain intents to the outbox; a violated condition surfaces as an AppendConflict. If the decision is Rejected, the handler writes an InformCallerOfRejection intent to the outbox as a cross-cutting application policy. Technical events are written at every meaningful boundary throughout. The result is returned to the inbound adapter which translates it to the appropriate transport response. See **ADR-0014**.
 
 For HTTP callers, rejection is communicated both synchronously as a 4xx response and asynchronously via the outbox through to the Kafka results topic. For event-driven callers (message queue, internal channel) there is no synchronous response — only the async notification via outbox.
 
@@ -106,7 +106,7 @@ Technical events are written by inbound and outbound adapters at every boundary.
 
 The system maintains three distinct stores with different purposes, write patterns, and consumers.
 
-The **domain event store** is the source of truth for aggregate state. It is written transactionally with the intent outbox. It is consumed by the application for state reconstruction, by projectors for building read models, and tailed by the event relay for external broadcast.
+The **domain event store** is the source of truth. It is an append-only log of tagged events with no per-aggregate streams; consistency boundaries are selected dynamically by query (see **ADR-0014**). It is written transactionally with the intent outbox. It is consumed by the application for state reconstruction, by projectors for building read models, and tailed by the event relay for external broadcast.
 
 The **intent outbox** is a durable buffer for directed intents requiring guaranteed delivery. It is written transactionally with the event store. It is consumed by intent relays.
 
@@ -153,6 +153,11 @@ The shell reads config from environment variables, instantiates infrastructure i
 | ADR-0007 | Incoming event handling pattern |
 | ADR-0008 | Intent relay pattern |
 | ADR-0009 | Event relay pattern |
+| ADR-0010 | Projector pattern |
+| ADR-0011 | Projection rebuild strategy |
+| ADR-0012 | Specification pattern for business rules |
+| ADR-0013 | Event bus and event store read model |
+| ADR-0014 | Dynamic Consistency Boundaries |
 
 ---
 

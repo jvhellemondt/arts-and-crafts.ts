@@ -45,10 +45,10 @@ describe("OpenMembershipHonoAdapter", () => {
     adapter = new OpenMembershipHonoAdapter(handler);
   });
 
-  it("calls handler.handle with the correct aggregateId", async () => {
+  it("calls handler.handle with the membership tag for the given id", async () => {
     await adapter.handle(makeContext(), aggregateId);
     expect(handledCommands).toHaveLength(1);
-    expect(handledCommands[0].aggregateId).toBe(aggregateId);
+    expect(handledCommands[0].tags).toContainEqual({ key: "membership", value: aggregateId });
   });
 
   it("calls handler.handle with the body as payload", async () => {
