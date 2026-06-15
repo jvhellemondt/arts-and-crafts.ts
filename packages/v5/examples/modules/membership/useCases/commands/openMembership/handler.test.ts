@@ -40,7 +40,11 @@ describe("OpenMembershipHandler", () => {
 
     const result = await handler.handle(command);
 
-    expect(result).toMatchObject({ code: "MEMBERSHIP_ALREADY_EXISTS" });
+    expect(result).toMatchObject({
+      code: "MEMBERSHIP_ALREADY_EXISTS",
+      kind: "rejection",
+      reason: "Membership already exists",
+    });
   });
 
   it("returns a GatewayFailure when the event store is offline", async () => {
