@@ -1,4 +1,4 @@
-import { MEMBERSHIP_AGGREGATE } from "@examples/modules/membership/core/AggregateTypes.ts";
+import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { randomUUID } from "node:crypto";
 import { OPEN_MEMBERSHIP } from "./command.ts";
@@ -35,14 +35,14 @@ describe("evolveOpenMembership", () => {
   describe("MembershipOpened.v1", () => {
     it("transitions to open status", () => {
       const state = evolveOpenMembership(aggregateId, [
-        makeMembershipOpenedV1([createStreamKey(MEMBERSHIP_AGGREGATE, aggregateId)]),
+        makeMembershipOpenedV1([createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId)]),
       ]);
       expect(state.status).toBe("open");
     });
 
     it("sets name and email from the event payload", () => {
       const state = evolveOpenMembership(aggregateId, [
-        makeMembershipOpenedV1([createStreamKey(MEMBERSHIP_AGGREGATE, aggregateId)]),
+        makeMembershipOpenedV1([createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId)]),
       ]);
       if (state.status !== "open") return;
       expect(state.name).toBe("Jane Doe");
@@ -51,7 +51,7 @@ describe("evolveOpenMembership", () => {
 
     it("preserves the aggregate id", () => {
       const state = evolveOpenMembership(aggregateId, [
-        makeMembershipOpenedV1([createStreamKey(MEMBERSHIP_AGGREGATE, aggregateId)]),
+        makeMembershipOpenedV1([createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId)]),
       ]);
       expect(state.id).toBe(aggregateId);
     });

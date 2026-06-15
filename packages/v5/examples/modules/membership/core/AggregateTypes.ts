@@ -1,1 +1,1 @@
-export const MEMBERSHIP_AGGREGATE = "Membership";
+export const MEMBERSHIP_AGGREGATE_NAME = "Membership";
