@@ -1,6 +1,5 @@
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
-import { MembershipRepository } from "@examples/modules/membership/core/repository.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
@@ -8,6 +7,7 @@ import { OpenMembershipHandler } from "./handler.ts";
 import { randomUUID } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 import { aggregateId as aggregateIdSchema } from "@examples/modules/membership/core/domain/AggregateId.ts";
+import { OpenMembershipRepository } from "./repository.ts";
 
 const aggregateId = aggregateIdSchema.parse(uuidv7());
 
@@ -24,13 +24,13 @@ const makeCommand = (id: typeof aggregateId) =>
 describe("OpenMembershipHandler", () => {
   let eventStore: InMemoryEventStore<MembershipEventV1>;
   let outbox: InMemoryOutbox<NotifyUserToVerifyEmailV1, never>;
-  let repository: MembershipRepository;
+  let repository: OpenMembershipRepository;
   let handler: OpenMembershipHandler;
 
   beforeEach(() => {
     eventStore = new InMemoryEventStore<MembershipEventV1>();
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, never>();
-    repository = new MembershipRepository(eventStore);
+    repository = new OpenMembershipRepository(eventStore);
     handler = new OpenMembershipHandler(repository, outbox);
   });
 
