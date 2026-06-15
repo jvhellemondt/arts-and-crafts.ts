@@ -109,11 +109,11 @@ describe("in-memory event store", () => {
       expect(result.map((row) => row.globalPosition)).toEqual([1, 2, 3, 4, 5]);
     });
 
-    // it("filters out rows before the given globalPosition", async () => {
-    //   await eventStore.append(fixture);
-    //   const result = (await eventStore.loadFrom(2)) as StoredEvent<TestDomainEvent>[];
-    //   expect(result.map((row) => row.globalPosition)).toEqual([2, 3]);
-    // });
+    it("filters out rows before the given globalPosition", async () => {
+      await eventStore.append(fixture);
+      const result = (await eventStore.loadFrom(2)) as StoredEvent<TestDomainEvent>[];
+      expect(result.map((row) => row.globalPosition)).toEqual([2, 3, 4, 5]);
+    });
 
     //   it("honours the optional limit", async () => {
     //     await eventStore.append(fixture);
