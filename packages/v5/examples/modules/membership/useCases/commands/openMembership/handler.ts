@@ -8,7 +8,6 @@ import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/cor
 import type { Rejection } from "@core/shapes/Rejection.ts";
 import { isRejection } from "@examples/shared/utils/isRejection.ts";
 import type { OpenMembershipRepository } from "./repository.ts";
-import { v7 as uuidv7 } from "uuid";
 
 export class OpenMembershipHandler implements HandleCommand<
   OpenMembershipCommand,
@@ -23,8 +22,7 @@ export class OpenMembershipHandler implements HandleCommand<
   ) {}
 
   async handle(command: OpenMembershipCommand): Promise<GatewayFailure[] | Rejection> {
-    const aggregateId = uuidv7();
-    const result = await this.repository.load(aggregateId, command.payload.email);
+    const result = await this.repository.load(command.payload.membershipId, command.payload.email);
     if (isFailure(result)) return [result];
 
     const currentState = result;
