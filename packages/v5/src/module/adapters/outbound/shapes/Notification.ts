@@ -10,8 +10,6 @@ export interface Notification<
 > extends Message<TType, TPayload> {
   readonly kind: "failure" | "rejection";
   readonly details: TDetails;
-  readonly aggregateType: string;
-  readonly aggregateId: string;
   readonly commandType: string;
   readonly commandId: string;
 }
