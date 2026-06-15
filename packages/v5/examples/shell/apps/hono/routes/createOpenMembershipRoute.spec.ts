@@ -8,6 +8,8 @@ import type {
   FaultSimulationMode,
   SimulateFaults,
 } from "@adapters/outbound/capabilities/SimulateFaults.ts";
+import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
+import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -76,7 +78,9 @@ describe("createOpenMembershipRoute", () => {
     const res = await route.request(makeRequest());
     const { id } = await res.json();
     expect(handledCommands).toHaveLength(1);
-    expect(handledCommands[0].aggregateId).toBe(id);
+    expect(handledCommands[0].criteria).toStrictEqual([
+      createStreamKey(MEMBERSHIP_AGGREGATE_NAME, id),
+    ]);
   });
 
   it("returns 400 for an invalid body", async () => {
