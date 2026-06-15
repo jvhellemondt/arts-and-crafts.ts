@@ -95,11 +95,11 @@ describe("in-memory event store", () => {
     await expect(promise).resolves.not.toThrow();
   });
 
-  // it("should append events when events already exist in the store", async () => {
-  //   await eventStore.append(fixture);
-  //   const event = makeEvent(streamName, randomUUID());
-  //   await expect(eventStore.append([event])).resolves.not.toThrow();
-  // });
+  it("should append events when events already exist in the store", async () => {
+    await eventStore.append(fixture);
+    const event = makeEvent(streamKeys[0]);
+    await expect(eventStore.append([event])).resolves.not.toThrow();
+  });
 
   // describe("loadFrom", () => {
   //   it("returns all stored events from globalPosition 1", async () => {
