@@ -80,19 +80,20 @@ describe("in-memory event store", () => {
     expect(events).toEqual([]);
   });
 
-  // it.each<{ events: TestDomainEvent[] }>([
-  //   { events: [makeEvent(streamName, randomUUID())] },
-  //   {
-  //     events: [
-  //       makeEvent(streamName, randomUUID()),
-  //       makeEvent(streamName, randomUUID()),
-  //       makeEvent(streamName, randomUUID()),
-  //     ],
-  //   },
-  // ])("should append $events.length domain event(s)", async ({ events }) => {
-  //   const promise = Promise.all(events.map((event) => eventStore.append([event])));
-  //   await expect(promise).resolves.not.toThrow();
-  // });
+  it.each<{ events: TestDomainEvent[] }>([
+    { events: [makeEvent(streamKeys[0])] },
+    {
+      events: [
+        makeEvent([streamKeys[0][0]]),
+        makeEvent([streamKeys[0][1]]),
+        makeEvent([streamKeys[1][2]]),
+        makeEvent(streamKeys[1]),
+      ],
+    },
+  ])("should append $events.length domain event(s)", async ({ events }) => {
+    const promise = Promise.all(events.map((event) => eventStore.append([event])));
+    await expect(promise).resolves.not.toThrow();
+  });
 
   // it("should append events when events already exist in the store", async () => {
   //   await eventStore.append(fixture);
