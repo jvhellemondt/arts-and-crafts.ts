@@ -3,15 +3,12 @@ import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/cor
 import { NotifyUserToVerifyEmailHandler } from "./handler.ts";
 import { randomUUID } from "node:crypto";
 import { OPEN_MEMBERSHIP } from "../../commands/openMembership/command.ts";
-import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
 
 const makeIntent = (): NotifyUserToVerifyEmailV1 => ({
   kind: "intent",
   type: "NotifyUserToVerifyEmail.v1",
   id: randomUUID(),
   timestamp: Date.now(),
-  aggregateId: randomUUID(),
-  aggregateType: MEMBERSHIP_AGGREGATE_NAME,
   commandId: randomUUID(),
   commandType: OPEN_MEMBERSHIP,
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },

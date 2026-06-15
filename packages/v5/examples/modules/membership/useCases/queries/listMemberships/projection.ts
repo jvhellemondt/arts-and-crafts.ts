@@ -1,5 +1,5 @@
 import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
-import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
+import { ANCHOR_MEMBERSHIP } from "@examples/modules/membership/core/anchors.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import { findConcern } from "@examples/shared/utils/findConcern.ts";
 
@@ -20,8 +20,8 @@ export function apply(
 ): ListMembershipsProjection {
   switch (event.type) {
     case "MembershipOpened.v1":
-      const concern = findConcern(event.concerns, MEMBERSHIP_AGGREGATE_NAME);
-      if (!concern) throw new Error(`${MEMBERSHIP_AGGREGATE_NAME} concern not found!`);
+      const concern = findConcern(event.concerns, ANCHOR_MEMBERSHIP);
+      if (!concern) throw new Error(`${ANCHOR_MEMBERSHIP} concern not found!`);
       return {
         ...state,
         [concern]: {

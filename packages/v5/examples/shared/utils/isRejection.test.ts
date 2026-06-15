@@ -3,6 +3,7 @@ import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
 import type { Intent } from "@core/shapes/Intent.ts";
 import type { Rejection } from "@core/shapes/Rejection.ts";
 import { isRejection } from "./isRejection.ts";
+import { createStreamKey } from "./createStreamKey.ts";
 
 interface TestEvent extends DomainEvent<"TestEvent", { value: string }> {}
 interface TestIntent extends Intent<"TestIntent", { value: string }> {}
@@ -14,8 +15,7 @@ const accepted: Accepted<TestEvent, TestIntent> = {
     {
       type: "TestEvent",
       kind: "domain",
-      aggregateType: "Test",
-      aggregateId: "1",
+      concerns: [createStreamKey("Test", "10")],
       commandId: "1",
       commandType: "EventTest",
       id: "1",

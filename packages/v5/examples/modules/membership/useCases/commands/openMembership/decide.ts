@@ -4,7 +4,7 @@ import { v7 as uuidv7 } from "uuid";
 import { MembershipDoesNotAlreadyExist } from "./specifications/MembershipDoesNotAlreadyExist.ts";
 import type { DecisionState } from "./decisionState.ts";
 import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
-import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
+import { ANCHOR_EMAIL, ANCHOR_MEMBERSHIP } from "@examples/modules/membership/core/anchors.ts";
 
 export function decideOpenMembership(
   state: DecisionState,
@@ -39,7 +39,10 @@ export function decideOpenMembership(
           email: command.payload.email,
         },
         kind: "domain",
-        concerns: [createStreamKey(MEMBERSHIP_AGGREGATE_NAME, state.id)],
+        concerns: [
+          createStreamKey(ANCHOR_MEMBERSHIP, state.id),
+          createStreamKey(ANCHOR_EMAIL, command.payload.email),
+        ],
         ...sharedProps,
       },
     ],

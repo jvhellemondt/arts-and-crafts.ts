@@ -1,35 +1,25 @@
-import {
-  createOpenMembershipCommand,
-  openMembershipCommandPayload,
-  type OpenMembershipCommand,
-} from "../../command.ts";
-import { type Context } from "hono";
+import { createOpenMembershipCommand, openMembershipCommandPayload } from "../../command.ts";
+import { Hono } from "hono";
 import { v7 as uuidv7 } from "uuid";
-import { type AggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
-import type { ParsedHonoBody } from "@examples/shared/adapters/inbound/ParsedHonoBody.ts";
-import type { HandleCommand } from "@useCases/command/capabilities/HandleCommand.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
-import type { Rejection } from "@core/shapes/Rejection.ts";
+import { aggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
+import { sValidator } from "@hono/standard-validator";
+import type { OpenMembershipHandler } from "../../handler.ts";
 
-export class OpenMembershipHonoAdapter {
-  constructor(
-    private readonly handler: HandleCommand<
-      OpenMembershipCommand,
-      Promise<GatewayFailure[] | Rejection>
-    >,
-  ) {}
-
-  async handle(
-    c: Context<{}, "membership/open", ParsedHonoBody<"json", typeof openMembershipCommandPayload>>,
-    aggregateId: AggregateId["parsed"],
-  ): Promise<void> {
+export function createOpenMembershipInboundHonoAdapter(handler: OpenMembershipHandler) {
+  const route = new Hono();
+  route.post("membership/open", sValidator("json", openMembershipCommandPayload), async (c) => {
     const correlationId = c.req.header("X-Correlation-ID") ?? uuidv7();
     const causationId = c.req.header("X-Request-ID") ?? uuidv7();
     const body = c.req.valid("json");
-    const command = createOpenMembershipCommand(aggregateId, body, {
-      correlationId,
-      causationId,
-    });
-    await this.handler.handle(command);
-  }
+    const command = createOpenMembershipCommand(
+      { ...body, membershipId: aggregateId.parse(uuidv7()) },
+      {
+        correlationId,
+        causationId,
+      },
+    );
+    handler.handle(command).catch(console.error);
+    return c.json({ accepted: true, id: command.id }, 202);
+  });
+  return route;
 }

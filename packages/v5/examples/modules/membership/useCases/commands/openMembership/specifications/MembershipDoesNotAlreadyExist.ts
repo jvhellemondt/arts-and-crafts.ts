@@ -1,8 +1,8 @@
 import type { EvaluateCandidate } from "@core/capabilities/EvaluateCandidate.ts";
-import type { MembershipState } from "@examples/modules/membership/core/state.ts";
+import type { DecisionState } from "../decisionState.ts";
 
-export class MembershipDoesNotAlreadyExist implements EvaluateCandidate<MembershipState> {
-  isSatisfiedBy(candidate: MembershipState): boolean {
+export class MembershipDoesNotAlreadyExist implements EvaluateCandidate<DecisionState> {
+  isSatisfiedBy(candidate: DecisionState): boolean {
     return candidate.status === "initial";
   }
 }

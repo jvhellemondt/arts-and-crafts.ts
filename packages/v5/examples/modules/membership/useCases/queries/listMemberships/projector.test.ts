@@ -11,7 +11,7 @@ import { randomUUID } from "node:crypto";
 import type { ListMembershipsProjection } from "./projection.ts";
 import { ListMembershipsProjector } from "./projector.ts";
 import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
-import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
+import { ANCHOR_MEMBERSHIP } from "@examples/modules/membership/core/anchors.ts";
 
 const stubFailure: GatewayFailure = {
   kind: "failure",
@@ -38,7 +38,7 @@ const makeEvent = (overrides: Partial<{ aggregateId: string }> = {}): Membership
   return {
     type: "MembershipOpened.v1",
     kind: "domain",
-    concerns: [createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId)],
+    concerns: [createStreamKey(ANCHOR_MEMBERSHIP, aggregateId)],
     commandId: randomUUID(),
     commandType: "OpenMembership",
     timestamp: Date.now(),

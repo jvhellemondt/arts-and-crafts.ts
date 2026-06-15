@@ -1,69 +1,106 @@
+import { Hono } from "hono";
+import { v7 as uuidv7 } from "uuid";
+import { createListMembershipsInboundHonoAdapter } from "./hono.ts";
+import type { ListMembershipsQuery } from "../../query.ts";
+import type { MembershipSummary } from "../../projection.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import type { HandleQuery } from "@useCases/query/capabilities/HandleQuery.ts";
-import type { ParsedHonoBody } from "@examples/shared/adapters/inbound/ParsedHonoBody.ts";
-import type { MembershipSummary } from "../../projection.ts";
-import { listMembershipsQueryPayload, type ListMembershipsQuery } from "../../query.ts";
-import type { Context } from "hono";
-import { v7 as uuidv7 } from "uuid";
-import { ListMembershipsHonoAdapter } from "./hono.ts";
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const VALID_PAYLOAD = listMembershipsQueryPayload.parse({ status: "open" });
+const MEMBERSHIP_SUMMARY: MembershipSummary = {
+  id: "Membership#membership-123",
+  name: "John Doe",
+  email: "john@example.com",
+  status: "open",
+};
 
-type HonoCtx = Context<{}, "memberships", ParsedHonoBody<"query", typeof listMembershipsQueryPayload>>;
+const GATEWAY_FAILURE: GatewayFailure = {
+  kind: "failure",
+  code: "GATEWAY_FAILURE",
+  gateway: "EventStore",
+  reason: "Connection refused",
+};
 
-function makeContext(headers: Record<string, string | undefined> = {}): HonoCtx {
-  return {
-    req: {
-      header: (name: string) => headers[name],
-      valid: () => VALID_PAYLOAD,
-    },
-    json: (body: unknown, status: number) => new Response(JSON.stringify(body), { status }),
-  } as unknown as HonoCtx;
-}
-
-describe("ListMembershipsHonoAdapter", () => {
+describe("createListMembershipsInboundHonoAdapter", () => {
   let handledQueries: ListMembershipsQuery[];
+  let handlerResult: MembershipSummary[] | GatewayFailure;
   let handler: HandleQuery<ListMembershipsQuery, Promise<MembershipSummary[] | GatewayFailure>>;
-  let adapter: ListMembershipsHonoAdapter;
+  let app: Hono;
 
   beforeEach(() => {
     handledQueries = [];
+    handlerResult = [];
     handler = {
-      async handle(query: ListMembershipsQuery) {
+      handle: async (query: ListMembershipsQuery) => {
         handledQueries.push(query);
-        return [];
+        return handlerResult;
       },
     };
-    adapter = new ListMembershipsHonoAdapter(handler);
+    app = new Hono();
+    app.route("/", createListMembershipsInboundHonoAdapter(handler));
   });
 
-  it("calls handler.handle with the query payload", async () => {
-    await adapter.handle(makeContext());
+  function get(params: Record<string, string> = {}, headers: Record<string, string> = {}) {
+    const url = `/memberships${Object.keys(params).length ? `?${new URLSearchParams(params)}` : ""}`;
+    return app.request(url, { headers });
+  }
+
+  it("returns 200 with memberships from the handler", async () => {
+    handlerResult = [MEMBERSHIP_SUMMARY];
+    const res = await get();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([MEMBERSHIP_SUMMARY]);
+  });
+
+  it("returns 200 with an empty array when handler returns no memberships", async () => {
+    const res = await get();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual([]);
+  });
+
+  it("returns 503 with error reason when handler returns a gateway failure", async () => {
+    handlerResult = GATEWAY_FAILURE;
+    const res = await get();
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: GATEWAY_FAILURE.reason });
+  });
+
+  it("returns 400 for an invalid status query param", async () => {
+    const res = await get({ status: "invalid" });
+    expect(res.status).toBe(400);
+  });
+
+  it("calls handler with the query payload including status when provided", async () => {
+    await get({ status: "open" });
     expect(handledQueries).toHaveLength(1);
-    expect(handledQueries[0].payload).toEqual(VALID_PAYLOAD);
+    expect(handledQueries[0].payload.status).toBe("open");
+  });
+
+  it("calls handler with undefined status when omitted", async () => {
+    await get();
+    expect(handledQueries[0].payload.status).toBeUndefined();
   });
 
   it("uses X-Correlation-ID header as correlationId when present", async () => {
     const correlationId = uuidv7();
-    await adapter.handle(makeContext({ "X-Correlation-ID": correlationId }));
+    await get({}, { "X-Correlation-ID": correlationId });
     expect(handledQueries[0].metadata.correlationId).toBe(correlationId);
   });
 
   it("uses X-Request-ID header as causationId when present", async () => {
     const causationId = uuidv7();
-    await adapter.handle(makeContext({ "X-Request-ID": causationId }));
+    await get({}, { "X-Request-ID": causationId });
     expect(handledQueries[0].metadata.causationId).toBe(causationId);
   });
 
   it("generates a UUIDv7 correlationId when X-Correlation-ID header is absent", async () => {
-    await adapter.handle(makeContext());
+    await get();
     expect(handledQueries[0].metadata.correlationId).toMatch(UUID_V7_PATTERN);
   });
 
   it("generates a UUIDv7 causationId when X-Request-ID header is absent", async () => {
-    await adapter.handle(makeContext());
+    await get();
     expect(handledQueries[0].metadata.causationId).toMatch(UUID_V7_PATTERN);
   });
 });

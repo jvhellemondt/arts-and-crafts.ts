@@ -5,21 +5,17 @@ import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/cor
 import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
 import { OpenMembershipHandler } from "./handler.ts";
 import { randomUUID } from "node:crypto";
-import { v7 as uuidv7 } from "uuid";
-import { aggregateId as aggregateIdSchema } from "@examples/modules/membership/core/domain/AggregateId.ts";
 import { OpenMembershipRepository } from "./repository.ts";
+import { v7 as uuidv7 } from "uuid";
 
-const aggregateId = aggregateIdSchema.parse(uuidv7());
-
-const makeCommand = (id: typeof aggregateId) =>
-  createOpenMembershipCommand(
-    id,
-    openMembershipCommandPayload.parse({
-      name: "Jane Doe",
-      email: "jane@example.com",
-    }),
-    { correlationId: randomUUID(), causationId: randomUUID() },
-  );
+const command = createOpenMembershipCommand(
+  openMembershipCommandPayload.parse({
+    membershipId: uuidv7(),
+    name: "Jane Doe",
+    email: "jane@example.com",
+  }),
+  { correlationId: randomUUID(), causationId: randomUUID() },
+);
 
 describe("OpenMembershipHandler", () => {
   let eventStore: InMemoryEventStore<MembershipEventV1>;
@@ -35,27 +31,27 @@ describe("OpenMembershipHandler", () => {
   });
 
   it("returns void when the membership is successfully opened", async () => {
-    const result = await handler.handle(makeCommand(aggregateId));
+    const result = await handler.handle(command);
     expect(result).toEqual([]);
   });
 
   it("returns the rejection when the membership already exists", async () => {
-    await handler.handle(makeCommand(aggregateId));
+    await handler.handle(command);
 
-    const result = await handler.handle(makeCommand(aggregateId));
+    const result = await handler.handle(command);
 
     expect(result).toMatchObject({ code: "MEMBERSHIP_ALREADY_EXISTS" });
   });
 
   it("returns a GatewayFailure when the event store is offline", async () => {
     eventStore.simulate("offline");
-    const result = await handler.handle(makeCommand(aggregateId));
+    const result = await handler.handle(command);
     expect(result).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" }]);
   });
 
   it("returns GatewayFailures when the outbox is offline", async () => {
     outbox.simulate("offline");
-    const result = await handler.handle(makeCommand(aggregateId));
+    const result = await handler.handle(command);
     expect(result).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" }]);
   });
 });

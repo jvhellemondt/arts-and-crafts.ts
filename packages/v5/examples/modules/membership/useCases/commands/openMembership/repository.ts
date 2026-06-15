@@ -6,7 +6,7 @@ import type { AppendToEventStore } from "@adapters/outbound/capabilities/AppendT
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { DecisionState } from "./decisionState.ts";
 import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
-import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
+import { ANCHOR_MEMBERSHIP } from "@examples/modules/membership/core/anchors.ts";
 import { evolveOpenMembership } from "./evolve.ts";
 
 export class OpenMembershipRepository
@@ -22,9 +22,12 @@ export class OpenMembershipRepository
       AppendToEventStore<MembershipEventV1, Promise<void | GatewayFailure>>,
   ) {}
 
-  async load(membershipId: string): Promise<DecisionState | GatewayFailure> {
-    const streamKey = createStreamKey(MEMBERSHIP_AGGREGATE_NAME, membershipId);
-    const result = await this.eventStore.load([streamKey]);
+  async load(membershipId: string, email: string): Promise<DecisionState | GatewayFailure> {
+    const streamKeys = [
+      createStreamKey(ANCHOR_MEMBERSHIP, membershipId),
+      createStreamKey("EmailRegistration", email),
+    ];
+    const result = await this.eventStore.load(streamKeys);
     if (!Array.isArray(result)) return result;
     return evolveOpenMembership(membershipId, result);
   }

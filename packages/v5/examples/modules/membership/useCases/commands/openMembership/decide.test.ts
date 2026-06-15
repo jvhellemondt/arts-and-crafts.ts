@@ -2,12 +2,11 @@ import { createOpenMembershipCommand, openMembershipCommandPayload } from "./com
 import { randomUUID } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 import { decideOpenMembership } from "./decide.ts";
-import { aggregateId as aggregateIdSchema } from "@examples/modules/membership/core/domain/AggregateId.ts";
 import type { DecisionState } from "./decisionState.ts";
 import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
-import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
+import { ANCHOR_EMAIL, ANCHOR_MEMBERSHIP } from "@examples/modules/membership/core/anchors.ts";
 
-const aggregateId = aggregateIdSchema.parse(uuidv7());
+const membershipId = uuidv7();
 
 const makeMetadata = () => ({
   correlationId: randomUUID(),
@@ -16,13 +15,13 @@ const makeMetadata = () => ({
 
 const makeInitialState = (): DecisionState => ({
   status: "initial",
-  id: aggregateId,
+  id: membershipId,
 });
 
 const makeCommand = () =>
   createOpenMembershipCommand(
-    aggregateId,
     openMembershipCommandPayload.parse({
+      membershipId,
       name: "Jane Doe",
       email: "jane@example.com",
     }),
@@ -51,7 +50,10 @@ describe("decideOpenMembership", () => {
       expect(decision.events[0]).toMatchObject({
         type: "MembershipOpened.v1",
         kind: "domain",
-        concerns: [createStreamKey(MEMBERSHIP_AGGREGATE_NAME, state.id)],
+        concerns: [
+          createStreamKey(ANCHOR_MEMBERSHIP, membershipId),
+          createStreamKey(ANCHOR_EMAIL, command.payload.email),
+        ],
         payload: {
           name: command.payload.name,
           email: command.payload.email,
@@ -83,7 +85,7 @@ describe("decideOpenMembership", () => {
     "given the membership is in $status state",
     ({ status }) => {
       it("should reject with MEMBERSHIP_ALREADY_EXISTS", () => {
-        const state = { status, id: randomUUID() } as DecisionState;
+        const state = { status, id: membershipId } as DecisionState;
         const command = makeCommand();
         const decision = decideOpenMembership(state, command);
 

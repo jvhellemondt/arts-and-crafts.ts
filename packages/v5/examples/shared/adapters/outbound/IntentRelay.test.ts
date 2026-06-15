@@ -23,8 +23,6 @@ const makeNotify = (channel: "email" | "push" = "email"): NotifyIntent => ({
   payload: { channel },
   commandType: "RegisterMembership",
   commandId: randomUUID(),
-  aggregateType: "Membership",
-  aggregateId: randomUUID(),
 });
 
 const makeWelcome = (name = "Jane"): WelcomeIntent => ({
@@ -36,8 +34,6 @@ const makeWelcome = (name = "Jane"): WelcomeIntent => ({
   payload: { name },
   commandType: "RegisterMembership",
   commandId: randomUUID(),
-  aggregateType: "Membership",
-  aggregateId: randomUUID(),
 });
 
 class RecordingHandler<T extends Intent> implements HandleIntent<T> {
