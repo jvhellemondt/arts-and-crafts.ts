@@ -1,12 +1,12 @@
-import type { MembershipEventV1 } from "./events/index.ts";
-import type { MembershipState } from "./state.ts";
+import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
+import type { DecisionState } from "./decisionState.ts";
 
-export const evolveMembership = (
+export const evolveOpenMembership = (
   aggregateId: string,
   events: MembershipEventV1[],
-): MembershipState => {
-  const initialState: MembershipState = { status: "initial", id: aggregateId };
-  return events.reduce((state: MembershipState, event) => {
+): DecisionState => {
+  const initialState: DecisionState = { status: "initial", id: aggregateId };
+  return events.reduce((state: DecisionState, event) => {
     switch (event.type) {
       case "MembershipOpened.v1":
         return {
