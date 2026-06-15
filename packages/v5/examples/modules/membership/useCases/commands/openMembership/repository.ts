@@ -1,15 +1,15 @@
 import type { MembershipEventV1 } from "./events/index.ts";
 import type { StoreDomainEvents } from "@core/capabilities/StoreDomainEvents.ts";
 import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
-import type { LoadAggregateState } from "@core/capabilities/LoadAggregateState.ts";
+import type { LoadDecisionState } from "@core/capabilities/LoadDecisionState.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
+import type { AppendToEventStore } from "@adapters/outbound/capabilities/AppendToEventStore.ts";
 import { evolveMembership } from "./evolve.ts";
 import type { MembershipState } from "./state.ts";
 
 export class MembershipRepository
   implements
-    LoadAggregateState<MembershipEventV1, Promise<MembershipState | GatewayFailure>>,
+    LoadDecisionState<MembershipEventV1, Promise<MembershipState | GatewayFailure>>,
     StoreDomainEvents<MembershipEventV1, Promise<void | GatewayFailure>>
 {
   private readonly streamName: string = "Membership";
@@ -19,7 +19,7 @@ export class MembershipRepository
       MembershipEventV1,
       Promise<MembershipEventV1[] | GatewayFailure>
     > &
-      AppendToEventStream<MembershipEventV1, Promise<void | GatewayFailure>>,
+      AppendToEventStore<MembershipEventV1, Promise<void | GatewayFailure>>,
   ) {}
 
   async load(aggregateId: string): Promise<MembershipState | GatewayFailure> {

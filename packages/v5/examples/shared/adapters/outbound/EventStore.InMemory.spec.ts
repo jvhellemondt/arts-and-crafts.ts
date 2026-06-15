@@ -1,4 +1,4 @@
-import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
+import type { AppendToEventStore } from "@adapters/outbound/capabilities/AppendToEventStore.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
 import type { LoadEventStreamFrom } from "@adapters/outbound/capabilities/LoadEventStreamFrom.ts";
 import type { LoadEventsFrom } from "@adapters/outbound/capabilities/LoadEventsFrom.ts";
@@ -34,7 +34,7 @@ describe("in-memory event store", () => {
   let eventStore: LoadDomainEvents<TestDomainEvent, Promise<TestDomainEvent[] | GatewayFailure>> &
     LoadEventsFrom<TestDomainEvent> &
     LoadEventStreamFrom<TestDomainEvent> &
-    AppendToEventStream<TestDomainEvent, Promise<void | GatewayFailure>> &
+    AppendToEventStore<TestDomainEvent, Promise<void | GatewayFailure>> &
     SimulateFaults;
 
   const fixture = [

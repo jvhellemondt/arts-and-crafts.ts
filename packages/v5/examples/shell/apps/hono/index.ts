@@ -22,13 +22,13 @@ import type { OpenMembershipRejected } from "@examples/modules/membership/useCas
 import { OpenMembershipHandler } from "@examples/modules/membership/useCases/commands/openMembership/handler.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { AppendToEventStream } from "@adapters/outbound/capabilities/AppendToEventStream.ts";
+import type { AppendToEventStore } from "@adapters/outbound/capabilities/AppendToEventStore.ts";
 import type { LoadProjection } from "@adapters/outbound/capabilities/LoadProjection.ts";
 import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 
 export function createHonoApp(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
-    AppendToEventStream<MembershipEventV1, Promise<void | GatewayFailure>>,
+    AppendToEventStore<MembershipEventV1, Promise<void | GatewayFailure>>,
   outbox: StageIntents<MembershipIntents, Promise<void | GatewayFailure>> &
     StageNotifications<OpenMembershipRejected, Promise<void | GatewayFailure>>,
   listMembershipsProjectionLoader: LoadProjection<ListMembershipsProjection>,
