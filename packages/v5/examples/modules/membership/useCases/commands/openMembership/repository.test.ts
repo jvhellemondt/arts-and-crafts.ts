@@ -18,7 +18,7 @@ const makeEvent = (aggregateId: string): MembershipOpenedV1 => ({
   timestamp: Date.now(),
   id: randomUUID(),
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
-  payload: { name: "Jane Doe", email: validEmail },
+  payload: { membershipId: aggregateId, name: "Jane Doe", email: validEmail },
 });
 
 describe("OpenMembershipRepository", () => {

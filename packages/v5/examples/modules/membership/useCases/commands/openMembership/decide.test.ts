@@ -55,6 +55,7 @@ describe("decideOpenMembership", () => {
           createStreamKey(ANCHOR_EMAIL, command.payload.email),
         ],
         payload: {
+          membershipId: expect.any(String),
           name: command.payload.name,
           email: command.payload.email,
         },

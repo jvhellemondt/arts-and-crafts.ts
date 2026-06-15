@@ -13,7 +13,7 @@ const makeMembershipOpenedV1 = (concerns: StreamKey[]): MembershipOpenedV1 => ({
   timestamp: Date.now(),
   id: randomUUID(),
   metadata: { correlationId: randomUUID(), causationId: randomUUID() },
-  payload: { name: "Jane Doe", email: "jane@example.com" },
+  payload: { membershipId: randomUUID(), name: "Jane Doe", email: "jane@example.com" },
   commandId: randomUUID(),
   commandType: OPEN_MEMBERSHIP,
 });

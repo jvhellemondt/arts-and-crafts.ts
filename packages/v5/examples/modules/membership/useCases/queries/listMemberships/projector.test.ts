@@ -44,10 +44,7 @@ const makeEvent = (overrides: Partial<{ aggregateId: string }> = {}): Membership
     timestamp: Date.now(),
     id: randomUUID(),
     metadata: { correlationId: randomUUID(), causationId: randomUUID() },
-    payload: {
-      name: "Ada Lovelace",
-      email: "ada@example.com",
-    },
+    payload: { membershipId: aggregateId, name: "Ada Lovelace", email: "ada@example.com" },
   };
 };
 
@@ -62,7 +59,7 @@ describe("ListMembershipsProjector", () => {
       await projector.tick();
 
       expect(await projectionStore.load()).toMatchObject({
-        "Membership#id-1": expect.objectContaining({ id: "Membership#id-1" }),
+        "id-1": expect.objectContaining({ id: "id-1" }),
       });
     });
 
@@ -100,12 +97,7 @@ describe("ListMembershipsProjector", () => {
 
       const state = (await projectionStore.load()) as ListMembershipsProjection;
       expect(Object.keys(state)).toEqual(
-        expect.arrayContaining([
-          "Membership#id-1",
-          "Membership#id-2",
-          "Membership#id-3",
-          "Membership#id-4",
-        ]),
+        expect.arrayContaining(["id-1", "id-2", "id-3", "id-4"]),
       );
       expect(await projectionStore.loadCheckpoint()).toBe(4);
     });

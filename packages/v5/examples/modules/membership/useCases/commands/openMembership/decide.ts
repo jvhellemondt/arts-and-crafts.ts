@@ -34,15 +34,16 @@ export function decideOpenMembership(
       {
         type: "MembershipOpened.v1",
         id: uuidv7(),
-        payload: {
-          name: command.payload.name,
-          email: command.payload.email,
-        },
         kind: "domain",
         concerns: [
           createStreamKey(ANCHOR_MEMBERSHIP, state.id),
           createStreamKey(ANCHOR_EMAIL, command.payload.email),
         ],
+        payload: {
+          membershipId: state.id,
+          name: command.payload.name,
+          email: command.payload.email,
+        },
         ...sharedProps,
       },
     ],

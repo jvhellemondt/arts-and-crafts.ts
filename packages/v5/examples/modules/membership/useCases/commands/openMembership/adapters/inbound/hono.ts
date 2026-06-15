@@ -26,7 +26,7 @@ export function createOpenMembershipInboundHonoAdapter(handler: OpenMembershipHa
     if (Array.isArray(result) && result.length) {
       return c.json({ code: "UNEXPECTED_SERVER_ERROR" }, 500);
     }
-    return c.json({ accepted: true, id: command.id }, 202);
+    return c.json({ accepted: true, id: command.payload.membershipId }, 202);
   });
   return route;
 }
