@@ -1,14 +1,13 @@
-import {
-  MEMBERSHIP_AGGREGATE,
-  type MembershipState,
-} from "@examples/modules/membership/core/state.ts";
 import type { OpenMembershipDecision } from "./decision.ts";
 import { OPEN_MEMBERSHIP, type OpenMembershipCommand } from "./command.ts";
 import { v7 as uuidv7 } from "uuid";
 import { MembershipDoesNotAlreadyExist } from "./specifications/MembershipDoesNotAlreadyExist.ts";
+import type { DecisionState } from "./decisionState.ts";
+import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
+import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
 
 export function decideOpenMembership(
-  state: MembershipState,
+  state: DecisionState,
   command: OpenMembershipCommand,
 ): OpenMembershipDecision {
   const spec = new MembershipDoesNotAlreadyExist();
@@ -22,6 +21,13 @@ export function decideOpenMembership(
       },
     };
   }
+  const sharedProps = {
+    commandId: command.id,
+    commandType: OPEN_MEMBERSHIP,
+    timestamp: new Date().getTime(),
+    metadata: command.metadata,
+  };
+
   return {
     accepted: true,
     events: [
@@ -33,12 +39,8 @@ export function decideOpenMembership(
           email: command.payload.email,
         },
         kind: "domain",
-        aggregateId: state.id,
-        aggregateType: MEMBERSHIP_AGGREGATE,
-        commandId: command.id,
-        commandType: OPEN_MEMBERSHIP,
-        timestamp: new Date().getTime(),
-        metadata: command.metadata,
+        concerns: [createStreamKey(MEMBERSHIP_AGGREGATE_NAME, state.id)],
+        ...sharedProps,
       },
     ],
     intents: [
@@ -49,13 +51,8 @@ export function decideOpenMembership(
           name: command.payload.name,
           email: command.payload.email,
         },
-        timestamp: new Date().getTime(),
-        metadata: command.metadata,
         id: uuidv7(),
-        aggregateId: state.id,
-        aggregateType: MEMBERSHIP_AGGREGATE,
-        commandId: command.id,
-        commandType: OPEN_MEMBERSHIP,
+        ...sharedProps,
       },
     ],
   };

@@ -1,18 +1,20 @@
 import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
-import type { MembershipState } from "@examples/modules/membership/core/state.ts";
 import { randomUUID } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 import { decideOpenMembership } from "./decide.ts";
 import { aggregateId as aggregateIdSchema } from "@examples/modules/membership/core/domain/AggregateId.ts";
+import type { DecisionState } from "./decisionState.ts";
+import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
+import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
 
-const aggregateId = aggregateIdSchema.parse(uuidv7())
+const aggregateId = aggregateIdSchema.parse(uuidv7());
 
 const makeMetadata = () => ({
   correlationId: randomUUID(),
   causationId: randomUUID(),
 });
 
-const makeInitialState = (): MembershipState => ({
+const makeInitialState = (): DecisionState => ({
   status: "initial",
   id: aggregateId,
 });
@@ -49,8 +51,7 @@ describe("decideOpenMembership", () => {
       expect(decision.events[0]).toMatchObject({
         type: "MembershipOpened.v1",
         kind: "domain",
-        aggregateType: "Membership",
-        aggregateId: state.id,
+        concerns: [createStreamKey(MEMBERSHIP_AGGREGATE_NAME, state.id)],
         payload: {
           name: command.payload.name,
           email: command.payload.email,
@@ -78,23 +79,22 @@ describe("decideOpenMembership", () => {
     });
   });
 
-  describe.each<{ status: MembershipState["status"] }>([
-    { status: "open" },
-    { status: "active" },
-    { status: "closed" },
-  ])("given the membership is in $status state", ({ status }) => {
-    it("should reject with MEMBERSHIP_ALREADY_EXISTS", () => {
-      const state = { status, id: randomUUID() } as MembershipState;
-      const command = makeCommand();
-      const decision = decideOpenMembership(state, command);
+  describe.each<{ status: DecisionState["status"] }>([{ status: "open" }])(
+    "given the membership is in $status state",
+    ({ status }) => {
+      it("should reject with MEMBERSHIP_ALREADY_EXISTS", () => {
+        const state = { status, id: randomUUID() } as DecisionState;
+        const command = makeCommand();
+        const decision = decideOpenMembership(state, command);
 
-      expect(decision.accepted).toBe(false);
-      if (decision.accepted) return;
+        expect(decision.accepted).toBe(false);
+        if (decision.accepted) return;
 
-      expect(decision.rejection).toMatchObject({
-        code: "MEMBERSHIP_ALREADY_EXISTS",
-        reason: expect.any(String),
+        expect(decision.rejection).toMatchObject({
+          code: "MEMBERSHIP_ALREADY_EXISTS",
+          reason: expect.any(String),
+        });
       });
-    });
-  });
+    },
+  );
 });
