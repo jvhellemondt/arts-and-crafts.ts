@@ -1,16 +1,16 @@
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { randomUUID } from "node:crypto";
-import type { MembershipEventV1 } from "./events/index.ts";
-import type { MembershipOpenedV1 } from "./events/v1/MembershipOpenedV1.ts";
-import { MembershipRepository } from "./repository.ts";
-import { OPEN_MEMBERSHIP } from "../useCases/commands/openMembership/command.ts";
-import { MEMBERSHIP_AGGREGATE } from "./state.ts";
+import { OpenMembershipRepository } from "./repository.ts";
+import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
+import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
+import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
+import { OPEN_MEMBERSHIP } from "./command.ts";
+import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 
 const makeEvent = (aggregateId: string): MembershipOpenedV1 => ({
   type: "MembershipOpened.v1",
   kind: "domain",
-  aggregateType: MEMBERSHIP_AGGREGATE,
-  aggregateId,
+  concerns: [createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId)],
   commandId: randomUUID(),
   commandType: OPEN_MEMBERSHIP,
   timestamp: Date.now(),
@@ -19,13 +19,13 @@ const makeEvent = (aggregateId: string): MembershipOpenedV1 => ({
   payload: { name: "Jane Doe", email: "jane@example.com" },
 });
 
-describe("MembershipRepository", () => {
+describe("OpenMembershipRepository", () => {
   let eventStore: InMemoryEventStore<MembershipEventV1>;
-  let repository: MembershipRepository;
+  let repository: OpenMembershipRepository;
 
   beforeEach(() => {
     eventStore = new InMemoryEventStore<MembershipEventV1>();
-    repository = new MembershipRepository(eventStore);
+    repository = new OpenMembershipRepository(eventStore);
   });
 
   describe("store", () => {
@@ -35,7 +35,9 @@ describe("MembershipRepository", () => {
 
       await repository.store([event]);
 
-      const stored = await eventStore.load("Membership", aggregateId);
+      const stored = await eventStore.load([
+        createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId),
+      ]);
       expect(stored).toEqual([event]);
     });
 
@@ -45,8 +47,12 @@ describe("MembershipRepository", () => {
 
       await repository.store([makeEvent(aggregateId1), makeEvent(aggregateId2)]);
 
-      expect(await eventStore.load("Membership", aggregateId1)).toHaveLength(1);
-      expect(await eventStore.load("Membership", aggregateId2)).toHaveLength(1);
+      expect(
+        await eventStore.load([createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId1)]),
+      ).toHaveLength(1);
+      expect(
+        await eventStore.load([createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId2)]),
+      ).toHaveLength(1);
     });
 
     it("does not append to any other stream", async () => {
@@ -54,7 +60,7 @@ describe("MembershipRepository", () => {
 
       await repository.store([makeEvent(aggregateId)]);
 
-      expect(await eventStore.load("other", aggregateId)).toEqual([]);
+      expect(await eventStore.load([createStreamKey("other", aggregateId)])).toEqual([]);
     });
   });
 
