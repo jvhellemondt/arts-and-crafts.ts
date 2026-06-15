@@ -165,13 +165,13 @@ describe("in-memory event store", () => {
       });
     });
 
-    // it("should restore the event store to online state", async () => {
-    //   eventStore.restore();
-    //   expect(eventStore.isSimulating).toBe(false);
-    //   await Promise.all(fixture.map((event) => eventStore.append([event])));
-    //   const events = await eventStore.load(streamKeys[0]);
-    //   if (!Array.isArray(events)) throw new Error("expected array");
-    //   expect(events.map(({ id }) => id)).toEqual(fixture.map(({ id }) => id));
-    // });
+    it("should restore the event store to online state", async () => {
+      eventStore.restore();
+      expect(eventStore.isSimulating).toBe(false);
+      await Promise.all(fixture.map((event) => eventStore.append([event])));
+      const events = await eventStore.load([streamKeys[0][0]]);
+      if (!Array.isArray(events)) throw new Error("expected array");
+      expect(events.map(({ id }) => id)).toEqual(fixture.slice(0, 3).map(({ id }) => id));
+    });
   });
 });
