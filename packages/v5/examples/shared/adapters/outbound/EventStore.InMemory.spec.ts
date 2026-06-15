@@ -75,10 +75,10 @@ describe("in-memory event store", () => {
     expect(events.map(({ id }) => id)).toEqual(expected.map(({ id }) => id));
   });
 
-  // it("should return empty array if no events were appended", async () => {
-  //   const events = await eventStore.load(streamKeys[0]);
-  //   expect(events).toEqual([]);
-  // });
+  it("should return empty array if no events were appended", async () => {
+    const events = await eventStore.load(streamKeys[0]);
+    expect(events).toEqual([]);
+  });
 
   // it.each<{ events: TestDomainEvent[] }>([
   //   { events: [makeEvent(streamName, randomUUID())] },
