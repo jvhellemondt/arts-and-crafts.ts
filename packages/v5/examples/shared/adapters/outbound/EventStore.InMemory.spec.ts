@@ -121,99 +121,57 @@ describe("in-memory event store", () => {
       expect(result.map((row) => row.globalPosition)).toEqual([1, 2]);
     });
 
-    //   it("returns an empty array when nothing has been appended", async () => {
-    //     const result = await eventStore.loadFrom(1);
-    //     expect(result).toEqual([]);
-    //   });
+    it("returns an empty array when nothing has been appended", async () => {
+      const result = await eventStore.loadFrom(1);
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("should simulate offline fault", async () => {
+    beforeEach(() => {
+      eventStore.simulate("offline");
+    });
+
+    it("should expose isSimulating property as true", () => {
+      expect(eventStore.isSimulating).toBe(true);
+    });
+
+    it("should return gateway failure when loading events", async () => {
+      const response = await eventStore.load(streamKeys[0]);
+      expect(response).toEqual({
+        kind: "failure",
+        code: "GATEWAY_FAILURE",
+        gateway: "InMemoryEventStore",
+        reason: "The Eventstore has been set to offline mode",
+      });
+    });
+
+    it("should return gateway failure when appending events", async () => {
+      const event = makeEvent(streamKeys[0]);
+      const response = await eventStore.append([event]);
+      expect(response).toEqual({
+        kind: "failure",
+        code: "GATEWAY_FAILURE",
+        gateway: "InMemoryEventStore",
+        reason: "The Eventstore has been set to offline mode",
+      });
+    });
+
+    it("should return gateway failure from loadFrom", async () => {
+      const response = await eventStore.loadFrom(0);
+      expect(response).toMatchObject({
+        code: "GATEWAY_FAILURE",
+        gateway: "InMemoryEventStore",
+      });
+    });
+
+    // it("should restore the event store to online state", async () => {
+    //   eventStore.restore();
+    //   expect(eventStore.isSimulating).toBe(false);
+    //   await Promise.all(fixture.map((event) => eventStore.append([event])));
+    //   const events = await eventStore.load(streamKeys[0]);
+    //   if (!Array.isArray(events)) throw new Error("expected array");
+    //   expect(events.map(({ id }) => id)).toEqual(fixture.map(({ id }) => id));
     // });
-
-    // describe("loadStreamFrom", () => {
-    //   it("returns rows of the requested stream in version order", async () => {
-    //     await eventStore.append(fixture);
-    //     const otherId = randomUUID();
-    //     await eventStore.append([makeEvent(streamName, otherId)]);
-    //     const streamKey: StreamKey = `${streamName}#${aggregateId}`;
-
-    //     const result = (await eventStore.loadStreamFrom(
-    //       streamKey,
-    //       1,
-    //     )) as StoredEvent<TestDomainEvent>[];
-
-    //     expect(result.map((row) => row.streamVersion)).toEqual([1, 2, 3]);
-    //     expect(result.map((row) => row.event)).toEqual(fixture);
-    //   });
-
-    //   it("filters out versions below the requested fromVersion", async () => {
-    //     await eventStore.append(fixture);
-    //     const streamKey: StreamKey = `${streamName}#${aggregateId}`;
-
-    //     const result = (await eventStore.loadStreamFrom(
-    //       streamKey,
-    //       2,
-    //     )) as StoredEvent<TestDomainEvent>[];
-
-    //     expect(result.map((row) => row.streamVersion)).toEqual([2, 3]);
-    //   });
-
-    //   it("returns an empty array for an unknown stream", async () => {
-    //     await eventStore.append(fixture);
-    //     const result = await eventStore.loadStreamFrom(`${streamName}#missing` as StreamKey, 1);
-    //     expect(result).toEqual([]);
-    //   });
-    // });
-
-    // describe("should simulate offline fault", async () => {
-    //   beforeEach(() => {
-    //     eventStore.simulate("offline");
-    //   });
-
-    //   it("should expose isSimulating property as true", () => {
-    //     expect(eventStore.isSimulating).toBe(true);
-    //   });
-
-    //   it("should return gateway failure when loading events", async () => {
-    //     const response = await eventStore.load(streamName, aggregateId);
-    //     expect(response).toEqual({
-    //       kind: "failure",
-    //       code: "GATEWAY_FAILURE",
-    //       gateway: "InMemoryEventStore",
-    //       reason: "The Eventstore has been set to offline mode",
-    //     });
-    //   });
-
-    //   it("should return gateway failure when appending events", async () => {
-    //     const event = makeEvent(streamName, randomUUID());
-    //     const response = await eventStore.append([event]);
-    //     expect(response).toEqual({
-    //       kind: "failure",
-    //       code: "GATEWAY_FAILURE",
-    //       gateway: "InMemoryEventStore",
-    //       reason: "The Eventstore has been set to offline mode",
-    //     });
-    //   });
-
-    //   it("should return gateway failure from loadFrom", async () => {
-    //     const response = await eventStore.loadFrom(0);
-    //     expect(response).toMatchObject({
-    //       code: "GATEWAY_FAILURE",
-    //       gateway: "InMemoryEventStore",
-    //     });
-    //   });
-
-    //   it("should return gateway failure from loadStreamFrom", async () => {
-    //     const response = await eventStore.loadStreamFrom(`${streamName}#${aggregateId}`, 1);
-    //     expect(response).toMatchObject({
-    //       code: "GATEWAY_FAILURE",
-    //       gateway: "InMemoryEventStore",
-    //     });
-    //   });
-
-    //   it("should restore the event store to online state", async () => {
-    //     eventStore.restore();
-    //     expect(eventStore.isSimulating).toBe(false);
-    //     await Promise.all(fixture.map((event) => eventStore.append([event])));
-    //     const events = await eventStore.load(streamName, aggregateId);
-    //     expect(events).toEqual(fixture);
-    //   });
   });
 });
