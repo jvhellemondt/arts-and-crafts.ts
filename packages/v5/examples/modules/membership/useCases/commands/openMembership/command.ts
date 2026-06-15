@@ -5,6 +5,8 @@ import { name } from "../../../core/domain/Name.ts";
 import { email } from "../../../core/domain/Email.ts";
 import { type AggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
 import { v7 as uuidv7 } from "uuid";
+import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
+import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
 
 export const OPEN_MEMBERSHIP = "OpenMembership";
 
@@ -25,8 +27,7 @@ export function createOpenMembershipCommand(
     kind: "command",
     timestamp: new Date().getTime(),
     id: uuidv7(),
-    aggregateId,
-    aggregateType: "Membership",
+    criteria: [createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId)],
     payload,
     metadata,
   };
