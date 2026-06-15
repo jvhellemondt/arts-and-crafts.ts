@@ -10,6 +10,8 @@ import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/Proj
 import { randomUUID } from "node:crypto";
 import type { ListMembershipsProjection } from "./projection.ts";
 import { ListMembershipsProjector } from "./projector.ts";
+import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
+import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
 
 const stubFailure: GatewayFailure = {
   kind: "failure",
@@ -36,10 +38,9 @@ const makeEvent = (overrides: Partial<{ aggregateId: string }> = {}): Membership
   return {
     type: "MembershipOpened.v1",
     kind: "domain",
-    aggregateType: "Membership",
-    aggregateId,
-    commandId: "",
-    commandType: "",
+    concerns: [createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId)],
+    commandId: randomUUID(),
+    commandType: "OpenMembership",
     timestamp: Date.now(),
     id: randomUUID(),
     metadata: { correlationId: randomUUID(), causationId: randomUUID() },
@@ -61,7 +62,7 @@ describe("ListMembershipsProjector", () => {
       await projector.tick();
 
       expect(await projectionStore.load()).toMatchObject({
-        "id-1": expect.objectContaining({ id: "id-1" }),
+        "Membership#id-1": expect.objectContaining({ id: "Membership#id-1" }),
       });
     });
 
@@ -98,7 +99,14 @@ describe("ListMembershipsProjector", () => {
       await projector.tick();
 
       const state = (await projectionStore.load()) as ListMembershipsProjection;
-      expect(Object.keys(state)).toEqual(expect.arrayContaining(["id-1", "id-2", "id-3", "id-4"]));
+      expect(Object.keys(state)).toEqual(
+        expect.arrayContaining([
+          "Membership#id-1",
+          "Membership#id-2",
+          "Membership#id-3",
+          "Membership#id-4",
+        ]),
+      );
       expect(await projectionStore.loadCheckpoint()).toBe(4);
     });
 
