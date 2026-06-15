@@ -1,6 +1,5 @@
 import type { AppendToEventStore } from "@adapters/outbound/capabilities/AppendToEventStore.ts";
 import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { LoadEventStreamFrom } from "@adapters/outbound/capabilities/LoadEventStreamFrom.ts";
 import type { LoadEventsFrom } from "@adapters/outbound/capabilities/LoadEventsFrom.ts";
 import type {
   FaultSimulationMode,
@@ -15,7 +14,6 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
     LoadDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>,
     LoadEventsFrom<TEvent>,
-    LoadEventStreamFrom<TEvent>,
     AppendToEventStore<TEvent, Promise<void | GatewayFailure>>,
     SimulateFaults
 {
@@ -56,12 +54,11 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     };
   }
 
-  async load(streamName: string, aggregateId: string): Promise<TEvent[] | GatewayFailure> {
+  async load(concerns: readonly StreamKey[]): Promise<TEvent[] | GatewayFailure> {
     if (this.activeFault === "offline") return this.offlineFailure();
 
-    const streamKey: StreamKey = `${streamName}#${aggregateId}`;
     return this.rows
-      .filter((envelope) => envelope.streamKey === streamKey)
+      .filter((envelope) => envelope.concerns.some((concern) => concerns.includes(concern)))
       .map((envelope) => envelope.event);
   }
 
@@ -75,27 +72,12 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     return limit !== undefined ? filtered.slice(0, limit) : filtered;
   }
 
-  async loadStreamFrom(
-    streamKey: StreamKey,
-    fromVersion: number,
-  ): Promise<StoredEvent<TEvent>[] | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
-
-    return this.rows.filter(
-      (row) => row.streamKey === streamKey && row.streamVersion >= fromVersion,
-    );
-  }
-
   async append(events: TEvent[]): Promise<void | GatewayFailure> {
     if (this.activeFault === "offline") return this.offlineFailure();
 
     for (const event of events) {
-      const streamKey: StreamKey = `${event.aggregateType}#${event.aggregateId}`;
-      const streamVersion = this.rows.filter((e) => e.streamKey === streamKey).length + 1;
       this.rows.push({
-        stream: event.aggregateType,
-        streamKey,
-        streamVersion,
+        concerns: event.concerns,
         globalPosition: this.rows.length + 1,
         insertedAt: Date.now(),
         event,
