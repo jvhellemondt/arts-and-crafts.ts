@@ -7,6 +7,8 @@ import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts
 import type { Rejection } from "@core/shapes/Rejection.ts";
 import type { OpenMembershipCommand, openMembershipCommandPayload } from "../../command.ts";
 import type { HandleCommand } from "@useCases/command/capabilities/HandleCommand.ts";
+import { MEMBERSHIP_AGGREGATE_NAME } from "@examples/modules/membership/core/AggregateTypes.ts";
+import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -48,7 +50,9 @@ describe("OpenMembershipHonoAdapter", () => {
   it("calls handler.handle with the correct aggregateId", async () => {
     await adapter.handle(makeContext(), aggregateId);
     expect(handledCommands).toHaveLength(1);
-    expect(handledCommands[0].aggregateId).toBe(aggregateId);
+    expect(handledCommands[0].criteria).toStrictEqual([
+      createStreamKey(MEMBERSHIP_AGGREGATE_NAME, aggregateId),
+    ]);
   });
 
   it("calls handler.handle with the body as payload", async () => {
