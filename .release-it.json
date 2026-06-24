@@ -26,13 +26,9 @@
         "type": "text/plain"
       }
     },
-    "release-it-changelogen": {
-      "disableVersion": true,
-      "templates": {
-        "commitMessage": "chore(release): v{{newVersion}}",
-        "tagMessage": "v{{newVersion}}",
-        "tagBody": "v{{newVersion}}"
-      }
+    "@release-it/conventional-changelog": {
+      "preset": "conventionalcommits",
+      "infile": "CHANGELOG.md"
     }
   }
 }
