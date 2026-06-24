@@ -70,14 +70,94 @@
         "default": "./packages/v4/dist/index.cjs"
       }
     },
-    "./v5": {
+    "./v5/module/adapters/outbound/capabilities": {
       "import": {
-        "types": "./packages/v5/dist/index.d.ts",
-        "default": "./packages/v5/dist/index.js"
+        "types": "./packages/v5/dist/adapters/outbound/capabilities/index.d.ts",
+        "default": "./packages/v5/dist/adapters/outbound/capabilities/index.js"
       },
       "require": {
-        "types": "./packages/v5/dist/index.d.cts",
-        "default": "./packages/v5/dist/index.cjs"
+        "types": "./packages/v5/dist/adapters/outbound/capabilities/index.d.cts",
+        "default": "./packages/v5/dist/adapters/outbound/capabilities/index.cjs"
+      }
+    },
+    "./v5/module/adapters/outbound/shapes": {
+      "import": {
+        "types": "./packages/v5/dist/adapters/outbound/shapes/index.d.ts",
+        "default": "./packages/v5/dist/adapters/outbound/shapes/index.js"
+      },
+      "require": {
+        "types": "./packages/v5/dist/adapters/outbound/shapes/index.d.cts",
+        "default": "./packages/v5/dist/adapters/outbound/shapes/index.cjs"
+      }
+    },
+    "./v5/module/core/capabilities": {
+      "import": {
+        "types": "./packages/v5/dist/core/capabilities/index.d.ts",
+        "default": "./packages/v5/dist/core/capabilities/index.js"
+      },
+      "require": {
+        "types": "./packages/v5/dist/core/capabilities/index.d.cts",
+        "default": "./packages/v5/dist/core/capabilities/index.cjs"
+      }
+    },
+    "./v5/module/core/shapes": {
+      "import": {
+        "types": "./packages/v5/dist/core/shapes/index.d.ts",
+        "default": "./packages/v5/dist/core/shapes/index.js"
+      },
+      "require": {
+        "types": "./packages/v5/dist/core/shapes/index.d.cts",
+        "default": "./packages/v5/dist/core/shapes/index.cjs"
+      }
+    },
+    "./v5/module/useCases/command/capabilities": {
+      "import": {
+        "types": "./packages/v5/dist/useCases/command/capabilities/index.d.ts",
+        "default": "./packages/v5/dist/useCases/command/capabilities/index.js"
+      },
+      "require": {
+        "types": "./packages/v5/dist/useCases/command/capabilities/index.d.cts",
+        "default": "./packages/v5/dist/useCases/command/capabilities/index.cjs"
+      }
+    },
+    "./v5/module/useCases/command/shapes": {
+      "import": {
+        "types": "./packages/v5/dist/useCases/command/shapes/index.d.ts",
+        "default": "./packages/v5/dist/useCases/command/shapes/index.js"
+      },
+      "require": {
+        "types": "./packages/v5/dist/useCases/command/shapes/index.d.cts",
+        "default": "./packages/v5/dist/useCases/command/shapes/index.cjs"
+      }
+    },
+    "./v5/module/useCases/policy/capabilities": {
+      "import": {
+        "types": "./packages/v5/dist/useCases/policy/capabilities/index.d.ts",
+        "default": "./packages/v5/dist/useCases/policy/capabilities/index.js"
+      },
+      "require": {
+        "types": "./packages/v5/dist/useCases/policy/capabilities/index.d.cts",
+        "default": "./packages/v5/dist/useCases/policy/capabilities/index.cjs"
+      }
+    },
+    "./v5/module/useCases/query/capabilities": {
+      "import": {
+        "types": "./packages/v5/dist/useCases/query/capabilities/index.d.ts",
+        "default": "./packages/v5/dist/useCases/query/capabilities/index.js"
+      },
+      "require": {
+        "types": "./packages/v5/dist/useCases/query/capabilities/index.d.cts",
+        "default": "./packages/v5/dist/useCases/query/capabilities/index.cjs"
+      }
+    },
+    "./v5/module/useCases/query/shapes": {
+      "import": {
+        "types": "./packages/v5/dist/useCases/query/shapes/index.d.ts",
+        "default": "./packages/v5/dist/useCases/query/shapes/index.js"
+      },
+      "require": {
+        "types": "./packages/v5/dist/useCases/query/shapes/index.d.cts",
+        "default": "./packages/v5/dist/useCases/query/shapes/index.cjs"
       }
     },
     "./package.json": "./package.json"
