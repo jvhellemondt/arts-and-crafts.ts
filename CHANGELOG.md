@@ -1,5 +1,81 @@
 # Changelog
 
+## [5.0.0-rc.1](https://github.com/jvhellemondt/arts-and-crafts/compare/v3.19.0...v5.0.0-rc.1) (2026-06-24)
+
+### Features
+
+* add a type to failure type and update accordingly ([1027beb](https://github.com/jvhellemondt/arts-and-crafts/commit/1027beb847e078586ec32601bb43609c70ca1f58))
+* add and implement schema to createOpenMembershipInboundHonoAdapter ([85142d2](https://github.com/jvhellemondt/arts-and-crafts/commit/85142d2e78a3ba9e31cf4186f7ed6db2ef1a4b54))
+* add AppendsDomainEvents to InMemoryEventStore example ([2f52839](https://github.com/jvhellemondt/arts-and-crafts/commit/2f52839bdf29e8ac678fb96ddffd611c26e34d71))
+* add countries-list ([109cf24](https://github.com/jvhellemondt/arts-and-crafts/commit/109cf24f2a8fea5b679b0af12a99734d29e8bb08))
+* add Evolves and InitializesState ([ebbf07f](https://github.com/jvhellemondt/arts-and-crafts/commit/ebbf07f41ea5b20ce95105cd2305a3e55bdf90b8))
+* add membership state and its value objects ([2798f77](https://github.com/jvhellemondt/arts-and-crafts/commit/2798f77c3457799cb7c49063e049bea76639ad44))
+* add MembershipDoesNotAlreadyExist specification ([244eb51](https://github.com/jvhellemondt/arts-and-crafts/commit/244eb51a39182c1aedb14322eaea05349c9b441c))
+* add more adapter/usecase/core shapes ([01a3683](https://github.com/jvhellemondt/arts-and-crafts/commit/01a36834ccb89ec6caa97d55b69c9d36356abb26))
+* add OpenMembership command ([4a90569](https://github.com/jvhellemondt/arts-and-crafts/commit/4a90569ddb751e604b4bfb4cc418d7260cf98e18))
+* add option to overwrite timestamp in an integration event ([325766e](https://github.com/jvhellemondt/arts-and-crafts/commit/325766ec3ae1521ecea043b21a478063971163cc))
+* add oxfmt to workflow ([cdba9c7](https://github.com/jvhellemondt/arts-and-crafts/commit/cdba9c749f44d8f8b47f61d487204ccf815031d3))
+* add SatisfiedBy ([9ee1375](https://github.com/jvhellemondt/arts-and-crafts/commit/9ee1375b51206525e937aa004b24144059fdd8c4))
+* add Specification shape ([b96adaa](https://github.com/jvhellemondt/arts-and-crafts/commit/b96adaa5637dd9679a9742142bec64d67d3f0882))
+* add uuid ([13f2386](https://github.com/jvhellemondt/arts-and-crafts/commit/13f2386f94424045013cb68b65d0d8c306fae5a9))
+* apply DCB to listMemberships projection ([1dc3aae](https://github.com/jvhellemondt/arts-and-crafts/commit/1dc3aae3d4de278a13c96d63a14f58abbde8a7cf))
+* apply DCB to OpenMembershipHonoAdapter ([c586cda](https://github.com/jvhellemondt/arts-and-crafts/commit/c586cdaf3980490ea1587699870cd6ab6b983445))
+* apply further consequences of dcb to storedEvent and Command shapes ([5e4a493](https://github.com/jvhellemondt/arts-and-crafts/commit/5e4a493bdc87b525ca9c36459be1f740e1ddda5a))
+* convert repository to command specific repository ([8d78f34](https://github.com/jvhellemondt/arts-and-crafts/commit/8d78f34abac5f77f5a9fb1fa294baf76731f3246))
+* convert to command specific state/evolve ([e5b6278](https://github.com/jvhellemondt/arts-and-crafts/commit/e5b62788206fa5b1ecfb6edac596a8799c1884ec))
+* create ConsumeEvents, EventTail, PublishEvents and RegisterEventSubscriber ([0b786db](https://github.com/jvhellemondt/arts-and-crafts/commit/0b786db7043969b36e0050f929fe519a06cfa9e6))
+* create membershipStatus value object ([c420fe9](https://github.com/jvhellemondt/arts-and-crafts/commit/c420fe902c6d5e7c1b7927f3259bbbbb1599f02c))
+* **EventStore:** implement SimulatesFaults ([34ca0a1](https://github.com/jvhellemondt/arts-and-crafts/commit/34ca0a1ae425f5ccdf65f347f3a84f6bf5fe954d))
+* **EventStore:** should load domain events by given concerns ([d86db56](https://github.com/jvhellemondt/arts-and-crafts/commit/d86db56607540c2fd484ed4fa0c4f5b536da7648))
+* examples skeleton ([7614a67](https://github.com/jvhellemondt/arts-and-crafts/commit/7614a671c6f67f69c007c7e5a9e4139bcd2b9faf))
+* export all Membership V1 events ([c9ef599](https://github.com/jvhellemondt/arts-and-crafts/commit/c9ef599def749798d86d987e4b2b6d01619e6454))
+* finalize EventStore example ([b3ba54e](https://github.com/jvhellemondt/arts-and-crafts/commit/b3ba54e4c9b22b35215102bc3388f434112286b1))
+* finalize openMembership decision ([554ab15](https://github.com/jvhellemondt/arts-and-crafts/commit/554ab159375f6a72ed44a710c8c2b21722ea22b2))
+* further implement consequences of DCB into message and domain event ([db1e01e](https://github.com/jvhellemondt/arts-and-crafts/commit/db1e01eeb365a56bd256de5d06cbd0ce0f45aad5))
+* further implement DCB into module shapes ([2cc4fb2](https://github.com/jvhellemondt/arts-and-crafts/commit/2cc4fb245a9993a4652c2b2ea762cf96acc95152))
+* **http:** openMembershipHandlerRoute.POST ([5b3e02d](https://github.com/jvhellemondt/arts-and-crafts/commit/5b3e02d78f8121a47ca71358cc06d869c53d3f44))
+* implement command handler in adapter ([5a79799](https://github.com/jvhellemondt/arts-and-crafts/commit/5a797995cfebf3c3a6e148303fcd3c28b7772b22))
+* implement createStreamKey ([93664ff](https://github.com/jvhellemondt/arts-and-crafts/commit/93664ff368094dd0df64c9df0d4870bebb74d895))
+* implement decideOpenMembership ([13de9b0](https://github.com/jvhellemondt/arts-and-crafts/commit/13de9b0fc446b89ada6a131377666fa0fcdb6ffc))
+* implement findConcern utility ([3d32acb](https://github.com/jvhellemondt/arts-and-crafts/commit/3d32acb6066eeecf4bdd8a0510d835cc05f62964))
+* initial v5 package ([e8d874c](https://github.com/jvhellemondt/arts-and-crafts/commit/e8d874c7a855f1b1b37cde03a5bb1161d6563d69))
+* intent-outbox should stage intents ([a3f1f66](https://github.com/jvhellemondt/arts-and-crafts/commit/a3f1f662f6badb41a9aab9774ef60ccbd41b8cb0))
+* **IntentOutbox:** implement SimulateFaults and make stage generator ([cd93ba7](https://github.com/jvhellemondt/arts-and-crafts/commit/cd93ba7830a61295ac2ab355c7faef1af821f393))
+* isFailure util ([adb979d](https://github.com/jvhellemondt/arts-and-crafts/commit/adb979d19991f27a911d1f4f12a5595542326eab))
+* **listMemberships:** list all memberships if query is undefined ([fc1617c](https://github.com/jvhellemondt/arts-and-crafts/commit/fc1617cfe9fe3025c97fcb5371990016ccf4de42))
+* make eventStore and outbox batchable ([ea534a3](https://github.com/jvhellemondt/arts-and-crafts/commit/ea534a3374c94593ecdbef2a9e64f795a2173c0a))
+* membership evolve ([1ef97ba](https://github.com/jvhellemondt/arts-and-crafts/commit/1ef97ba235ce834f02efc68ab38e7441b9a2fddf))
+* membership repository ([7adaae8](https://github.com/jvhellemondt/arts-and-crafts/commit/7adaae8febdcd958e889e24de2c1bd54481b4388))
+* **MembershipOpened:** remove duplicate occurredAt field ([9c30dc9](https://github.com/jvhellemondt/arts-and-crafts/commit/9c30dc9f04e07f439d42b36b01ffac7c609fb417))
+* **MembershipRepository:** implement the correct capabilities ([773ddf5](https://github.com/jvhellemondt/arts-and-crafts/commit/773ddf58ddd9d08dfe6aeb9622004f96f2623a95))
+* more shapes ([7dcbc50](https://github.com/jvhellemondt/arts-and-crafts/commit/7dcbc509d9ea0cd490af2e437e16fede974ed82f))
+* openMembership handler ([a7672b2](https://github.com/jvhellemondt/arts-and-crafts/commit/a7672b2a6eb99cd853b549ed655b3ecb75789d3b))
+* **openMembership:** add membership id to command payload ([53fe3e0](https://github.com/jvhellemondt/arts-and-crafts/commit/53fe3e0656eb54e280c24f1aaaef016798407e55))
+* **OpenMembership:** export the return type OpenMembershipCommand ([a285502](https://github.com/jvhellemondt/arts-and-crafts/commit/a285502ab471b6a0b9e676c408d95118f726cca5))
+* **Outbox:** enable handle notifications ([e754c07](https://github.com/jvhellemondt/arts-and-crafts/commit/e754c0735a3866fb6e05b67b3d77dd06915f9993))
+* pivot to dynamic consistency boundary ([ab40937](https://github.com/jvhellemondt/arts-and-crafts/commit/ab4093755569d39e4b0bb075b84b2b171f262c2f))
+* remove aggregate* from Intent ([806abc1](https://github.com/jvhellemondt/arts-and-crafts/commit/806abc1cc510e7dca0f99ad6f1bc1d867d5e4f8a))
+* set up OpenMembershipAdapter and its shell ([3e949d7](https://github.com/jvhellemondt/arts-and-crafts/commit/3e949d7be0d9009e8832c08f7d7fd8a30dc55dc1))
+* StagesIntents ([b0f0cf4](https://github.com/jvhellemondt/arts-and-crafts/commit/b0f0cf4d7a952fa511cc7cd8a2285817ea62411d))
+* tidy the createOpenMembershipCommand ([ad13e7a](https://github.com/jvhellemondt/arts-and-crafts/commit/ad13e7a13d28f9a3b079c5e93f9ba99a203489fc))
+* update createOpenMembershipRoute to use DCB ([f3d023b](https://github.com/jvhellemondt/arts-and-crafts/commit/f3d023b76e69d09db46044d0b722e327bfa15a51))
+* update decide to DCB ([16fe235](https://github.com/jvhellemondt/arts-and-crafts/commit/16fe2357f4cb40bb955e6ec7c411adca0b4c9f48))
+* update examples skeleton ([e7a92d8](https://github.com/jvhellemondt/arts-and-crafts/commit/e7a92d86f67a4396954a420e562a2a8e426d68cb))
+* update listMemberships to use DCB ([e3c9149](https://github.com/jvhellemondt/arts-and-crafts/commit/e3c91497253b2edadc322d8f79d994178b66732d))
+* update OpenMembershipHandler to DCB ([e9cd907](https://github.com/jvhellemondt/arts-and-crafts/commit/e9cd907efbbada65b332c8628dbe92b70331188e))
+* update shapes to be more consistent ([c98f925](https://github.com/jvhellemondt/arts-and-crafts/commit/c98f925e52cf82e34e3ee9db96344978b67e43b0))
+* update SignedAt to allow offset ([dac5aa7](https://github.com/jvhellemondt/arts-and-crafts/commit/dac5aa712407bd43036f822779fd20e49ca80f81))
+* update the decision shape with rejection shape ([e478144](https://github.com/jvhellemondt/arts-and-crafts/commit/e4781446b9385ce21f9e090ddf1e7ee2d400d63c))
+* **utils:** isRejection ([26a2007](https://github.com/jvhellemondt/arts-and-crafts/commit/26a200736ca12f2e64984e4b8755a3cb39b7d842))
+* **v5:** add HandleIntent policy and IntentRelay that drains the outbox ([4699bc0](https://github.com/jvhellemondt/arts-and-crafts/commit/4699bc02037e6e02ccfbb1b780add1d7725d5caa))
+* **v5:** implement listMemberships query end-to-end ([9128df2](https://github.com/jvhellemondt/arts-and-crafts/commit/9128df2ca748dcfcb5d6ce53d80ffeef61bcf1f6))
+* **v5:** pivot event identity from stream key to domain payload ([1c0a854](https://github.com/jvhellemondt/arts-and-crafts/commit/1c0a854530b071a47569723596e74993734e9ebb))
+* **v5:** publish StoredEvent on the bus and add pull-by-position APIs ([6aea3cd](https://github.com/jvhellemondt/arts-and-crafts/commit/6aea3cdf5de0a7f15ac3fc1faa6e9a4d8401b57f))
+* **v5:** wire IntentRelay with email gateway into example shell ([25909c7](https://github.com/jvhellemondt/arts-and-crafts/commit/25909c7c9febed568fd52b9caad118282dbbc62f))
+
+### Bug Fixes
+
+* **v5:** read membershipId from command payload in OpenMembershipHandler ([12eae07](https://github.com/jvhellemondt/arts-and-crafts/commit/12eae07b7683c0f6643af29449d39d85d70f14cf))
 
 ## v3.19.0
 
@@ -1301,4 +1377,3 @@
 ### ❤️ Contributors
 
 - Jens Van Hellemondt <jens@invictus.codes>
-
