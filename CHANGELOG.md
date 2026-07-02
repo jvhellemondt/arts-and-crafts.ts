@@ -1,5 +1,11 @@
 # Changelog
 
+## [5.0.0-rc.2](https://github.com/jvhellemondt/arts-and-crafts/compare/v5.0.0-rc.1...v5.0.0-rc.2) (2026-07-02)
+
+### Features
+
+* add IntegrationEvent & publishing ([d439239](https://github.com/jvhellemondt/arts-and-crafts/commit/d4392393ba74c6629e7022489b27b43759689639))
+
 ## [5.0.0-rc.1](https://github.com/jvhellemondt/arts-and-crafts/compare/v3.19.0...v5.0.0-rc.1) (2026-06-24)
 
 ### Features
