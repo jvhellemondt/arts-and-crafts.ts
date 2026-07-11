@@ -114,3 +114,7 @@ Run the checks:
 ## Rule: use Context7 for update to date documentation
 
 Always use Context7 MCP when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
+
+## Rule: keep Node and pnpm on latest LTS
+
+With every iteration, check whether Node and pnpm are on the latest LTS release (`.nvmrc`, the `engines`/`packageManager` fields in the root `package.json`, and `.github/workflows/onPush.yaml`). If a patch or minor update is available, apply it directly. If a new major LTS version is available, confirm with the user before upgrading. Ship these bumps as their own commit, separate from other changes (e.g. `chore: update Node/pnpm to vX.Y.Z`).
