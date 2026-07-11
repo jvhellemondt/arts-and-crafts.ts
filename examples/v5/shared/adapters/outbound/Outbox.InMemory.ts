@@ -25,11 +25,10 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
 {
   private readonly tableName: string = "outbox";
   private simulation?: FaultSimulationMode;
-  private readonly datasource: Map<string, OutboxEnvelope<TIntent | TNotification>[]>;
 
-  constructor(datasource: Map<string, OutboxEnvelope<TIntent | TNotification>[]> = new Map()) {
-    this.datasource = datasource;
-  }
+  constructor(
+    private readonly datasource: Map<string, OutboxEnvelope<TIntent | TNotification>[]> = new Map(),
+  ) {}
 
   simulate(mode: "offline"): void {
     this.simulation = mode;
