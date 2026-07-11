@@ -1,5 +1,5 @@
-bun run coverage
-bun run typecheck
-bun run lint
-bun run fmt:check
-bun run check-exports
+pnpm run coverage
+pnpm run typecheck
+pnpm run lint
+pnpm run fmt:check
+pnpm run check-exports

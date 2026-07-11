@@ -13,11 +13,9 @@
     "paths": {
       "@core/*": ["./src/module/core/*"],
       "@useCases/*": ["./src/module/useCases/*"],
-      "@adapters/*": ["./src/module/adapters/*"],
-      "@shell/*": ["./src/shell/*"],
-      "@examples/*": ["./examples/*"]
+      "@adapters/*": ["./src/module/adapters/*"]
     },
-    "types": ["vitest/globals", "bun"],
+    "types": ["vitest/globals", "node"],
     "allowImportingTsExtensions": true,
     "allowJs": true,
     // Best practices
@@ -33,6 +31,6 @@
     "ignoreDeprecations": "6.0",
     "skipLibCheck": true
   },
-  "include": ["./src/**/*", "./examples/**/*", "vitest.config.ts", "tsup.config.ts"],
+  "include": ["./src/**/*", "vitest.config.ts", "tsup.config.ts"],
   "exclude": ["dist", "coverage", ".husky", ".github", "node_modules"]
 }

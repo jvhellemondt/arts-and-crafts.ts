@@ -55,5 +55,4 @@ describe("listMemberships projection", () => {
     const state: ListMembershipsProjection = {};
     expect(apply(state, unknown)).toBe(state);
   });
-
 });

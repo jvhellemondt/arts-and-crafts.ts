@@ -6,10 +6,9 @@ import type { RelayPendingIntents } from "@useCases/policy/capabilities/RelayPen
 import type { Intent } from "@core/shapes/Intent.ts";
 import { isFailure } from "@examples/shared/utils/isFailure.ts";
 
-type IntentOutbox<TIntent extends Intent> =
-  & LoadPendingIntents<TIntent>
-  & MarkIntentDispatched
-  & MarkIntentFailed;
+type IntentOutbox<TIntent extends Intent> = LoadPendingIntents<TIntent> &
+  MarkIntentDispatched &
+  MarkIntentFailed;
 
 export class IntentRelay<TIntent extends Intent> implements RelayPendingIntents {
   constructor(
@@ -35,8 +34,7 @@ export class IntentRelay<TIntent extends Intent> implements RelayPendingIntents 
       try {
         await handler.handle(envelope.entry);
         await this.outbox.markDispatched(envelope.entry.id);
-      }
-      catch (cause) {
+      } catch (cause) {
         const reason = cause instanceof Error ? cause.message : String(cause);
         await this.outbox.markFailed(envelope.entry.id, reason);
       }

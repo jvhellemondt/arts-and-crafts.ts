@@ -1,50 +1,52 @@
 {
-  "name": "@arts-n-crafts/ts-v5-package",
+  "name": "@arts-n-crafts/ts-v5-example",
   "version": "5.0.0",
   "private": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/arts-n-crafts/typescript.git"
   },
-  "files": [
-    "dist"
-  ],
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
   "scripts": {
-    "lint": "oxlint src/",
-    "lint:fix": "oxlint --fix src/",
-    "fmt": "oxfmt src/",
-    "fmt:check": "oxfmt --check src/",
+    "dev": "bun run --hot shell/main.ts",
+    "lint": "oxlint shell/ modules/ shared/",
+    "lint:fix": "oxlint --fix shell/ modules/ shared/",
+    "fmt": "oxfmt shell/ modules/ shared/",
+    "fmt:check": "oxfmt --check shell/ modules/ shared/",
     "test": "NODE_ENV=test vitest",
     "test:watch": "NODE_ENV=test vitest --coverage --watch",
     "test:ui": "NODE_ENV=test vitest --watch --coverage --ui",
     "coverage": "NODE_ENV=test vitest --coverage",
-    "typecheck": "tsc --noEmit",
-    "build": "rimraf dist && tsup"
+    "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@arts-n-crafts/ts-v5-package": "workspace:*"
+  },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
+    "@cucumber/cucumber": "^12.8.3",
+    "@hono/standard-validator": "^0.2.2",
     "@release-it/bumper": "^7.0.5",
-    "@types/node": "^26.1.1",
+    "@types/bun": "^1.3.12",
     "@vitest/coverage-istanbul": "^4.1.5",
     "@vitest/ui": "^4.1.5",
     "changelogen": "^0.6.2",
     "commitizen": "^4.3.1",
+    "countries-list": "^3.3.0",
     "cz-conventional-changelog": "^3.3.0",
     "globals": "^17.5.0",
+    "hono": "^4.12.18",
     "husky": "^9.1.7",
     "oxfmt": "^0.46.0",
     "oxide.ts": "^1.1.0",
     "oxlint": "^1.61.0",
     "rimraf": "^6.1.3",
-    "tsup": "^8.5.1",
+    "uuid": "^14.0.0",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "zod": "^4.4.2"
   },
   "peerDependencies": {
     "typescript": "^6.0.3"

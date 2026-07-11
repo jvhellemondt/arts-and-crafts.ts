@@ -16,7 +16,7 @@
       "@infrastructure/*": ["./src/infrastructure/*"],
       "@utils/*": ["./src/utils/*"]
     },
-    "types": ["vitest/globals", "bun"],
+    "types": ["vitest/globals", "node"],
     "allowImportingTsExtensions": true,
     "allowJs": true,
     // Best practices
@@ -29,7 +29,7 @@
 
     "noEmit": true,
     "verbatimModuleSyntax": true,
-    "ignoreDeprecations": "6.0",
+    "ignoreDeprecations": "5.0",
     "skipLibCheck": true
   },
   "include": ["./src/**/*", "vitest.config.ts", "tsup.config.ts"],
