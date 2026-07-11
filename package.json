@@ -1,9 +1,7 @@
 {
   "name": "@arts-n-crafts/ts",
   "version": "5.0.0-rc.2",
-  "workspaces": [
-    "packages/*"
-  ],
+  "packageManager": "pnpm@10.33.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/arts-n-crafts/typescript.git"
@@ -21,7 +19,6 @@
     "@commitlint/config-conventional": "^21.1.0",
     "@release-it/bumper": "^7.0.6",
     "@release-it/conventional-changelog": "^11.0.1",
-    "@types/bun": "^1.3.14",
     "@vitest/coverage-istanbul": "^4.1.9",
     "@vitest/ui": "^4.1.9",
     "commitizen": "^4.3.2",
@@ -174,13 +171,13 @@
     "prepare": "husky",
     "commit": "cz",
     "release": "release-it && npm publish --access=public",
-    "build": "bun run --workspaces build",
-    "coverage": "bun run --workspaces coverage",
-    "lint": "bun run --workspaces lint",
-    "lint:fix": "bun run --workspaces lint:fix",
-    "fmt": "bun run --workspaces fmt",
-    "fmt:check": "bun run --workspaces fmt:check",
-    "typecheck": "bun run --workspaces typecheck",
+    "build": "pnpm -r run build",
+    "coverage": "pnpm -r run coverage",
+    "lint": "pnpm -r run lint",
+    "lint:fix": "pnpm -r run lint:fix",
+    "fmt": "pnpm -r run fmt",
+    "fmt:check": "pnpm -r run fmt:check",
+    "typecheck": "pnpm -r run typecheck",
     "check-exports": "attw --pack . --profile node16"
   },
   "type": "module"

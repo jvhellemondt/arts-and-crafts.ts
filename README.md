@@ -49,7 +49,7 @@ This package is available on npm as `@arts-n-crafts/ts`. It ships two versioned 
 
 ```bash
 # Install
-bun add @arts-n-crafts/ts
+pnpm add @arts-n-crafts/ts
 # or
 npm install @arts-n-crafts/ts
 ```
@@ -67,30 +67,36 @@ import { ... } from '@arts-n-crafts/ts'
 
 ## Contributing
 
-This codebase is written in TypeScript and uses Bun as the runtime.
+This codebase is written in TypeScript and is organized as a pnpm workspace. Each library ships as its own workspace package under `packages/` (`v3`, `v4`, `v5`), and the v5 example app lives in its own workspace at `examples/v5`, depending on `packages/v5` via the `workspace:*` protocol.
 
 ```bash
-bun install          # Install dependencies
-bun run build        # Build all packages
-bun run lint         # Lint all packages
-bun run lint:fix     # Auto-fix lint issues
-bun run typecheck    # Type-check all packages
-bun run coverage     # Run tests with coverage
-bun run check-exports  # Validate package exports
+pnpm install          # Install dependencies
+pnpm run build        # Build all packages
+pnpm run lint          # Lint all packages
+pnpm run lint:fix      # Auto-fix lint issues
+pnpm run typecheck     # Type-check all packages
+pnpm run coverage      # Run tests with coverage
+pnpm run check-exports # Validate package exports
 ```
 
 To work on a single package:
 
 ```bash
 cd packages/v4
-bun run test         # Run tests once
-bun run test:watch   # Run tests in watch mode
-bun run build        # Build this package only
+pnpm run test         # Run tests once
+pnpm run test:watch   # Run tests in watch mode
+pnpm run build        # Build this package only
 ```
 
-Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) spec. Use `bun run commit` for an interactive prompt.
+The v5 example app (a runnable Hono-based membership demo) has its own workspace:
 
-This project was created using `bun init` in bun v1.2.0. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+```bash
+cd examples/v5
+pnpm run dev          # Run the example shell (requires the Bun runtime)
+pnpm run test         # Run the example's tests
+```
+
+Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) spec. Use `pnpm run commit` for an interactive prompt.
 
 ---
 

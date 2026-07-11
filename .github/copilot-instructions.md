@@ -4,40 +4,40 @@ This file provides guidance to Github CoPilot when working with code in this rep
 
 ## Commands
 
-All commands use Bun as the runtime. Run from the repository root:
+This is a pnpm workspace. Run from the repository root:
 
 ```bash
-bun install                      # Install dependencies
-bun run build                    # Build all packages (runs in each workspace)
-bun run lint                     # Lint all packages
-bun run lint:fix                 # Auto-fix lint issues
-bun run typecheck                # Type-check all packages
-bun run coverage                 # Run tests with coverage for all packages
-bun run check-exports            # Validate package exports with attw
+pnpm install                      # Install dependencies
+pnpm run build                    # Build all packages (runs in each workspace)
+pnpm run lint                     # Lint all packages
+pnpm run lint:fix                 # Auto-fix lint issues
+pnpm run typecheck                # Type-check all packages
+pnpm run coverage                 # Run tests with coverage for all packages
+pnpm run check-exports            # Validate package exports with attw
 ```
 
 Run commands scoped to a single package (e.g., v3):
 
 ```bash
 cd packages/v3
-bun run test                     # Run tests once
-bun run test:watch               # Run tests in watch mode with coverage
-bun run coverage                 # Run tests with full coverage report
-bun run build                    # Build this package only
+pnpm run test                     # Run tests once
+pnpm run test:watch               # Run tests in watch mode with coverage
+pnpm run coverage                 # Run tests with full coverage report
+pnpm run build                    # Build this package only
 ```
 
 Run a single test file:
 
 ```bash
 cd packages/v4
-bun run test src/path/to/file.test.ts
+pnpm run test src/path/to/file.test.ts
 ```
 
 Coverage thresholds are enforced at 100% (lines, statements, functions, branches).
 
 ## Architecture
 
-This is a TypeScript library (`@arts-n-crafts/ts`) providing building blocks for **CQRS**, **DDD**, and **Event Sourcing** architectures. It ships two versioned packages under `packages/v3/` and `packages/v4/`, both with the same layered structure.
+This is a TypeScript library (`@arts-n-crafts/ts`) providing building blocks for **CQRS**, **DDD**, and **Event Sourcing** architectures. It ships three versioned packages under `packages/v3/`, `packages/v4/`, and `packages/v5/`, each with the same layered structure (v3/v4) or an equivalent module-based structure (v5). The v5 example app is a separate workspace package at `examples/v5`, depending on `packages/v5` via `workspace:*`.
 
 ### Layer Structure
 
@@ -73,13 +73,14 @@ await scenario.given(...pastEvents).when(command).then(expectedEvents)
 The root `package.json` exports:
 - `.` and `./v3` → `packages/v3/dist/`
 - `./v4` → `packages/v4/dist/`
+- `./v5/module/...` → `packages/v5/dist/...` (per-layer subpaths)
 
 Each package is bundled with `tsup` producing both ESM (`.js`) and CJS (`.cjs`) with source maps and type declarations.
 
 ### Tooling
 
 - **ESLint**: `@antfu/eslint-config` with flat config (`eslint.config.mjs`). Method signatures must use method style (`method()` not `method: () =>`).
-- **Commits**: Conventional commits enforced by `commitlint` + Husky. Use `bun run commit` for interactive commit via `commitizen`.
+- **Commits**: Conventional commits enforced by `commitlint` + Husky. Use `pnpm run commit` for interactive commit via `commitizen`.
 - **Release**: `release-it` with `changelogen` for changelog generation.
 
 
@@ -105,10 +106,10 @@ Use Read/Glob only if qmd doesn’t return enough results.
 
 Run the checks:
 
-- bun run lint:fix                 # Auto-fix lint issues
-- bun run typecheck                # Type-check all packages
-- bun run coverage                 # Run tests with coverage for all packages
-- bun run check-exports            # Validate package exports with attw
+- pnpm run lint:fix                 # Auto-fix lint issues
+- pnpm run typecheck                # Type-check all packages
+- pnpm run coverage                 # Run tests with coverage for all packages
+- pnpm run check-exports            # Validate package exports with attw
 
 ## Rule: use Context7 for update to date documentation
 

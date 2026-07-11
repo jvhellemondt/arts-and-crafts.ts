@@ -5,9 +5,8 @@ export default defineConfig({
   test: {
     watch: false,
     globals: true,
-    passWithNoTests: true,
     reporters: ["verbose"],
-    include: ["src/**/*.{spec,test}.?(c|m)[jt]s?(x)"],
+    include: ["**/*.{spec,test}.?(c|m)[jt]s?(x)"],
     exclude: [
       "**/index.ts",
       "**/__tests__/**",
@@ -20,7 +19,7 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
       reporter: ["text", "json", "html"],
-      include: ["src/**/*.?(c|m)[jt]s?(x)"],
+      include: ["**/*.?(c|m)[jt]s?(x)"],
       exclude: ["**/index.ts", "**/main.ts", "**/__tests__/**"],
       thresholds: {
         lines: 100,

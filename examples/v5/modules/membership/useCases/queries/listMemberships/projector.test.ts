@@ -96,9 +96,7 @@ describe("ListMembershipsProjector", () => {
       await projector.tick();
 
       const state = (await projectionStore.load()) as ListMembershipsProjection;
-      expect(Object.keys(state)).toEqual(
-        expect.arrayContaining(["id-1", "id-2", "id-3", "id-4"]),
-      );
+      expect(Object.keys(state)).toEqual(expect.arrayContaining(["id-1", "id-2", "id-3", "id-4"]));
       expect(await projectionStore.loadCheckpoint()).toBe(4);
     });
 
