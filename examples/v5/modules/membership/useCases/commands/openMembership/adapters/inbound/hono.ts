@@ -1,7 +1,7 @@
 import { createOpenMembershipCommand } from "../../command.ts";
 import { Hono } from "hono";
 import { v7 as uuidv7 } from "uuid";
-import { aggregateId } from "../../../../../core/domain/AggregateId.ts";
+import { aggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
 import { sValidator } from "@hono/standard-validator";
 import type { OpenMembershipHandler } from "../../handler.ts";
 import { openMembershipSchema } from "./schema.ts";

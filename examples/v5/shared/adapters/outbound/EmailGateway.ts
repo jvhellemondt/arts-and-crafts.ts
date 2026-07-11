@@ -16,11 +16,8 @@ export interface EmailGateway {
 
 export class InMemoryEmailGateway implements EmailGateway, SimulateFaults {
   private simulation?: FaultSimulationMode;
-  readonly sent: EmailMessage[];
 
-  constructor(sent: EmailMessage[] = []) {
-    this.sent = sent;
-  }
+  constructor(public readonly sent: EmailMessage[] = []) {}
 
   simulate(mode: "offline"): void {
     this.simulation = mode;

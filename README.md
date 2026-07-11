@@ -67,7 +67,7 @@ import { ... } from '@arts-n-crafts/ts'
 
 ## Contributing
 
-This codebase is written in TypeScript and is organized as a pnpm workspace. Each library ships as its own workspace package under `packages/` (`v3`, `v4`, `v5`), and the v5 example app lives in its own workspace at `examples/v5`, depending on `packages/v5` via the `workspace:*` protocol. Requires Node.js >=26.
+This codebase is written in TypeScript and is organized as a pnpm workspace. Each library ships as its own workspace package under `packages/` (`v3`, `v4`, `v5`), and the v5 example app lives in its own workspace at `examples/v5`, depending on `packages/v5` via the `workspace:*` protocol.
 
 ```bash
 pnpm install          # Install dependencies

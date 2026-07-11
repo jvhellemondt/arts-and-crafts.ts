@@ -1,4 +1,4 @@
-import type { MembershipEventV1 } from "../../../core/events/index.ts";
+import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 
 export interface MembershipSummary {
   id: string;

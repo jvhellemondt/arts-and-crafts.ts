@@ -3,8 +3,8 @@ import { OPEN_MEMBERSHIP, type OpenMembershipCommand } from "./command.ts";
 import { v7 as uuidv7 } from "uuid";
 import { MembershipDoesNotAlreadyExist } from "./specifications/MembershipDoesNotAlreadyExist.ts";
 import type { DecisionState } from "./decisionState.ts";
-import { createStreamKey } from "../../../../../shared/utils/createStreamKey.ts";
-import { ANCHOR_EMAIL, ANCHOR_MEMBERSHIP } from "../../../core/anchors.ts";
+import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
+import { ANCHOR_EMAIL, ANCHOR_MEMBERSHIP } from "@examples/modules/membership/core/anchors.ts";
 
 export function decideOpenMembership(
   state: DecisionState,
