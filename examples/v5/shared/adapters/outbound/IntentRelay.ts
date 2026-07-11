@@ -8,18 +8,26 @@ import type {
   MarkIntentFailed,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { Intent } from "@arts-and-crafts/v5/core/shapes";
-import { isFailure } from "@examples/shared/utils/isFailure.ts";
+import { isFailure } from "../../utils/isFailure.ts";
 
 type IntentOutbox<TIntent extends Intent> = LoadPendingIntents<TIntent> &
   MarkIntentDispatched &
   MarkIntentFailed;
 
 export class IntentRelay<TIntent extends Intent> implements RelayPendingIntents {
+  private readonly outbox: IntentOutbox<TIntent>;
+  private readonly handlers: Map<string, HandleIntent<TIntent>>;
+  private readonly batchSize: number;
+
   constructor(
-    private readonly outbox: IntentOutbox<TIntent>,
-    private readonly handlers: Map<string, HandleIntent<TIntent>>,
-    private readonly batchSize: number = 100,
-  ) {}
+    outbox: IntentOutbox<TIntent>,
+    handlers: Map<string, HandleIntent<TIntent>>,
+    batchSize: number = 100,
+  ) {
+    this.outbox = outbox;
+    this.handlers = handlers;
+    this.batchSize = batchSize;
+  }
 
   async relay(): Promise<void> {
     const pending = await this.outbox.loadPending(this.batchSize);

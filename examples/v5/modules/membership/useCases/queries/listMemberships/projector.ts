@@ -5,8 +5,8 @@ import type {
   LoadProjection,
   SaveProjection,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
-import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
-import { isFailure } from "@examples/shared/utils/isFailure.ts";
+import type { MembershipEventV1 } from "../../../core/events/index.ts";
+import { isFailure } from "../../../../../shared/utils/isFailure.ts";
 import { apply, type ListMembershipsProjection } from "./projection.ts";
 
 type ProjectionStore = LoadProjection<ListMembershipsProjection> &
@@ -15,11 +15,19 @@ type ProjectionStore = LoadProjection<ListMembershipsProjection> &
   AdvanceCheckpoint;
 
 export class ListMembershipsProjector {
+  private readonly store: ProjectionStore;
+  private readonly events: LoadEventsFrom<MembershipEventV1>;
+  private readonly batchSize: number;
+
   constructor(
-    private readonly store: ProjectionStore,
-    private readonly events: LoadEventsFrom<MembershipEventV1>,
-    private readonly batchSize: number = 100,
-  ) {}
+    store: ProjectionStore,
+    events: LoadEventsFrom<MembershipEventV1>,
+    batchSize: number = 100,
+  ) {
+    this.store = store;
+    this.events = events;
+    this.batchSize = batchSize;
+  }
 
   async tick(): Promise<void> {
     const checkpoint = await this.store.loadCheckpoint();

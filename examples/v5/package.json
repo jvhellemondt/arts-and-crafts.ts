@@ -8,7 +8,7 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "tsx watch shell/main.ts",
+    "dev": "node --watch shell/main.ts",
     "lint": "oxlint shell/ modules/ shared/",
     "lint:fix": "oxlint --fix shell/ modules/ shared/",
     "fmt": "oxfmt shell/ modules/ shared/",
@@ -43,7 +43,6 @@
     "oxide.ts": "^1.1.0",
     "oxlint": "^1.61.0",
     "rimraf": "^6.1.3",
-    "tsx": "^4.23.0",
     "uuid": "^14.0.0",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.5",

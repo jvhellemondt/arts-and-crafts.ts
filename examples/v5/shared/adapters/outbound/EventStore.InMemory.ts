@@ -21,8 +21,11 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
 {
   private readonly tableName: string = "event_store";
   private simulation?: FaultSimulationMode;
+  private readonly datasource: Map<string, StoredEvent<TEvent>[]>;
 
-  constructor(private readonly datasource: Map<string, StoredEvent<TEvent>[]> = new Map()) {}
+  constructor(datasource: Map<string, StoredEvent<TEvent>[]> = new Map()) {
+    this.datasource = datasource;
+  }
 
   get isSimulating(): boolean {
     return this.simulation !== undefined;
