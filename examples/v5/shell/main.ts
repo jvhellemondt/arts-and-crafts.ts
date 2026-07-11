@@ -1,3 +1,4 @@
+import { serve } from "@hono/node-server";
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
@@ -51,15 +52,15 @@ const projectorTimer = setInterval(() => {
     .catch((err) => console.error("ListMembershipsProjector error:", err));
 }, PROJECTOR_INTERVAL_MS);
 
+const PORT = 3000;
+const server = serve({ fetch: honoApp.fetch, port: PORT }, (info) => {
+  console.log(`Started development server: http://localhost:${info.port}`);
+});
+
 const shutdown = () => {
   clearInterval(relayTimer);
   clearInterval(projectorTimer);
-  process.exit(0);
+  server.close(() => process.exit(0));
 };
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
-
-export default {
-  port: 3000,
-  fetch: honoApp.fetch,
-};

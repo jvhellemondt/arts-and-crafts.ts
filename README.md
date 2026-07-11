@@ -93,7 +93,7 @@ The v5 example app (a runnable Hono-based membership demo) has its own workspace
 ```bash
 pnpm --filter @arts-and-crafts/v5 run build   # required before typecheck/test/dev in examples/v5
 cd examples/v5
-pnpm run dev          # Run the example shell (requires the Bun runtime)
+pnpm run dev          # Run the example shell
 pnpm run test         # Run the example's tests
 ```
 
