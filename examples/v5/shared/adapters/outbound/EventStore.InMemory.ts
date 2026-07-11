@@ -12,15 +12,39 @@ import type {
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
 
+const EVENT_STORE_TABLE = "event_store";
+const EVENT_TAGS_TABLE = "event_tags";
+
+/** A single `(concern, event_id)` pairing — one row of the `event_tags` join table. */
+type EventTag = {
+  readonly concern: StreamKey;
+  readonly eventId: string;
+};
+
+type EventStoreRow<TEvent extends DomainEvent> = {
+  readonly table: typeof EVENT_STORE_TABLE;
+  readonly data: StoredEvent<TEvent>;
+};
+
+type EventTagRow = {
+  readonly table: typeof EVENT_TAGS_TABLE;
+  readonly data: EventTag;
+};
+
+/** Discriminated union over every table's row shape, tagged by `table`. */
+export type TableRow<TEvent extends DomainEvent> = EventStoreRow<TEvent> | EventTagRow;
+export type TableName = TableRow<never>["table"];
+
 /**
- * Modelled as two SQL tables would be: `events` (the append-only physical row
- * store, exposed via `datasource`/`rows`) and `event_tags` (a `(concern,
- * event_id)` join table, `concernIndex`). `load()` performs the same two-step
- * lookup a SQL implementation would: resolve concerns to candidate event ids
- * via the tag table, then join back to the events table.
+ * Modelled as two SQL tables would be: `event_store` (the append-only physical
+ * row store) and `event_tags` (a `(concern, event_id)` join table). Both live
+ * in the same `datasource` map, keyed by table name, with `TableRow` as a
+ * discriminated union over each table's row shape — so the map genuinely
+ * represents "a database" as `table name -> rows[]`, not just the events table.
  *
- * `concernIndex` assumes `datasource` is empty at construction — it is only
- * ever built incrementally via `append()`, not rebuilt from pre-seeded rows.
+ * `load()` performs the same two-step lookup a SQL implementation would:
+ * resolve concerns to candidate event ids via the tag table, then join back
+ * to the events table.
  */
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
@@ -29,11 +53,9 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     AppendToEventStore<TEvent, Promise<void | GatewayFailure>>,
     SimulateFaults
 {
-  private readonly tableName: string = "event_store";
-  private readonly concernIndex = new Map<StreamKey, string[]>();
   private simulation?: FaultSimulationMode;
 
-  constructor(private readonly datasource: Map<string, StoredEvent<TEvent>[]> = new Map()) {}
+  constructor(private readonly datasource: Map<TableName, TableRow<TEvent>[]> = new Map()) {}
 
   get isSimulating(): boolean {
     return this.simulation !== undefined;
@@ -51,11 +73,17 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     this.simulation = undefined;
   }
 
-  private get rows(): StoredEvent<TEvent>[] {
-    if (!this.datasource.has(this.tableName)) {
-      this.datasource.set(this.tableName, []);
-    }
-    return this.datasource.get(this.tableName)!;
+  private table<T extends TableName>(name: T): Extract<TableRow<TEvent>, { table: T }>[] {
+    if (!this.datasource.has(name)) this.datasource.set(name, []);
+    return this.datasource.get(name)! as Extract<TableRow<TEvent>, { table: T }>[];
+  }
+
+  private get eventRows(): EventStoreRow<TEvent>[] {
+    return this.table(EVENT_STORE_TABLE);
+  }
+
+  private get tagRows(): EventTagRow[] {
+    return this.table(EVENT_TAGS_TABLE);
   }
 
   private offlineFailure(): GatewayFailure {
@@ -67,18 +95,21 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     };
   }
 
-  private indexConcerns(row: StoredEvent<TEvent>): void {
-    for (const concern of row.concerns) {
-      const eventIds = this.concernIndex.get(concern);
-      if (eventIds) eventIds.push(row.event.id);
-      else this.concernIndex.set(concern, [row.event.id]);
+  private indexConcerns(row: EventStoreRow<TEvent>): void {
+    for (const concern of row.data.concerns) {
+      this.tagRows.push({
+        table: EVENT_TAGS_TABLE,
+        data: { concern, eventId: row.data.event.id },
+      });
     }
   }
 
   private candidateEventIds(concerns: readonly StreamKey[]): Set<string> {
+    // Step 1: event_tags lookup — mirrors
+    // `SELECT DISTINCT event_id FROM event_tags WHERE concern IN (...)`.
     const eventIds = new Set<string>();
-    for (const concern of concerns) {
-      for (const eventId of this.concernIndex.get(concern) ?? []) eventIds.add(eventId);
+    for (const tag of this.tagRows) {
+      if (concerns.includes(tag.data.concern)) eventIds.add(tag.data.eventId);
     }
     return eventIds;
   }
@@ -86,13 +117,13 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   async load(concerns: readonly StreamKey[]): Promise<TEvent[] | GatewayFailure> {
     if (this.activeFault === "offline") return this.offlineFailure();
 
-    // Step 1: event_tags lookup — resolve requested concerns to candidate event
-    // ids, mirroring `SELECT DISTINCT event_id FROM event_tags WHERE concern IN (...)`.
     const eventIds = this.candidateEventIds(concerns);
 
     // Step 2: join back to the events table, in append order —
-    // mirroring `SELECT * FROM events WHERE id IN (...) ORDER BY global_position`.
-    return this.rows.filter((row) => eventIds.has(row.event.id)).map((row) => row.event);
+    // mirrors `SELECT * FROM events WHERE id IN (...) ORDER BY global_position`.
+    return this.eventRows
+      .filter((row) => eventIds.has(row.data.event.id))
+      .map((row) => row.data.event);
   }
 
   async loadFrom(
@@ -101,7 +132,9 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   ): Promise<StoredEvent<TEvent>[] | GatewayFailure> {
     if (this.activeFault === "offline") return this.offlineFailure();
 
-    const filtered = this.rows.filter((row) => row.globalPosition >= globalPosition);
+    const filtered = this.eventRows
+      .filter((row) => row.data.globalPosition >= globalPosition)
+      .map((row) => row.data);
     return limit !== undefined ? filtered.slice(0, limit) : filtered;
   }
 
@@ -109,13 +142,16 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     if (this.activeFault === "offline") return this.offlineFailure();
 
     for (const event of events) {
-      const row: StoredEvent<TEvent> = {
-        concerns: event.concerns,
-        globalPosition: this.rows.length + 1,
-        insertedAt: Date.now(),
-        event,
+      const row: EventStoreRow<TEvent> = {
+        table: EVENT_STORE_TABLE,
+        data: {
+          concerns: event.concerns,
+          globalPosition: this.eventRows.length + 1,
+          insertedAt: Date.now(),
+          event,
+        },
       };
-      this.rows.push(row);
+      this.eventRows.push(row);
       this.indexConcerns(row);
     }
   }
