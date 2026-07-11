@@ -67,7 +67,7 @@ import { ... } from '@arts-n-crafts/ts'
 
 ## Contributing
 
-This codebase is written in TypeScript and is organized as a pnpm workspace. Each library ships as its own workspace package under `packages/` (`v3`, `v4`, `v5`), and the v5 example app lives in its own workspace at `examples/v5`, depending on `packages/v5` via the `workspace:*` protocol.
+This codebase is written in TypeScript and is organized as a pnpm workspace. Each library ships as its own workspace package under `packages/` (`v3`, `v4`, `v5`), and the v5 example app lives in its own workspace at `examples/v5`, depending on `packages/v5` via the `workspace:*` protocol. Requires Node.js >=26.
 
 ```bash
 pnpm install          # Install dependencies
@@ -93,7 +93,7 @@ The v5 example app (a runnable Hono-based membership demo) has its own workspace
 ```bash
 pnpm --filter @arts-and-crafts/v5 run build   # required before typecheck/test/dev in examples/v5
 cd examples/v5
-pnpm run dev          # Run the example shell (requires the Bun runtime)
+pnpm run dev          # Run the example shell
 pnpm run test         # Run the example's tests
 ```
 

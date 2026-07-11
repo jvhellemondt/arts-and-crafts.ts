@@ -2,6 +2,9 @@
   "name": "@arts-n-crafts/ts",
   "version": "5.0.0-rc.2",
   "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=26"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/arts-n-crafts/typescript.git"

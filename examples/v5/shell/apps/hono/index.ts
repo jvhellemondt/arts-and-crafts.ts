@@ -8,7 +8,7 @@ import { logger } from "hono/logger";
 import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import { trimTrailingSlash } from "hono/trailing-slash";
-import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
+import { ListMembershipsHandler } from "../../../modules/membership/useCases/queries/listMemberships/handler.ts";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
 import type {
   StageNotifications,
@@ -17,14 +17,14 @@ import type {
   LoadProjection,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
-import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
-import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
-import { OpenMembershipHandler } from "@examples/modules/membership/useCases/commands/openMembership/handler.ts";
-import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
-import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
-import { OpenMembershipRepository } from "@examples/modules/membership/useCases/commands/openMembership/repository.ts";
-import { createOpenMembershipInboundHonoAdapter } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
-import { createListMembershipsInboundHonoAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
+import type { MembershipIntents } from "../../../modules/membership/core/intents/index.ts";
+import type { OpenMembershipRejected } from "../../../modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
+import { OpenMembershipHandler } from "../../../modules/membership/useCases/commands/openMembership/handler.ts";
+import type { MembershipEventV1 } from "../../../modules/membership/core/events/index.ts";
+import type { ListMembershipsProjection } from "../../../modules/membership/useCases/queries/listMemberships/projection.ts";
+import { OpenMembershipRepository } from "../../../modules/membership/useCases/commands/openMembership/repository.ts";
+import { createOpenMembershipInboundHonoAdapter } from "../../../modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
+import { createListMembershipsInboundHonoAdapter } from "../../../modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
 
 export function createHonoApp(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &

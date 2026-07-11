@@ -13,7 +13,7 @@
     "paths": {
       "@examples/*": ["./*"]
     },
-    "types": ["vitest/globals", "bun"],
+    "types": ["vitest/globals"],
     "allowImportingTsExtensions": true,
     "allowJs": true,
     // Best practices
