@@ -1,7 +1,4 @@
-import type {
-  APIGatewayProxyEventV2,
-  APIGatewayProxyStructuredResultV2,
-} from "aws-lambda";
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { createOpenMembershipCommand } from "../../command.ts";
 import { v7 as uuidv7 } from "uuid";
 import { aggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
@@ -10,9 +7,7 @@ import { openMembershipSchema } from "./schema.ts";
 
 export function createOpenMembershipInboundLambdaAdapter(handler: OpenMembershipHandler) {
   return async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    const parsed = openMembershipSchema.safeParse(
-      event.body ? JSON.parse(event.body) : undefined,
-    );
+    const parsed = openMembershipSchema.safeParse(event.body ? JSON.parse(event.body) : undefined);
     if (!parsed.success) {
       return { statusCode: 400, body: JSON.stringify(parsed.error.flatten()) };
     }

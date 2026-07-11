@@ -12,10 +12,7 @@ import {
 import { ListMembershipsProjector } from "@examples/modules/membership/useCases/queries/listMemberships/projector.ts";
 import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
 import { createListMembershipsInboundLambdaAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/lambda.ts";
-import type {
-  APIGatewayProxyEventV2,
-  APIGatewayProxyStructuredResultV2,
-} from "aws-lambda";
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 
 // Module-scope so a warm container reuses it across invocations, same as
 // shell/apps/hono/main.ts. Not durable across cold starts, and not shared

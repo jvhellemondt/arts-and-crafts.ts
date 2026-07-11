@@ -1,7 +1,4 @@
-import type {
-  APIGatewayProxyEventV2,
-  APIGatewayProxyStructuredResultV2,
-} from "aws-lambda";
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { HandleQuery } from "@arts-and-crafts/v5/useCases/query/capabilities";
 import { isFailure } from "@examples/shared/utils/isFailure.ts";
