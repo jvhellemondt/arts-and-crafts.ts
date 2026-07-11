@@ -1,5 +1,5 @@
-import type { LoadProjection } from "@adapters/outbound/capabilities/LoadProjection.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import { randomUUID } from "node:crypto";
 import { ListMembershipsHandler } from "./handler.ts";
 import type { ListMembershipsProjection, MembershipSummary } from "./projection.ts";

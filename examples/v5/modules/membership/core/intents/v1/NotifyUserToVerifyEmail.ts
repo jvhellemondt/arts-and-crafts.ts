@@ -1,4 +1,4 @@
-import type { Intent } from "@core/shapes/Intent.ts";
+import type { Intent } from "@arts-and-crafts/v5/core/shapes";
 
 type NotifyUserToVerifyEmailV1Payload = {
   email: string;

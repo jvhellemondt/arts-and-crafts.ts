@@ -1,8 +1,10 @@
-import type { AdvanceCheckpoint } from "@adapters/outbound/capabilities/AdvanceCheckpoint.ts";
-import type { LoadCheckpoint } from "@adapters/outbound/capabilities/LoadCheckpoint.ts";
-import type { LoadProjection } from "@adapters/outbound/capabilities/LoadProjection.ts";
-import type { SaveProjection } from "@adapters/outbound/capabilities/SaveProjection.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type {
+  AdvanceCheckpoint,
+  LoadCheckpoint,
+  LoadProjection,
+  SaveProjection,
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";

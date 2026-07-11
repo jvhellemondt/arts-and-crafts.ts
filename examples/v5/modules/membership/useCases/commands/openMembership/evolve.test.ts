@@ -2,7 +2,7 @@ import { ANCHOR_MEMBERSHIP } from "@examples/modules/membership/core/anchors.ts"
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { randomUUID } from "node:crypto";
 import { OPEN_MEMBERSHIP } from "./command.ts";
-import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
+import type { StreamKey } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
 import { evolveOpenMembership } from "./evolve.ts";
 

@@ -1,7 +1,7 @@
 import type {
   FaultSimulationMode,
   SimulateFaults,
-} from "@adapters/outbound/capabilities/SimulateFaults.ts";
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 
 export type EmailMessage = {
   to: string;

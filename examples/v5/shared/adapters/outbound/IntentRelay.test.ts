@@ -1,10 +1,11 @@
-import type { HandleIntent } from "@useCases/policy/capabilities/HandleIntent.ts";
-import type { Intent } from "@core/shapes/Intent.ts";
-import type { LoadPendingIntents } from "@adapters/outbound/capabilities/LoadPendingIntents.ts";
-import type { MarkIntentDispatched } from "@adapters/outbound/capabilities/MarkIntentDispatched.ts";
-import type { MarkIntentFailed } from "@adapters/outbound/capabilities/MarkIntentFailed.ts";
-import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { HandleIntent } from "@arts-and-crafts/v5/useCases/policy/capabilities";
+import type { Intent } from "@arts-and-crafts/v5/core/shapes";
+import type {
+  LoadPendingIntents,
+  MarkIntentDispatched,
+  MarkIntentFailed,
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { OutboxEnvelope, GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
 import { IntentRelay } from "./IntentRelay.ts";
 import { randomUUID } from "node:crypto";

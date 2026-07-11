@@ -1,12 +1,12 @@
-import type { AdvanceCheckpoint } from "@adapters/outbound/capabilities/AdvanceCheckpoint.ts";
-import type { LoadCheckpoint } from "@adapters/outbound/capabilities/LoadCheckpoint.ts";
-import type { LoadProjection } from "@adapters/outbound/capabilities/LoadProjection.ts";
-import type { SaveProjection } from "@adapters/outbound/capabilities/SaveProjection.ts";
 import type {
+  AdvanceCheckpoint,
+  LoadCheckpoint,
+  LoadProjection,
+  SaveProjection,
   FaultSimulationMode,
   SimulateFaults,
-} from "@adapters/outbound/capabilities/SimulateFaults.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 
 export class InMemoryProjectionStore<TState>
   implements

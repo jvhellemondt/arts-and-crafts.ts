@@ -1,4 +1,4 @@
-import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
+import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
 
 type MembershipOpenedV1Payload = {
   membershipId: string;

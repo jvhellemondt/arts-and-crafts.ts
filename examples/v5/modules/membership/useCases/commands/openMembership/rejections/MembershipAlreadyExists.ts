@@ -1,5 +1,5 @@
-import type { Rejection } from "@core/shapes/Rejection.ts";
-import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
+import type { Rejection } from "@arts-and-crafts/v5/core/shapes";
+import type { Notification } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { OpenMembershipCommandPayload } from "../command.ts";
 
 export interface MembershipAlreadyExists extends Rejection<"MEMBERSHIP_ALREADY_EXISTS"> {

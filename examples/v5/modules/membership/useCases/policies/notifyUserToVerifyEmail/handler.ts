@@ -1,4 +1,4 @@
-import type { HandleIntent } from "@useCases/policy/capabilities/HandleIntent.ts";
+import type { HandleIntent } from "@arts-and-crafts/v5/useCases/policy/capabilities";
 import type { EmailGateway } from "@examples/shared/adapters/outbound/EmailGateway.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 

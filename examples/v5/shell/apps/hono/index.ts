@@ -9,16 +9,18 @@ import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import { trimTrailingSlash } from "hono/trailing-slash";
 import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
-import type { StageIntents } from "@core/capabilities/StageIntents.ts";
-import type { StageNotifications } from "@adapters/outbound/capabilities/StageNotifications.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
+import type {
+  StageNotifications,
+  LoadDomainEvents,
+  AppendToEventStore,
+  LoadProjection,
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
 import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 import { OpenMembershipHandler } from "@examples/modules/membership/useCases/commands/openMembership/handler.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
-import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { AppendToEventStore } from "@adapters/outbound/capabilities/AppendToEventStore.ts";
-import type { LoadProjection } from "@adapters/outbound/capabilities/LoadProjection.ts";
 import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import { OpenMembershipRepository } from "@examples/modules/membership/useCases/commands/openMembership/repository.ts";
 import { createOpenMembershipInboundHonoAdapter } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";

@@ -10,11 +10,10 @@ import {
 } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import { ListMembershipsProjector } from "@examples/modules/membership/useCases/queries/listMemberships/projector.ts";
 import { createHonoApp } from "./apps/hono/index.ts";
-import type { HandleIntent } from "@useCases/policy/capabilities/HandleIntent.ts";
+import type { HandleIntent } from "@arts-and-crafts/v5/useCases/policy/capabilities";
+import type { StoredEvent, OutboxEnvelope } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
-import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
-import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 
