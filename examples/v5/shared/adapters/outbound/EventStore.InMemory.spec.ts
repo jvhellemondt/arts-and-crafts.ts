@@ -72,6 +72,14 @@ describe("in-memory event store", () => {
     { concerns: [streamKeys[0][1]], expected: [fixture[0], fixture[2], fixture[3]] },
     { concerns: [streamKeys[1][1]], expected: [fixture[4]] },
     { concerns: ["test#67"], expected: [] },
+    {
+      concerns: [streamKeys[0][0], streamKeys[0][1]],
+      expected: [fixture[0], fixture[1], fixture[2], fixture[3]],
+    },
+    {
+      concerns: [streamKeys[0][0], streamKeys[1][1]],
+      expected: [fixture[0], fixture[1], fixture[2], fixture[4]],
+    },
   ])("should load domain events by given concerns", async ({ concerns, expected }) => {
     await Promise.all(fixture.map((event) => eventStore.append([event])));
     const events = await eventStore.load(concerns);

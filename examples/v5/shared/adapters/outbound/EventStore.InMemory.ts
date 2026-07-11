@@ -12,6 +12,16 @@ import type {
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
 
+/**
+ * Modelled as two SQL tables would be: `events` (the append-only physical row
+ * store, exposed via `datasource`/`rows`) and `event_tags` (a `(concern,
+ * event_id)` join table, `concernIndex`). `load()` performs the same two-step
+ * lookup a SQL implementation would: resolve concerns to candidate event ids
+ * via the tag table, then join back to the events table.
+ *
+ * `concernIndex` assumes `datasource` is empty at construction — it is only
+ * ever built incrementally via `append()`, not rebuilt from pre-seeded rows.
+ */
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
     LoadDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>,
@@ -20,6 +30,7 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     SimulateFaults
 {
   private readonly tableName: string = "event_store";
+  private readonly concernIndex = new Map<StreamKey, string[]>();
   private simulation?: FaultSimulationMode;
 
   constructor(private readonly datasource: Map<string, StoredEvent<TEvent>[]> = new Map()) {}
@@ -56,12 +67,32 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     };
   }
 
+  private indexConcerns(row: StoredEvent<TEvent>): void {
+    for (const concern of row.concerns) {
+      const eventIds = this.concernIndex.get(concern);
+      if (eventIds) eventIds.push(row.event.id);
+      else this.concernIndex.set(concern, [row.event.id]);
+    }
+  }
+
+  private candidateEventIds(concerns: readonly StreamKey[]): Set<string> {
+    const eventIds = new Set<string>();
+    for (const concern of concerns) {
+      for (const eventId of this.concernIndex.get(concern) ?? []) eventIds.add(eventId);
+    }
+    return eventIds;
+  }
+
   async load(concerns: readonly StreamKey[]): Promise<TEvent[] | GatewayFailure> {
     if (this.activeFault === "offline") return this.offlineFailure();
 
-    return this.rows
-      .filter((envelope) => envelope.concerns.some((concern) => concerns.includes(concern)))
-      .map((envelope) => envelope.event);
+    // Step 1: event_tags lookup — resolve requested concerns to candidate event
+    // ids, mirroring `SELECT DISTINCT event_id FROM event_tags WHERE concern IN (...)`.
+    const eventIds = this.candidateEventIds(concerns);
+
+    // Step 2: join back to the events table, in append order —
+    // mirroring `SELECT * FROM events WHERE id IN (...) ORDER BY global_position`.
+    return this.rows.filter((row) => eventIds.has(row.event.id)).map((row) => row.event);
   }
 
   async loadFrom(
@@ -78,12 +109,14 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     if (this.activeFault === "offline") return this.offlineFailure();
 
     for (const event of events) {
-      this.rows.push({
+      const row: StoredEvent<TEvent> = {
         concerns: event.concerns,
         globalPosition: this.rows.length + 1,
         insertedAt: Date.now(),
         event,
-      });
+      };
+      this.rows.push(row);
+      this.indexConcerns(row);
     }
   }
 }
