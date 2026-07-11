@@ -1,5 +1,5 @@
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
-import type { HandleQuery } from "@useCases/query/capabilities/HandleQuery.ts";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { HandleQuery } from "@arts-and-crafts/v5/useCases/query/capabilities";
 import { isFailure } from "@examples/shared/utils/isFailure.ts";
 import { v7 as uuidv7 } from "uuid";
 import type { MembershipSummary } from "../../projection.ts";

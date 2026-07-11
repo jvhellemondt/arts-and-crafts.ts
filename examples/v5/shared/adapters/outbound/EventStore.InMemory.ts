@@ -1,14 +1,16 @@
-import type { AppendToEventStore } from "@adapters/outbound/capabilities/AppendToEventStore.ts";
-import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { LoadEventsFrom } from "@adapters/outbound/capabilities/LoadEventsFrom.ts";
 import type {
+  AppendToEventStore,
+  LoadDomainEvents,
+  LoadEventsFrom,
   FaultSimulationMode,
   SimulateFaults,
-} from "@adapters/outbound/capabilities/SimulateFaults.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
-import type { StoredEvent } from "@adapters/outbound/shapes/StoredEvent.ts";
-import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
-import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type {
+  GatewayFailure,
+  StoredEvent,
+  StreamKey,
+} from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
 
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements

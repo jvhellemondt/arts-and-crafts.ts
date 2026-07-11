@@ -1,16 +1,18 @@
 import type {
   FaultSimulationMode,
   SimulateFaults,
-} from "@adapters/outbound/capabilities/SimulateFaults.ts";
-import type { LoadPendingIntents } from "@adapters/outbound/capabilities/LoadPendingIntents.ts";
-import type { MarkIntentDispatched } from "@adapters/outbound/capabilities/MarkIntentDispatched.ts";
-import type { MarkIntentFailed } from "@adapters/outbound/capabilities/MarkIntentFailed.ts";
-import type { StageIntents } from "@core/capabilities/StageIntents.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
-import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
-import type { Intent } from "@core/shapes/Intent.ts";
-import type { StageNotifications } from "@adapters/outbound/capabilities/StageNotifications.ts";
-import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
+  LoadPendingIntents,
+  MarkIntentDispatched,
+  MarkIntentFailed,
+  StageNotifications,
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
+import type {
+  GatewayFailure,
+  OutboxEnvelope,
+  Notification,
+} from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { Intent } from "@arts-and-crafts/v5/core/shapes";
 
 export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notification>
   implements

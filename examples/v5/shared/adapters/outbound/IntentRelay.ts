@@ -1,9 +1,13 @@
-import type { HandleIntent } from "@useCases/policy/capabilities/HandleIntent.ts";
-import type { LoadPendingIntents } from "@adapters/outbound/capabilities/LoadPendingIntents.ts";
-import type { MarkIntentDispatched } from "@adapters/outbound/capabilities/MarkIntentDispatched.ts";
-import type { MarkIntentFailed } from "@adapters/outbound/capabilities/MarkIntentFailed.ts";
-import type { RelayPendingIntents } from "@useCases/policy/capabilities/RelayPendingIntents.ts";
-import type { Intent } from "@core/shapes/Intent.ts";
+import type {
+  HandleIntent,
+  RelayPendingIntents,
+} from "@arts-and-crafts/v5/useCases/policy/capabilities";
+import type {
+  LoadPendingIntents,
+  MarkIntentDispatched,
+  MarkIntentFailed,
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { Intent } from "@arts-and-crafts/v5/core/shapes";
 import { isFailure } from "@examples/shared/utils/isFailure.ts";
 
 type IntentOutbox<TIntent extends Intent> = LoadPendingIntents<TIntent> &

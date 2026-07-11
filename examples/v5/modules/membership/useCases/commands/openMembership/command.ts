@@ -1,5 +1,5 @@
-import type { Metadata } from "@core/shapes/Metadata.ts";
-import type { Command } from "@useCases/command/shapes/Command.ts";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
+import type { Command } from "@arts-and-crafts/v5/useCases/command/shapes";
 import { z } from "zod";
 import { name } from "../../../core/domain/Name.ts";
 import { email } from "../../../core/domain/Email.ts";

@@ -1,7 +1,5 @@
-import type { Accepted, Rejected } from "@useCases/command/shapes/Decision.ts";
-import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
-import type { Intent } from "@core/shapes/Intent.ts";
-import type { Rejection } from "@core/shapes/Rejection.ts";
+import type { Accepted, Rejected } from "@arts-and-crafts/v5/useCases/command/shapes";
+import type { DomainEvent, Intent, Rejection } from "@arts-and-crafts/v5/core/shapes";
 import { isRejection } from "./isRejection.ts";
 import { createStreamKey } from "./createStreamKey.ts";
 

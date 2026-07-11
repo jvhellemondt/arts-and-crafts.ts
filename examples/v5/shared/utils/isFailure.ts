@@ -1,4 +1,4 @@
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 
 export function isFailure(result: unknown): result is GatewayFailure {
   return (

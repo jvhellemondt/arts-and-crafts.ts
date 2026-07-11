@@ -1,6 +1,6 @@
-import type { Metadata } from "@core/shapes/Metadata.ts";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
+import type { Query } from "@arts-and-crafts/v5/useCases/query/shapes";
 import { membershipStatus } from "@examples/modules/membership/core/domain/MembershipStatus.ts";
-import type { Query } from "@useCases/query/shapes/Query.ts";
 import { v7 as uuidv7 } from "uuid";
 import z from "zod";
 

@@ -1,4 +1,4 @@
-import type { StreamKey } from "@adapters/outbound/shapes/StreamKey.ts";
+import type { StreamKey } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 
 /**
  * Creates a StreamKey from a consistency anchor and an identifier.

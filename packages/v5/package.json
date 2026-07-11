@@ -1,5 +1,5 @@
 {
-  "name": "@arts-n-crafts/ts-v5-package",
+  "name": "@arts-and-crafts/v5",
   "version": "5.0.0",
   "private": true,
   "repository": {
@@ -10,8 +10,99 @@
     "dist"
   ],
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "exports": {
+    "./adapters/outbound/capabilities": {
+      "import": {
+        "types": "./dist/adapters/outbound/capabilities/index.d.ts",
+        "default": "./dist/adapters/outbound/capabilities/index.js"
+      },
+      "require": {
+        "types": "./dist/adapters/outbound/capabilities/index.d.cts",
+        "default": "./dist/adapters/outbound/capabilities/index.cjs"
+      }
+    },
+    "./adapters/outbound/shapes": {
+      "import": {
+        "types": "./dist/adapters/outbound/shapes/index.d.ts",
+        "default": "./dist/adapters/outbound/shapes/index.js"
+      },
+      "require": {
+        "types": "./dist/adapters/outbound/shapes/index.d.cts",
+        "default": "./dist/adapters/outbound/shapes/index.cjs"
+      }
+    },
+    "./core/capabilities": {
+      "import": {
+        "types": "./dist/core/capabilities/index.d.ts",
+        "default": "./dist/core/capabilities/index.js"
+      },
+      "require": {
+        "types": "./dist/core/capabilities/index.d.cts",
+        "default": "./dist/core/capabilities/index.cjs"
+      }
+    },
+    "./core/shapes": {
+      "import": {
+        "types": "./dist/core/shapes/index.d.ts",
+        "default": "./dist/core/shapes/index.js"
+      },
+      "require": {
+        "types": "./dist/core/shapes/index.d.cts",
+        "default": "./dist/core/shapes/index.cjs"
+      }
+    },
+    "./useCases/command/capabilities": {
+      "import": {
+        "types": "./dist/useCases/command/capabilities/index.d.ts",
+        "default": "./dist/useCases/command/capabilities/index.js"
+      },
+      "require": {
+        "types": "./dist/useCases/command/capabilities/index.d.cts",
+        "default": "./dist/useCases/command/capabilities/index.cjs"
+      }
+    },
+    "./useCases/command/shapes": {
+      "import": {
+        "types": "./dist/useCases/command/shapes/index.d.ts",
+        "default": "./dist/useCases/command/shapes/index.js"
+      },
+      "require": {
+        "types": "./dist/useCases/command/shapes/index.d.cts",
+        "default": "./dist/useCases/command/shapes/index.cjs"
+      }
+    },
+    "./useCases/policy/capabilities": {
+      "import": {
+        "types": "./dist/useCases/policy/capabilities/index.d.ts",
+        "default": "./dist/useCases/policy/capabilities/index.js"
+      },
+      "require": {
+        "types": "./dist/useCases/policy/capabilities/index.d.cts",
+        "default": "./dist/useCases/policy/capabilities/index.cjs"
+      }
+    },
+    "./useCases/query/capabilities": {
+      "import": {
+        "types": "./dist/useCases/query/capabilities/index.d.ts",
+        "default": "./dist/useCases/query/capabilities/index.js"
+      },
+      "require": {
+        "types": "./dist/useCases/query/capabilities/index.d.cts",
+        "default": "./dist/useCases/query/capabilities/index.cjs"
+      }
+    },
+    "./useCases/query/shapes": {
+      "import": {
+        "types": "./dist/useCases/query/shapes/index.d.ts",
+        "default": "./dist/useCases/query/shapes/index.js"
+      },
+      "require": {
+        "types": "./dist/useCases/query/shapes/index.d.cts",
+        "default": "./dist/useCases/query/shapes/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "lint": "oxlint src/",
     "lint:fix": "oxlint --fix src/",

@@ -88,9 +88,10 @@ pnpm run test:watch   # Run tests in watch mode
 pnpm run build        # Build this package only
 ```
 
-The v5 example app (a runnable Hono-based membership demo) has its own workspace:
+The v5 example app (a runnable Hono-based membership demo) has its own workspace and imports the v5 library by package name (`@arts-and-crafts/v5`), resolved through its built `dist/`. Build `packages/v5` before working in the example:
 
 ```bash
+pnpm --filter @arts-and-crafts/v5 run build   # required before typecheck/test/dev in examples/v5
 cd examples/v5
 pnpm run dev          # Run the example shell (requires the Bun runtime)
 pnpm run test         # Run the example's tests

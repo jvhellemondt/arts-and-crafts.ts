@@ -1,4 +1,4 @@
-import type { Metadata } from "@core/shapes/Metadata.ts";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import { describe, expect, it } from "vitest";
 import {
   createListMembershipsQuery,

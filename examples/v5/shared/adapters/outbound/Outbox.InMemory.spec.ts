@@ -1,7 +1,6 @@
 import { InMemoryOutbox } from "./Outbox.InMemory.ts";
-import type { Intent } from "@core/shapes/Intent.ts";
-import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
-import type { OutboxEnvelope } from "@adapters/outbound/shapes/OutboxEnvelope.ts";
+import type { Intent } from "@arts-and-crafts/v5/core/shapes";
+import type { Notification, OutboxEnvelope } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import { randomUUID } from "node:crypto";
 import { OPEN_MEMBERSHIP } from "@examples/modules/membership/useCases/commands/openMembership/command.ts";
 

@@ -3,8 +3,8 @@ import { v7 as uuidv7 } from "uuid";
 import { createOpenMembershipInboundHonoAdapter } from "./hono.ts";
 import type { OpenMembershipCommand } from "../../command.ts";
 import type { OpenMembershipHandler } from "../../handler.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
-import type { Rejection } from "@core/shapes/Rejection.ts";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { Rejection } from "@arts-and-crafts/v5/core/shapes";
 
 const UUID_V7_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 

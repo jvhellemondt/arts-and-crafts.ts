@@ -66,7 +66,7 @@ importers:
 
   examples/v5:
     dependencies:
-      '@arts-n-crafts/ts-v5-package':
+      '@arts-and-crafts/v5':
         specifier: workspace:*
         version: link:../../packages/v5
       typescript:

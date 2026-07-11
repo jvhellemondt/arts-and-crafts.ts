@@ -11,10 +11,6 @@
     // Bundler mode
     "moduleResolution": "NodeNext",
     "paths": {
-      "@core/*": ["../../packages/v5/src/module/core/*"],
-      "@useCases/*": ["../../packages/v5/src/module/useCases/*"],
-      "@adapters/*": ["../../packages/v5/src/module/adapters/*"],
-      "@shell/*": ["./shell/*"],
       "@examples/*": ["./*"]
     },
     "types": ["vitest/globals", "bun"],

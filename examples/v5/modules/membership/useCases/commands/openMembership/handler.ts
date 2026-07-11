@@ -1,11 +1,11 @@
-import type { HandleCommand } from "@useCases/command/capabilities/HandleCommand.ts";
+import type { HandleCommand } from "@arts-and-crafts/v5/useCases/command/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
+import type { Rejection } from "@arts-and-crafts/v5/core/shapes";
 import type { OpenMembershipCommand } from "./command.ts";
 import { decideOpenMembership } from "./decide.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
 import { isFailure } from "@examples/shared/utils/isFailure.ts";
-import type { StageIntents } from "@core/capabilities/StageIntents.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
-import type { Rejection } from "@core/shapes/Rejection.ts";
 import { isRejection } from "@examples/shared/utils/isRejection.ts";
 import type { OpenMembershipRepository } from "./repository.ts";
 

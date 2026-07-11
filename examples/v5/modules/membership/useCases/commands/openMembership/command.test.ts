@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Metadata } from "@core/shapes/Metadata.ts";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
 import { v7 as uuidv7 } from "uuid";
 

@@ -1,6 +1,6 @@
-import type { LoadProjection } from "@adapters/outbound/capabilities/LoadProjection.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
-import type { HandleQuery } from "@useCases/query/capabilities/HandleQuery.ts";
+import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { HandleQuery } from "@arts-and-crafts/v5/useCases/query/capabilities";
 import { isFailure } from "@examples/shared/utils/isFailure.ts";
 import type { ListMembershipsProjection, MembershipSummary } from "./projection.ts";
 import type { ListMembershipsQuery } from "./query.ts";

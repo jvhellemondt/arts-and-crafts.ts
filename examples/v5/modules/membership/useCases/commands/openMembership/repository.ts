@@ -1,8 +1,10 @@
-import type { StoreDomainEvents } from "@core/capabilities/StoreDomainEvents.ts";
-import type { GatewayFailure } from "@adapters/outbound/shapes/GatewayFailure.ts";
-import type { LoadDecisionState } from "@useCases/command/capabilities/LoadDecisionState.ts";
-import type { LoadDomainEvents } from "@adapters/outbound/capabilities/LoadDomainEvents.ts";
-import type { AppendToEventStore } from "@adapters/outbound/capabilities/AppendToEventStore.ts";
+import type { StoreDomainEvents } from "@arts-and-crafts/v5/core/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { LoadDecisionState } from "@arts-and-crafts/v5/useCases/command/capabilities";
+import type {
+  LoadDomainEvents,
+  AppendToEventStore,
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { DecisionState } from "./decisionState.ts";
 import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
