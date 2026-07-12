@@ -7,13 +7,13 @@ import type { ListMembershipsQuery } from "./query.ts";
 
 export class ListMembershipsHandler implements HandleQuery<
   ListMembershipsQuery,
-  Promise<MembershipSummary[] | GatewayFailure>
+  Promise<GatewayFailure[] | MembershipSummary[]>
 > {
   constructor(private readonly store: LoadProjection<ListMembershipsProjection>) {}
 
-  async handle(query: ListMembershipsQuery): Promise<MembershipSummary[] | GatewayFailure> {
+  async handle(query: ListMembershipsQuery): Promise<GatewayFailure[] | MembershipSummary[]> {
     const projection = await this.store.load();
-    if (isFailure(projection)) return projection;
+    if (isFailure(projection)) return [projection];
     return Object.values(projection).filter((m) =>
       query.payload.status ? m.status === query.payload.status : true,
     );

@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "jsx": "react-jsx",
+    // Enable latest features
+    "lib": ["ESNext", "DOM"],
+    "moduleDetection": "force",
+
+    // Path
+    "module": "NodeNext",
+    // Bundler mode
+    "moduleResolution": "NodeNext",
+    "types": ["vitest/globals", "node"],
+    "allowImportingTsExtensions": true,
+    "allowJs": true,
+    // Best practices
+    "strict": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": false,
+    // Some stricter flags (disabled by default)
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "ignoreDeprecations": "6.0",
+    "skipLibCheck": true
+  },
+  "include": ["./src/**/*", "vitest.config.ts", "tsup.config.ts"],
+  "exclude": ["dist", "coverage", ".husky", ".github", "node_modules"]
+}

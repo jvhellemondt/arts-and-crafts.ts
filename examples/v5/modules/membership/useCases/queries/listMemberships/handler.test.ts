@@ -65,6 +65,6 @@ describe("ListMembershipsHandler", () => {
     };
     const handler = new ListMembershipsHandler(makeLoader(failure));
     const result = await handler.handle(makeQuery("open"));
-    expect(result).toEqual(failure);
+    expect(result).toEqual([failure]);
   });
 });

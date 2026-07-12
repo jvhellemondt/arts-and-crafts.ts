@@ -1,3 +1,14 @@
+import middy from "@middy/core";
+import {
+  parseQueryMiddleware,
+  correlationIdMiddleware,
+  causationIdMiddleware,
+  type WithPayload,
+  type WithMetadataFields,
+} from "@arts-and-crafts/v5-aws";
+import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
+import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
+import type { APIGatewayProxyEventV2, Context } from "aws-lambda";
 import {
   InMemoryEventStore,
   type TableName,
@@ -11,8 +22,11 @@ import {
 } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import { ListMembershipsProjector } from "@examples/modules/membership/useCases/queries/listMemberships/projector.ts";
 import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
-import { createListMembershipsInboundLambdaAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/lambda.ts";
-import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import {
+  createListMembershipsQuery,
+  listMembershipsQueryPayload,
+  type ListMembershipsQueryPayload,
+} from "@examples/modules/membership/useCases/queries/listMemberships/query.ts";
 
 // Module-scope so a warm container reuses it across invocations, same as
 // shell/apps/hono/main.ts. Not durable across cold starts, and not shared
@@ -27,11 +41,27 @@ const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjecti
 const listMembershipsProjector = new ListMembershipsProjector(listMembershipsStore, eventStore);
 const listMembershipsHandler = new ListMembershipsHandler(listMembershipsStore);
 
-const invoke = createListMembershipsInboundLambdaAdapter(listMembershipsHandler);
+type Event = APIGatewayProxyEventV2 & WithPayload<ListMembershipsQueryPayload> & WithMetadataFields;
 
-export async function handler(
-  event: APIGatewayProxyEventV2,
-): Promise<APIGatewayProxyStructuredResultV2> {
+const invoke = middy()
+  .use(parseQueryMiddleware(listMembershipsQueryPayload))
+  .use(correlationIdMiddleware())
+  .use(causationIdMiddleware())
+  .use({
+    onError: (request) => {
+      const outcome = resolveError(request.error, { onFailure: () => [503] });
+      request.response = { statusCode: outcome.status, body: JSON.stringify(outcome.body) };
+    },
+  })
+  .handler(async (event: Event) => {
+    const data = await runQuery(createListMembershipsQuery, listMembershipsHandler)(
+      event.__payload,
+      { correlationId: event.__correlationId, causationId: event.__causationId },
+    );
+    return { statusCode: 200, body: JSON.stringify(data) };
+  });
+
+export const handler = async (event: APIGatewayProxyEventV2, context: Context) => {
   await listMembershipsProjector.tick();
-  return invoke(event);
-}
+  return invoke(event, context);
+};
