@@ -9,16 +9,7 @@ import { logger } from "hono/logger";
 import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import { trimTrailingSlash } from "hono/trailing-slash";
-import { v7 as uuidv7 } from "uuid";
 import type { PipelineEnv } from "@arts-and-crafts/v5-hono";
-import {
-  parseJsonBodyMiddleware,
-  parseQueryMiddleware,
-  correlationIdMiddleware,
-  causationIdMiddleware,
-} from "@arts-and-crafts/v5-hono";
-import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
-import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
 import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
@@ -35,17 +26,16 @@ import { OpenMembershipHandler } from "@examples/modules/membership/useCases/com
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import { OpenMembershipRepository } from "@examples/modules/membership/useCases/commands/openMembership/repository.ts";
-import { createOpenMembershipCommand } from "@examples/modules/membership/useCases/commands/openMembership/command.ts";
 import {
-  openMembershipSchema,
-  type OpenMembershipSchemaPayload,
-} from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/schema.ts";
-import { aggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
+  openMembershipHonoMiddleware,
+  createOpenMembershipHonoHandler,
+} from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
+import { openMembershipHooks } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hooks.ts";
 import {
-  createListMembershipsQuery,
-  listMembershipsQueryPayload,
-  type ListMembershipsQueryPayload,
-} from "@examples/modules/membership/useCases/queries/listMemberships/query.ts";
+  listMembershipsHonoMiddleware,
+  createListMembershipsHonoHandler,
+} from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
+import { listMembershipsHooks } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hooks.ts";
 
 export function createHonoApp(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
@@ -75,35 +65,12 @@ export function createHonoApp(
   // Hono quirk, confirmed independently of this codebase). onError is
   // therefore also app-wide; it dispatches per-use-case hooks by path.
   const openMembershipHandler = new OpenMembershipHandler(membershipRepository, outbox);
-  app.use("membership/open", parseJsonBodyMiddleware(openMembershipSchema));
-  app.use("membership/open", correlationIdMiddleware());
-  app.use("membership/open", causationIdMiddleware());
-  app.post("membership/open", async (c) => {
-    const command = await runCommand(
-      (payload: OpenMembershipSchemaPayload, metadata) =>
-        createOpenMembershipCommand(
-          { ...payload, membershipId: aggregateId.parse(uuidv7()) },
-          metadata,
-        ),
-      openMembershipHandler,
-    )(c.get("payload") as OpenMembershipSchemaPayload, {
-      correlationId: c.get("correlationId"),
-      causationId: c.get("causationId"),
-    });
-    return c.json({ accepted: true, id: command.payload.membershipId }, { status: 202 });
-  });
+  app.use("membership/open", ...openMembershipHonoMiddleware);
+  app.post("membership/open", createOpenMembershipHonoHandler(openMembershipHandler));
 
   const listMembershipsHandler = new ListMembershipsHandler(listMembershipsProjectionLoader);
-  app.use("memberships", parseQueryMiddleware(listMembershipsQueryPayload));
-  app.use("memberships", correlationIdMiddleware());
-  app.use("memberships", causationIdMiddleware());
-  app.get("memberships", async (c) => {
-    const data = await runQuery(createListMembershipsQuery, listMembershipsHandler)(
-      c.get("payload") as ListMembershipsQueryPayload,
-      { correlationId: c.get("correlationId"), causationId: c.get("causationId") },
-    );
-    return c.json(data, { status: 200 });
-  });
+  app.use("memberships", ...listMembershipsHonoMiddleware);
+  app.get("memberships", createListMembershipsHonoHandler(listMembershipsHandler));
 
   app.notFound((c) => {
     return c.text("Not found", 404);
@@ -111,10 +78,7 @@ export function createHonoApp(
 
   app.onError((err, c) => {
     try {
-      const hooks =
-        c.req.path === "/membership/open"
-          ? { onRejection: () => [404] as const, onFailure: () => [500] as const }
-          : { onFailure: () => [503] as const };
+      const hooks = c.req.path === "/membership/open" ? openMembershipHooks : listMembershipsHooks;
       const outcome = resolveError(err, hooks);
       return c.json(outcome.body, { status: outcome.status as ContentfulStatusCode });
     } catch {
