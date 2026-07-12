@@ -1,0 +1,55 @@
+# Recipes for the v5 example app (see README.md "Contributing" section).
+# Run `just` from this directory, or `just --justfile examples/v5/justfile` from elsewhere.
+
+set shell := ["bash", "-uc"]
+
+# List available recipes
+default:
+    @just --list
+
+# Build @arts-and-crafts/v5, required before typecheck/test/dev in this example
+build-lib:
+    pnpm --filter @arts-and-crafts/v5 run build
+
+# Run the example shell with file watching
+dev: build-lib
+    pnpm run dev
+
+# Lint the example code
+lint-check:
+    pnpm run lint
+
+# Lint and auto-fix issues
+lint:
+    pnpm run lint:fix
+
+# Check formatting without writing changes
+fmt-check:
+    pnpm run fmt:check
+
+# Format the example code
+fmt:
+    pnpm run fmt
+
+# Type-check the example
+typecheck: build-lib
+    pnpm run typecheck
+
+# Run tests once
+test: build-lib
+    pnpm run test
+
+# Run tests in watch mode with coverage
+test-watch: build-lib
+    pnpm run test:watch
+
+# Run tests with the Vitest UI
+test-ui: build-lib
+    pnpm run test:ui
+
+# Run tests with coverage
+coverage: build-lib
+    pnpm run coverage
+
+# Run lint, typecheck, and coverage — mirrors CI-equivalent checks
+check: lint typecheck coverage
