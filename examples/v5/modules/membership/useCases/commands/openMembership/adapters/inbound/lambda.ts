@@ -1,6 +1,6 @@
-import middy from "@middy/core";
+import middy, { type MiddlewareObj } from "@middy/core";
 import { v7 as uuidv7 } from "uuid";
-import type { APIGatewayProxyEventV2 } from "aws-lambda";
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import {
   parseJsonBodyMiddleware,
   correlationIdMiddleware,
@@ -19,7 +19,7 @@ import { openMembershipHooks } from "./hooks.ts";
 type Event = APIGatewayProxyEventV2 & WithPayload<OpenMembershipSchemaPayload> & WithMetadataFields;
 
 export function createOpenMembershipLambdaHandler(handler: OpenMembershipHandler) {
-  return middy()
+  return middy<APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2>()
     .use(parseJsonBodyMiddleware(openMembershipSchema))
     .use(correlationIdMiddleware())
     .use(causationIdMiddleware())
@@ -28,8 +28,11 @@ export function createOpenMembershipLambdaHandler(handler: OpenMembershipHandler
         const outcome = resolveError(request.error, openMembershipHooks);
         request.response = { statusCode: outcome.status, body: JSON.stringify(outcome.body) };
       },
-    })
-    .handler(async (event: Event) => {
+    } satisfies MiddlewareObj<APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2>)
+    .handler(async (rawEvent) => {
+      // The middleware above stash these fields onto the event, which middy's
+      // own types have no way to track across the chain — cast once, here.
+      const event = rawEvent as Event;
       const command = await runCommand(
         (payload: OpenMembershipSchemaPayload, metadata) =>
           createOpenMembershipCommand(

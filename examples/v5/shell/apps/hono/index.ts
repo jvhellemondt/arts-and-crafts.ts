@@ -10,6 +10,12 @@ import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import { trimTrailingSlash } from "hono/trailing-slash";
 import type { PipelineEnv } from "@arts-and-crafts/v5-hono";
+import {
+  parseJsonBodyMiddleware,
+  parseQueryMiddleware,
+  correlationIdMiddleware,
+  causationIdMiddleware,
+} from "@arts-and-crafts/v5-hono";
 import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
@@ -26,15 +32,11 @@ import { OpenMembershipHandler } from "@examples/modules/membership/useCases/com
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import { OpenMembershipRepository } from "@examples/modules/membership/useCases/commands/openMembership/repository.ts";
-import {
-  openMembershipHonoMiddleware,
-  createOpenMembershipHonoHandler,
-} from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
+import { createOpenMembershipHonoHandler } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
+import { openMembershipSchema } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/schema.ts";
 import { openMembershipHooks } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hooks.ts";
-import {
-  listMembershipsHonoMiddleware,
-  createListMembershipsHonoHandler,
-} from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
+import { createListMembershipsHonoHandler } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
+import { listMembershipsQueryPayload } from "@examples/modules/membership/useCases/queries/listMemberships/query.ts";
 import { listMembershipsHooks } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hooks.ts";
 
 export function createHonoApp(
@@ -45,6 +47,8 @@ export function createHonoApp(
   listMembershipsProjectionLoader: LoadProjection<ListMembershipsProjection>,
 ) {
   const membershipRepository = new OpenMembershipRepository(eventStore);
+  const openMembershipHandler = new OpenMembershipHandler(membershipRepository, outbox);
+  const listMembershipsHandler = new ListMembershipsHandler(listMembershipsProjectionLoader);
 
   const app = new Hono<PipelineEnv>();
   app.use(
@@ -59,18 +63,21 @@ export function createHonoApp(
     trimTrailingSlash(),
   );
 
-  // Routes are registered directly on this single app instance — mounting
-  // separate per-use-case Hono sub-apps via app.route("/", ...) more than
-  // once at the same base path corrupts c.req.query() for later mounts (a
-  // Hono quirk, confirmed independently of this codebase). onError is
-  // therefore also app-wide; it dispatches per-use-case hooks by path.
-  const openMembershipHandler = new OpenMembershipHandler(membershipRepository, outbox);
-  app.use("membership/open", ...openMembershipHonoMiddleware);
-  app.post("membership/open", createOpenMembershipHonoHandler(openMembershipHandler));
-
-  const listMembershipsHandler = new ListMembershipsHandler(listMembershipsProjectionLoader);
-  app.use("memberships", ...listMembershipsHonoMiddleware);
-  app.get("memberships", createListMembershipsHonoHandler(listMembershipsHandler));
+  app
+    .post(
+      "membership/open",
+      parseJsonBodyMiddleware(openMembershipSchema),
+      correlationIdMiddleware(),
+      causationIdMiddleware(),
+      createOpenMembershipHonoHandler(openMembershipHandler),
+    )
+    .get(
+      "memberships",
+      parseQueryMiddleware(listMembershipsQueryPayload),
+      correlationIdMiddleware(),
+      causationIdMiddleware(),
+      createListMembershipsHonoHandler(listMembershipsHandler),
+    );
 
   app.notFound((c) => {
     return c.text("Not found", 404);
