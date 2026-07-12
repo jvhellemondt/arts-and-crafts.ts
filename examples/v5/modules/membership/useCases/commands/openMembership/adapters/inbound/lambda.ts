@@ -1,34 +1,52 @@
-import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { createOpenMembershipCommand } from "../../command.ts";
+import middy, { type MiddlewareObj } from "@middy/core";
 import { v7 as uuidv7 } from "uuid";
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import {
+  parseJsonBodyMiddleware,
+  correlationIdMiddleware,
+  causationIdMiddleware,
+  type WithPayload,
+  type WithMetadataFields,
+} from "@arts-and-crafts/v5-aws";
+import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
+import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import { aggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
+import { createOpenMembershipCommand } from "../../command.ts";
 import type { OpenMembershipHandler } from "../../handler.ts";
-import { openMembershipSchema } from "./schema.ts";
+import { openMembershipSchema, type OpenMembershipSchemaPayload } from "./schema.ts";
+import { openMembershipHooks } from "./hooks.ts";
 
-export function createOpenMembershipInboundLambdaAdapter(handler: OpenMembershipHandler) {
-  return async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    const parsed = openMembershipSchema.safeParse(event.body ? JSON.parse(event.body) : undefined);
-    if (!parsed.success) {
-      return { statusCode: 400, body: JSON.stringify(parsed.error.flatten()) };
-    }
+type Event = APIGatewayProxyEventV2 & WithPayload<OpenMembershipSchemaPayload> & WithMetadataFields;
 
-    const correlationId = event.headers["x-correlation-id"] ?? uuidv7();
-    const causationId = event.headers["x-request-id"] ?? uuidv7();
-    const command = createOpenMembershipCommand(
-      { ...parsed.data, membershipId: aggregateId.parse(uuidv7()) },
-      { correlationId, causationId },
-    );
-
-    const result = await handler.handle(command);
-    if ("kind" in result && result.kind === "rejection") {
-      return { statusCode: 404, body: JSON.stringify({ accepted: false, code: result.code }) };
-    }
-    if (Array.isArray(result) && result.length) {
-      return { statusCode: 500, body: JSON.stringify({ code: "UNEXPECTED_SERVER_ERROR" }) };
-    }
-    return {
-      statusCode: 202,
-      body: JSON.stringify({ accepted: true, id: command.payload.membershipId }),
-    };
-  };
+export function createOpenMembershipLambdaHandler(handler: OpenMembershipHandler) {
+  return middy<APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2>()
+    .use(parseJsonBodyMiddleware(openMembershipSchema))
+    .use(correlationIdMiddleware())
+    .use(causationIdMiddleware())
+    .use({
+      onError: (request) => {
+        const outcome = resolveError(request.error, openMembershipHooks);
+        request.response = { statusCode: outcome.status, body: JSON.stringify(outcome.body) };
+      },
+    } satisfies MiddlewareObj<APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2>)
+    .handler(async (rawEvent) => {
+      // The middleware above stash these fields onto the event, which middy's
+      // own types have no way to track across the chain — cast once, here.
+      const event = rawEvent as Event;
+      const command = await runCommand(
+        (payload: OpenMembershipSchemaPayload, metadata) =>
+          createOpenMembershipCommand(
+            { ...payload, membershipId: aggregateId.parse(uuidv7()) },
+            metadata,
+          ),
+        handler,
+      )(event.__payload, {
+        correlationId: event.__correlationId,
+        causationId: event.__causationId,
+      });
+      return {
+        statusCode: 202,
+        body: JSON.stringify({ accepted: true, id: command.payload.membershipId }),
+      };
+    });
 }

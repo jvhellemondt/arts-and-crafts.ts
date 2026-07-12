@@ -10,7 +10,7 @@ import type { MembershipIntents } from "@examples/modules/membership/core/intent
 import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 import { OpenMembershipRepository } from "@examples/modules/membership/useCases/commands/openMembership/repository.ts";
 import { OpenMembershipHandler } from "@examples/modules/membership/useCases/commands/openMembership/handler.ts";
-import { createOpenMembershipInboundLambdaAdapter } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/lambda.ts";
+import { createOpenMembershipLambdaHandler } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/lambda.ts";
 
 // Module-scope so a warm container reuses it across invocations, same as
 // shell/apps/hono/main.ts. Not durable across cold starts — swap for a real
@@ -26,4 +26,4 @@ const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(out
 const repository = new OpenMembershipRepository(eventStore);
 const openMembershipHandler = new OpenMembershipHandler(repository, outbox);
 
-export const handler = createOpenMembershipInboundLambdaAdapter(openMembershipHandler);
+export const handler = createOpenMembershipLambdaHandler(openMembershipHandler);

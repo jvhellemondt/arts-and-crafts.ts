@@ -1,3 +1,4 @@
+import type { APIGatewayProxyEventV2, Context } from "aws-lambda";
 import {
   InMemoryEventStore,
   type TableName,
@@ -11,8 +12,7 @@ import {
 } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import { ListMembershipsProjector } from "@examples/modules/membership/useCases/queries/listMemberships/projector.ts";
 import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
-import { createListMembershipsInboundLambdaAdapter } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/lambda.ts";
-import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import { createListMembershipsLambdaHandler } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/lambda.ts";
 
 // Module-scope so a warm container reuses it across invocations, same as
 // shell/apps/hono/main.ts. Not durable across cold starts, and not shared
@@ -27,11 +27,9 @@ const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjecti
 const listMembershipsProjector = new ListMembershipsProjector(listMembershipsStore, eventStore);
 const listMembershipsHandler = new ListMembershipsHandler(listMembershipsStore);
 
-const invoke = createListMembershipsInboundLambdaAdapter(listMembershipsHandler);
+const invoke = createListMembershipsLambdaHandler(listMembershipsHandler);
 
-export async function handler(
-  event: APIGatewayProxyEventV2,
-): Promise<APIGatewayProxyStructuredResultV2> {
+export const handler = async (event: APIGatewayProxyEventV2, context: Context) => {
   await listMembershipsProjector.tick();
-  return invoke(event);
-}
+  return invoke(event, context);
+};

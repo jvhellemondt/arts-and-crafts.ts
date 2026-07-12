@@ -1,29 +1,43 @@
+import middy, { type MiddlewareObj } from "@middy/core";
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
-import type { HandleQuery } from "@arts-and-crafts/v5/useCases/query/capabilities";
-import { isFailure } from "@examples/shared/utils/isFailure.ts";
-import { v7 as uuidv7 } from "uuid";
-import type { MembershipSummary } from "../../projection.ts";
-import { createListMembershipsQuery, type ListMembershipsQuery } from "../../query.ts";
-import { listMembershipsQueryPayload } from "../../query.ts";
+import {
+  parseQueryMiddleware,
+  correlationIdMiddleware,
+  causationIdMiddleware,
+  type WithPayload,
+  type WithMetadataFields,
+} from "@arts-and-crafts/v5-aws";
+import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
+import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
+import {
+  createListMembershipsQuery,
+  listMembershipsQueryPayload,
+  type ListMembershipsQueryPayload,
+} from "../../query.ts";
+import type { ListMembershipsHandler } from "../../handler.ts";
+import { listMembershipsHooks } from "./hooks.ts";
 
-export function createListMembershipsInboundLambdaAdapter(
-  handler: HandleQuery<ListMembershipsQuery, Promise<MembershipSummary[] | GatewayFailure>>,
-) {
-  return async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    const parsed = listMembershipsQueryPayload.safeParse(event.queryStringParameters ?? {});
-    if (!parsed.success) {
-      return { statusCode: 400, body: JSON.stringify(parsed.error.flatten()) };
-    }
+type Event = APIGatewayProxyEventV2 & WithPayload<ListMembershipsQueryPayload> & WithMetadataFields;
 
-    const correlationId = event.headers["x-correlation-id"] ?? uuidv7();
-    const causationId = event.headers["x-request-id"] ?? uuidv7();
-    const query = createListMembershipsQuery(parsed.data, { correlationId, causationId });
-
-    const result = await handler.handle(query);
-    if (isFailure(result)) {
-      return { statusCode: 503, body: JSON.stringify({ error: result.reason }) };
-    }
-    return { statusCode: 200, body: JSON.stringify(result) };
-  };
+export function createListMembershipsLambdaHandler(handler: ListMembershipsHandler) {
+  return middy<APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2>()
+    .use(parseQueryMiddleware(listMembershipsQueryPayload))
+    .use(correlationIdMiddleware())
+    .use(causationIdMiddleware())
+    .use({
+      onError: (request) => {
+        const outcome = resolveError(request.error, listMembershipsHooks);
+        request.response = { statusCode: outcome.status, body: JSON.stringify(outcome.body) };
+      },
+    } satisfies MiddlewareObj<APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2>)
+    .handler(async (rawEvent) => {
+      // The middleware above stash these fields onto the event, which middy's
+      // own types have no way to track across the chain — cast once, here.
+      const event = rawEvent as Event;
+      const data = await runQuery(createListMembershipsQuery, handler)(event.__payload, {
+        correlationId: event.__correlationId,
+        causationId: event.__causationId,
+      });
+      return { statusCode: 200, body: JSON.stringify(data) };
+    });
 }
