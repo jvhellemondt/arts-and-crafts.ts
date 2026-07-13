@@ -1,5 +1,4 @@
-import { Hono } from "hono";
-import type { ContentfulStatusCode } from "hono/utils/http-status";
+import { createFactory } from "hono/factory";
 import type { PipelineEnv } from "@arts-and-crafts/v5-hono";
 import {
   parseQueryMiddleware,
@@ -7,7 +6,6 @@ import {
   causationIdMiddleware,
 } from "@arts-and-crafts/v5-hono";
 import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
-import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { ListMembershipsProjection } from "../../projection.ts";
 import {
@@ -16,15 +14,13 @@ import {
   type ListMembershipsQueryPayload,
 } from "../../query.ts";
 import { ListMembershipsHandler } from "../../handler.ts";
-import { listMembershipsHooks } from "./hooks.ts";
+
+const factory = createFactory<PipelineEnv>();
 
 export function createListMembershipsHonoHandler(store: LoadProjection<ListMembershipsProjection>) {
   const handler = new ListMembershipsHandler(store);
 
-  const app = new Hono<PipelineEnv>();
-
-  app.get(
-    "/",
+  return factory.createHandlers(
     parseQueryMiddleware(listMembershipsQueryPayload),
     correlationIdMiddleware(),
     causationIdMiddleware(),
@@ -36,11 +32,4 @@ export function createListMembershipsHonoHandler(store: LoadProjection<ListMembe
       return c.json(data, { status: 200 });
     },
   );
-
-  app.onError((err, c) => {
-    const outcome = resolveError(err, listMembershipsHooks);
-    return c.json(outcome.body, { status: outcome.status as ContentfulStatusCode });
-  });
-
-  return app;
 }
