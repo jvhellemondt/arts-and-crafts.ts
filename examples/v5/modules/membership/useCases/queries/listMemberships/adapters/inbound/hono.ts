@@ -1,15 +1,35 @@
-import type { Context } from "hono";
+import { createFactory } from "hono/factory";
 import type { PipelineEnv } from "@arts-and-crafts/v5-hono";
+import {
+  parseQueryMiddleware,
+  correlationIdMiddleware,
+  causationIdMiddleware,
+} from "@arts-and-crafts/v5-hono";
 import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
-import { createListMembershipsQuery, type ListMembershipsQueryPayload } from "../../query.ts";
-import type { ListMembershipsHandler } from "../../handler.ts";
+import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { ListMembershipsProjection } from "../../projection.ts";
+import {
+  createListMembershipsQuery,
+  listMembershipsQueryPayload,
+  type ListMembershipsQueryPayload,
+} from "../../query.ts";
+import { ListMembershipsHandler } from "../../handler.ts";
 
-export function createListMembershipsHonoHandler(handler: ListMembershipsHandler) {
-  return async (c: Context<PipelineEnv>) => {
-    const data = await runQuery(createListMembershipsQuery, handler)(
-      c.get("payload") as ListMembershipsQueryPayload,
-      { correlationId: c.get("correlationId"), causationId: c.get("causationId") },
-    );
-    return c.json(data, { status: 200 });
-  };
+const factory = createFactory<PipelineEnv>();
+
+export function createListMembershipsHonoHandler(store: LoadProjection<ListMembershipsProjection>) {
+  const handler = new ListMembershipsHandler(store);
+
+  return factory.createHandlers(
+    parseQueryMiddleware(listMembershipsQueryPayload),
+    correlationIdMiddleware(),
+    causationIdMiddleware(),
+    async (c) => {
+      const data = await runQuery(createListMembershipsQuery, handler)(
+        c.get("payload") as ListMembershipsQueryPayload,
+        { correlationId: c.get("correlationId"), causationId: c.get("causationId") },
+      );
+      return c.json(data, { status: 200 });
+    },
+  );
 }
