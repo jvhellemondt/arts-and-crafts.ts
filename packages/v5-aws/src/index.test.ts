@@ -1,17 +1,26 @@
 import type { Request } from "@middy/core";
 import type { APIGatewayProxyEventV2, Context } from "aws-lambda";
 import { ZodError, z } from "zod";
-import type { WithMetadataFields, WithPayload } from "./index.ts";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
+import type { WithCommand, WithMetadataFields, WithPayload, WithQuery } from "./index.ts";
 import {
   parseJsonBodyMiddleware,
   parseQueryMiddleware,
   correlationIdMiddleware,
   causationIdMiddleware,
+  toCommandMiddleware,
+  toQueryMiddleware,
 } from "./index.ts";
 
 function buildRequest(
   event: Partial<APIGatewayProxyEventV2>,
-): Request<APIGatewayProxyEventV2 & Partial<WithPayload<unknown>> & Partial<WithMetadataFields>> {
+): Request<
+  APIGatewayProxyEventV2 &
+    Partial<WithPayload<unknown>> &
+    Partial<WithMetadataFields> &
+    Partial<WithCommand<unknown>> &
+    Partial<WithQuery<unknown>>
+> {
   return {
     event: event as APIGatewayProxyEventV2,
     context: {} as Context,
@@ -104,5 +113,71 @@ describe("causationIdMiddleware", () => {
     const request = buildRequest({ headers: {} });
     causationIdMiddleware({ idFactory: () => "fixed" }).before!(request);
     expect(request.event.__causationId).toBe("fixed");
+  });
+});
+
+describe("toCommandMiddleware", () => {
+  interface TestPayload {
+    name: string;
+  }
+
+  function toTestCommand(payload: TestPayload, metadata: Metadata) {
+    return {
+      id: "cmd-1",
+      type: "TestCommand" as const,
+      kind: "command" as const,
+      payload,
+      metadata,
+      timestamp: 0,
+    };
+  }
+
+  it("stashes the command built from __payload and metadata on event.__command", () => {
+    const request = buildRequest({});
+    request.event.__payload = { name: "John" };
+    request.event.__correlationId = "corr-1";
+    request.event.__causationId = "cause-1";
+    toCommandMiddleware(toTestCommand).before!(request);
+    expect(request.event.__command).toEqual({
+      id: "cmd-1",
+      type: "TestCommand",
+      kind: "command",
+      payload: { name: "John" },
+      metadata: { correlationId: "corr-1", causationId: "cause-1" },
+      timestamp: 0,
+    });
+  });
+});
+
+describe("toQueryMiddleware", () => {
+  interface TestPayload {
+    status?: string;
+  }
+
+  function toTestQuery(payload: TestPayload, metadata: Metadata) {
+    return {
+      id: "qry-1",
+      type: "TestQuery" as const,
+      kind: "query" as const,
+      payload,
+      metadata,
+      timestamp: 0,
+    };
+  }
+
+  it("stashes the query built from __payload and metadata on event.__query", () => {
+    const request = buildRequest({});
+    request.event.__payload = { status: "open" };
+    request.event.__correlationId = "corr-2";
+    request.event.__causationId = "cause-2";
+    toQueryMiddleware(toTestQuery).before!(request);
+    expect(request.event.__query).toEqual({
+      id: "qry-1",
+      type: "TestQuery",
+      kind: "query",
+      payload: { status: "open" },
+      metadata: { correlationId: "corr-2", causationId: "cause-2" },
+      timestamp: 0,
+    });
   });
 });
