@@ -25,10 +25,11 @@ export function createListMembershipsHonoHandler(store: LoadProjection<ListMembe
     correlationIdMiddleware(),
     causationIdMiddleware(),
     async (c) => {
-      const data = await runQuery(createListMembershipsQuery, handler)(
-        c.get("payload") as ListMembershipsQueryPayload,
-        { correlationId: c.get("correlationId"), causationId: c.get("causationId") },
-      );
+      const run = runQuery(createListMembershipsQuery, handler);
+      const data = await run(c.get("payload") as ListMembershipsQueryPayload, {
+        correlationId: c.get("correlationId"),
+        causationId: c.get("causationId"),
+      });
       return c.json(data, { status: 200 });
     },
   );
