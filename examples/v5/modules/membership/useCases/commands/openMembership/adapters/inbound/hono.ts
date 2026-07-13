@@ -24,7 +24,7 @@ import { OpenMembershipRepository } from "../../repository.ts";
 import { openMembershipSchema, type OpenMembershipSchemaPayload } from "./schema.ts";
 import { openMembershipHooks } from "./hooks.ts";
 
-export function openMembershipHonoHandler(
+export function createOpenMembershipHonoHandler(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
     AppendToEventStore<MembershipEventV1, Promise<void | GatewayFailure>>,
   outbox: StageIntents<NotifyUserToVerifyEmailV1, Promise<void | GatewayFailure>>,

@@ -18,7 +18,7 @@ import {
 import { ListMembershipsHandler } from "../../handler.ts";
 import { listMembershipsHooks } from "./hooks.ts";
 
-export function listMembershipsHonoHandler(store: LoadProjection<ListMembershipsProjection>) {
+export function createListMembershipsHonoHandler(store: LoadProjection<ListMembershipsProjection>) {
   const handler = new ListMembershipsHandler(store);
 
   const app = new Hono<PipelineEnv>();

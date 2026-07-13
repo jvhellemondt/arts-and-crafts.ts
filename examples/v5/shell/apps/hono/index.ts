@@ -21,8 +21,8 @@ import type { MembershipIntents } from "@examples/modules/membership/core/intent
 import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
-import { openMembershipHonoHandler } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
-import { listMembershipsHonoHandler } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
+import { createOpenMembershipHonoHandler } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
+import { createListMembershipsHonoHandler } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
 
 export function createHonoApp(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
@@ -45,8 +45,8 @@ export function createHonoApp(
   );
 
   app
-    .route("membership/open", openMembershipHonoHandler(eventStore, outbox))
-    .route("memberships", listMembershipsHonoHandler(listMembershipsProjectionLoader));
+    .route("membership/open", createOpenMembershipHonoHandler(eventStore, outbox))
+    .route("memberships", createListMembershipsHonoHandler(listMembershipsProjectionLoader));
 
   app.notFound((c) => {
     return c.text("Not found", 404);
