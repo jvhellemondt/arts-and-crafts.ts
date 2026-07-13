@@ -12,18 +12,16 @@ interface TestCommandPayload {
 
 type TestCommand = Command<"TestCommand", TestCommandPayload>;
 
-function createTestCommand(payload: TestCommandPayload, metadata: Metadata): TestCommand {
-  return {
-    id: "cmd-1",
-    type: "TestCommand",
-    kind: "command",
-    payload,
-    metadata,
-    timestamp: Date.now(),
-  };
-}
-
 const METADATA: Metadata = { correlationId: "c1", causationId: "ca1" };
+
+const TEST_COMMAND: TestCommand = {
+  id: "cmd-1",
+  type: "TestCommand",
+  kind: "command",
+  payload: { name: "John" },
+  metadata: METADATA,
+  timestamp: Date.now(),
+};
 
 const REJECTION: Rejection<"ALREADY_EXISTS"> = {
   kind: "rejection",
@@ -45,23 +43,19 @@ function handlerReturning(
 }
 
 describe("runCommand", () => {
-  it("returns the constructed command on success (empty failures array)", async () => {
+  it("returns the command on success (empty failures array)", async () => {
     const handler = handlerReturning([]);
-    const command = await runCommand(createTestCommand, handler)({ name: "John" }, METADATA);
-    expect(command.payload).toEqual({ name: "John" });
-    expect(command.metadata).toBe(METADATA);
+    const command = await runCommand(TEST_COMMAND, handler);
+    expect(command).toBe(TEST_COMMAND);
   });
 
   it("throws a RejectionError wrapping the rejection", async () => {
     const handler = handlerReturning(REJECTION);
-    await expect(
-      runCommand(createTestCommand, handler)({ name: "John" }, METADATA),
-    ).rejects.toThrow(RejectionError);
+    await expect(runCommand(TEST_COMMAND, handler)).rejects.toThrow(RejectionError);
   });
 
   it("throws a FailureError wrapping the failures", async () => {
     const handler = handlerReturning([FAILURE]);
-    const run = runCommand(createTestCommand, handler)({ name: "John" }, METADATA);
-    await expect(run).rejects.toThrow(FailureError);
+    await expect(runCommand(TEST_COMMAND, handler)).rejects.toThrow(FailureError);
   });
 });

@@ -1,5 +1,4 @@
 import middy, { type MiddlewareObj } from "@middy/core";
-import { v7 as uuidv7 } from "uuid";
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import {
   parseJsonBodyMiddleware,
@@ -10,8 +9,7 @@ import {
 } from "@arts-and-crafts/v5-aws";
 import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
 import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
-import { aggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
-import { createOpenMembershipCommand } from "../../command.ts";
+import { toOpenMembershipCommand } from "../../command.ts";
 import type { OpenMembershipHandler } from "../../handler.ts";
 import { openMembershipSchema, type OpenMembershipSchemaPayload } from "./schema.ts";
 import { openMembershipHooks } from "./hooks.ts";
@@ -33,17 +31,11 @@ export function createOpenMembershipLambdaHandler(handler: OpenMembershipHandler
       // The middleware above stash these fields onto the event, which middy's
       // own types have no way to track across the chain — cast once, here.
       const event = rawEvent as Event;
-      const command = await runCommand(
-        (payload: OpenMembershipSchemaPayload, metadata) =>
-          createOpenMembershipCommand(
-            { ...payload, membershipId: aggregateId.parse(uuidv7()) },
-            metadata,
-          ),
-        handler,
-      )(event.__payload, {
+      const command = toOpenMembershipCommand(event.__payload, {
         correlationId: event.__correlationId,
         causationId: event.__causationId,
       });
+      await runCommand(command, handler);
       return {
         statusCode: 202,
         body: JSON.stringify({ accepted: true, id: command.payload.membershipId }),

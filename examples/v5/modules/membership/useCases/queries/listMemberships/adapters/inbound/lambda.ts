@@ -34,10 +34,11 @@ export function createListMembershipsLambdaHandler(handler: ListMembershipsHandl
       // The middleware above stash these fields onto the event, which middy's
       // own types have no way to track across the chain — cast once, here.
       const event = rawEvent as Event;
-      const data = await runQuery(createListMembershipsQuery, handler)(event.__payload, {
+      const query = createListMembershipsQuery(event.__payload, {
         correlationId: event.__correlationId,
         causationId: event.__causationId,
       });
+      const data = await runQuery(query, handler);
       return { statusCode: 200, body: JSON.stringify(data) };
     });
 }
