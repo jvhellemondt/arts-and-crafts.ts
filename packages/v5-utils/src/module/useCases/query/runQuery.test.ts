@@ -11,18 +11,16 @@ interface TestQueryPayload {
 
 type TestQuery = Query<"TestQuery", TestQueryPayload>;
 
-function createTestQuery(payload: TestQueryPayload, metadata: Metadata): TestQuery {
-  return {
-    id: "qry-1",
-    type: "TestQuery",
-    kind: "query",
-    payload,
-    metadata,
-    timestamp: Date.now(),
-  };
-}
-
 const METADATA: Metadata = { correlationId: "c1", causationId: "ca1" };
+
+const TEST_QUERY: TestQuery = {
+  id: "qry-1",
+  type: "TestQuery",
+  kind: "query",
+  payload: {},
+  metadata: METADATA,
+  timestamp: Date.now(),
+};
 
 const FAILURE: GatewayFailure = {
   kind: "failure",
@@ -40,18 +38,18 @@ function handlerReturning<TData>(
 describe("runQuery", () => {
   it("returns the handler's data on success", async () => {
     const handler = handlerReturning<{ id: string }[]>([{ id: "1" }]);
-    const data = await runQuery(createTestQuery, handler)({}, METADATA);
+    const data = await runQuery(TEST_QUERY, handler);
     expect(data).toEqual([{ id: "1" }]);
   });
 
   it("returns an empty array on success with no results", async () => {
     const handler = handlerReturning<{ id: string }[]>([]);
-    const data = await runQuery(createTestQuery, handler)({}, METADATA);
+    const data = await runQuery(TEST_QUERY, handler);
     expect(data).toEqual([]);
   });
 
   it("throws a FailureError wrapping the failures", async () => {
     const handler = handlerReturning<{ id: string }[]>([FAILURE]);
-    await expect(runQuery(createTestQuery, handler)({}, METADATA)).rejects.toThrow(FailureError);
+    await expect(runQuery(TEST_QUERY, handler)).rejects.toThrow(FailureError);
   });
 });

@@ -1,10 +1,10 @@
 import { createFactory } from "hono/factory";
-import { v7 as uuidv7 } from "uuid";
 import type { PipelineEnv } from "@arts-and-crafts/v5-hono";
 import {
   parseJsonBodyMiddleware,
   correlationIdMiddleware,
   causationIdMiddleware,
+  toCommandMiddleware,
 } from "@arts-and-crafts/v5-hono";
 import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
@@ -15,11 +15,10 @@ import type {
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
-import { aggregateId } from "@examples/modules/membership/core/domain/AggregateId.ts";
-import { createOpenMembershipCommand } from "../../command.ts";
 import { OpenMembershipHandler } from "../../handler.ts";
 import { OpenMembershipRepository } from "../../repository.ts";
-import { openMembershipSchema, type OpenMembershipSchemaPayload } from "./schema.ts";
+import { toOpenMembershipCommand, type OpenMembershipCommand } from "../../command.ts";
+import { openMembershipSchema } from "./schema.ts";
 
 const factory = createFactory<PipelineEnv>();
 
@@ -35,18 +34,9 @@ export function createOpenMembershipHonoHandler(
     parseJsonBodyMiddleware(openMembershipSchema),
     correlationIdMiddleware(),
     causationIdMiddleware(),
+    toCommandMiddleware(toOpenMembershipCommand),
     async (c) => {
-      const command = await runCommand(
-        (payload: OpenMembershipSchemaPayload, metadata) =>
-          createOpenMembershipCommand(
-            { ...payload, membershipId: aggregateId.parse(uuidv7()) },
-            metadata,
-          ),
-        handler,
-      )(c.get("payload") as OpenMembershipSchemaPayload, {
-        correlationId: c.get("correlationId"),
-        causationId: c.get("causationId"),
-      });
+      const command = await runCommand(c.get("command") as OpenMembershipCommand, handler);
       return c.json({ accepted: true, id: command.payload.membershipId }, { status: 202 });
     },
   );

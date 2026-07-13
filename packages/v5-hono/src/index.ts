@@ -1,5 +1,8 @@
 import type { Context, Next } from "hono";
 import type { ZodType } from "zod";
+import type { Command } from "@arts-and-crafts/v5/useCases/command/shapes";
+import type { Query } from "@arts-and-crafts/v5/useCases/query/shapes";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import type { MetadataOptions } from "@arts-and-crafts/v5-utils/core";
 import {
   parseWithZodSchema,
@@ -12,6 +15,8 @@ export interface PipelineVariables {
   payload: unknown;
   correlationId: string;
   causationId: string;
+  command: Command;
+  query: Query;
 }
 
 export interface PipelineEnv {
@@ -45,6 +50,38 @@ export function correlationIdMiddleware(options?: MetadataOptions) {
 export function causationIdMiddleware(options?: MetadataOptions) {
   return async (c: Context<PipelineEnv>, next: Next) => {
     c.set("causationId", causationIdFromHeaders(options)(c.req.header()));
+    await next();
+  };
+}
+
+/** Maps `payload`/`correlationId`/`causationId` to a command via `toCommand`, stashed as `command`. */
+export function toCommandMiddleware<TPayload, TCommand extends Command>(
+  toCommand: (payload: TPayload, metadata: Metadata) => TCommand,
+) {
+  return async (c: Context<PipelineEnv>, next: Next) => {
+    c.set(
+      "command",
+      toCommand(c.get("payload") as TPayload, {
+        correlationId: c.get("correlationId"),
+        causationId: c.get("causationId"),
+      }),
+    );
+    await next();
+  };
+}
+
+/** Maps `payload`/`correlationId`/`causationId` to a query via `toQuery`, stashed as `query`. */
+export function toQueryMiddleware<TPayload, TQuery extends Query>(
+  toQuery: (payload: TPayload, metadata: Metadata) => TQuery,
+) {
+  return async (c: Context<PipelineEnv>, next: Next) => {
+    c.set(
+      "query",
+      toQuery(c.get("payload") as TPayload, {
+        correlationId: c.get("correlationId"),
+        causationId: c.get("causationId"),
+      }),
+    );
     await next();
   };
 }

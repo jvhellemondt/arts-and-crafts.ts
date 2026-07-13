@@ -1,11 +1,14 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import type { PipelineEnv } from "./index.ts";
 import {
   parseJsonBodyMiddleware,
   parseQueryMiddleware,
   correlationIdMiddleware,
   causationIdMiddleware,
+  toCommandMiddleware,
+  toQueryMiddleware,
 } from "./index.ts";
 
 describe("parseJsonBodyMiddleware", () => {
@@ -127,5 +130,97 @@ describe("causationIdMiddleware", () => {
   it("honours custom options", async () => {
     const res = await buildApp({ idFactory: () => "fixed" }).request("/");
     expect((await res.json()).causationId).toBe("fixed");
+  });
+});
+
+describe("toCommandMiddleware", () => {
+  interface TestPayload {
+    name: string;
+  }
+
+  function toTestCommand(payload: TestPayload, metadata: Metadata) {
+    return {
+      id: "cmd-1",
+      type: "TestCommand" as const,
+      kind: "command" as const,
+      payload,
+      metadata,
+      timestamp: 0,
+    };
+  }
+
+  function buildApp() {
+    const app = new Hono<PipelineEnv>();
+    app.use(async (c, next) => {
+      c.set("payload", { name: "John" });
+      await next();
+    });
+    app.use(correlationIdMiddleware());
+    app.use(causationIdMiddleware());
+    app.use(toCommandMiddleware(toTestCommand));
+    app.get("/", async (c) => c.json({ command: c.get("command") }));
+    return app;
+  }
+
+  it("sets the command built from payload and metadata on the context", async () => {
+    const res = await buildApp().request("/", {
+      headers: { "x-correlation-id": "corr-1", "x-request-id": "cause-1" },
+    });
+    expect(await res.json()).toEqual({
+      command: {
+        id: "cmd-1",
+        type: "TestCommand",
+        kind: "command",
+        payload: { name: "John" },
+        metadata: { correlationId: "corr-1", causationId: "cause-1" },
+        timestamp: 0,
+      },
+    });
+  });
+});
+
+describe("toQueryMiddleware", () => {
+  interface TestPayload {
+    status?: string;
+  }
+
+  function toTestQuery(payload: TestPayload, metadata: Metadata) {
+    return {
+      id: "qry-1",
+      type: "TestQuery" as const,
+      kind: "query" as const,
+      payload,
+      metadata,
+      timestamp: 0,
+    };
+  }
+
+  function buildApp() {
+    const app = new Hono<PipelineEnv>();
+    app.use(async (c, next) => {
+      c.set("payload", { status: "open" });
+      await next();
+    });
+    app.use(correlationIdMiddleware());
+    app.use(causationIdMiddleware());
+    app.use(toQueryMiddleware(toTestQuery));
+    app.get("/", async (c) => c.json({ query: c.get("query") }));
+    return app;
+  }
+
+  it("sets the query built from payload and metadata on the context", async () => {
+    const res = await buildApp().request("/", {
+      headers: { "x-correlation-id": "corr-2", "x-request-id": "cause-2" },
+    });
+    expect(await res.json()).toEqual({
+      query: {
+        id: "qry-1",
+        type: "TestQuery",
+        kind: "query",
+        payload: { status: "open" },
+        metadata: { correlationId: "corr-2", causationId: "cause-2" },
+        timestamp: 0,
+      },
+    });
   });
 });
