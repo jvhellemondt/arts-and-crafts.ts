@@ -7,6 +7,7 @@ import {
   causationIdMiddleware,
 } from "@arts-and-crafts/v5-hono";
 import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
 import type {
   LoadDomainEvents,
@@ -23,6 +24,13 @@ import { openMembershipSchema, type OpenMembershipSchemaPayload } from "./schema
 
 const factory = createFactory<PipelineEnv>();
 
+function toOpenMembershipCommand(payload: OpenMembershipSchemaPayload, metadata: Metadata) {
+  return createOpenMembershipCommand(
+    { ...payload, membershipId: aggregateId.parse(uuidv7()) },
+    metadata,
+  );
+}
+
 export function createOpenMembershipHonoHandler(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
     AppendToEventStore<MembershipEventV1, Promise<void | GatewayFailure>>,
@@ -36,14 +44,8 @@ export function createOpenMembershipHonoHandler(
     correlationIdMiddleware(),
     causationIdMiddleware(),
     async (c) => {
-      const command = await runCommand(
-        (payload: OpenMembershipSchemaPayload, metadata) =>
-          createOpenMembershipCommand(
-            { ...payload, membershipId: aggregateId.parse(uuidv7()) },
-            metadata,
-          ),
-        handler,
-      )(c.get("payload") as OpenMembershipSchemaPayload, {
+      const run = runCommand(toOpenMembershipCommand, handler);
+      const command = await run(c.get("payload") as OpenMembershipSchemaPayload, {
         correlationId: c.get("correlationId"),
         causationId: c.get("causationId"),
       });
