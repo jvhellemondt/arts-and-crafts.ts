@@ -1,7 +1,11 @@
 import type { Context } from "hono";
 import { readJsonBody, readHeaders, respond } from "@arts-and-crafts/v5-hono";
-import { buildCommand, runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
-import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
+import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
+import {
+  parsePayload,
+  metadataFromHeaders,
+  resolveError,
+} from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
 import type {
   LoadDomainEvents,
@@ -24,16 +28,14 @@ export function createOpenMembershipHonoHandler(
   const repository = new OpenMembershipRepository(eventStore);
   const handler = new OpenMembershipHandler(repository, outbox);
 
-  return async (c: Context) =>
-    buildCommand({
-      schema: openMembershipSchema,
-      raw: await readJsonBody(c),
-      headers: readHeaders(c),
-      toCommand: toOpenMembershipCommand,
-    })
+  return async (c: Context) => {
+    const metadata = metadataFromHeaders(readHeaders(c));
+    return parsePayload(openMembershipSchema, await readJsonBody(c))
+      .map((payload) => toOpenMembershipCommand(payload, metadata))
       .asyncAndThen((command) => runCommand(command, handler))
       .match(
         (command) => c.json({ accepted: true, id: command.payload.membershipId }, 202),
         (error) => respond(c, resolveError(error, openMembershipHooks)),
       );
+  };
 }

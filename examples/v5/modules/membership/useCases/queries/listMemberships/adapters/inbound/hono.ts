@@ -1,7 +1,11 @@
 import type { Context } from "hono";
 import { readQueryParams, readHeaders, respond } from "@arts-and-crafts/v5-hono";
-import { buildQuery, runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
-import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
+import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
+import {
+  parsePayload,
+  metadataFromHeaders,
+  resolveError,
+} from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { ListMembershipsProjection } from "../../projection.ts";
 import { createListMembershipsQuery, listMembershipsQueryPayload } from "../../query.ts";
@@ -11,16 +15,14 @@ import { listMembershipsHooks } from "./hooks.ts";
 export function createListMembershipsHonoHandler(store: LoadProjection<ListMembershipsProjection>) {
   const handler = new ListMembershipsHandler(store);
 
-  return (c: Context) =>
-    buildQuery({
-      schema: listMembershipsQueryPayload,
-      raw: readQueryParams(c),
-      headers: readHeaders(c),
-      toQuery: createListMembershipsQuery,
-    })
+  return (c: Context) => {
+    const metadata = metadataFromHeaders(readHeaders(c));
+    return parsePayload(listMembershipsQueryPayload, readQueryParams(c))
+      .map((payload) => createListMembershipsQuery(payload, metadata))
       .asyncAndThen((query) => runQuery(query, handler))
       .match(
         (data) => c.json(data, 200),
         (error) => respond(c, resolveError(error, listMembershipsHooks)),
       );
+  };
 }

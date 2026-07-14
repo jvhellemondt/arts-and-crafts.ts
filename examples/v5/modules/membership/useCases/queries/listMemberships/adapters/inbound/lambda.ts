@@ -1,19 +1,20 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
 import { readQueryParams, readHeaders, toApiGatewayResult } from "@arts-and-crafts/v5-aws";
-import { buildQuery, runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
-import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
+import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
+import {
+  parsePayload,
+  metadataFromHeaders,
+  resolveError,
+} from "@arts-and-crafts/v5-utils/adapters/inbound";
 import { createListMembershipsQuery, listMembershipsQueryPayload } from "../../query.ts";
 import type { ListMembershipsHandler } from "../../handler.ts";
 import { listMembershipsHooks } from "./hooks.ts";
 
 export function createListMembershipsLambdaHandler(handler: ListMembershipsHandler) {
-  return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> =>
-    buildQuery({
-      schema: listMembershipsQueryPayload,
-      raw: readQueryParams(event),
-      headers: readHeaders(event),
-      toQuery: createListMembershipsQuery,
-    })
+  return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
+    const metadata = metadataFromHeaders(readHeaders(event));
+    return parsePayload(listMembershipsQueryPayload, readQueryParams(event))
+      .map((payload) => createListMembershipsQuery(payload, metadata))
       .asyncAndThen((query) => runQuery(query, handler))
       .match(
         (data): APIGatewayProxyStructuredResultV2 => ({
@@ -22,4 +23,5 @@ export function createListMembershipsLambdaHandler(handler: ListMembershipsHandl
         }),
         (error) => toApiGatewayResult(resolveError(error, listMembershipsHooks)),
       );
+  };
 }
