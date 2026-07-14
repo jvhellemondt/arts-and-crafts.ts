@@ -21,6 +21,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^21.1.0
         version: 21.2.0
+      '@oxc-node/core':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@release-it/bumper':
         specifier: ^7.0.6
         version: 7.0.6(release-it@20.2.1(@types/node@26.1.1)(magicast@0.5.3))
