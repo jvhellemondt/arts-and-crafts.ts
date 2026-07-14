@@ -1,12 +1,7 @@
-import { createFactory } from "hono/factory";
-import type { PipelineEnv } from "@arts-and-crafts/v5-hono";
-import {
-  parseJsonBodyMiddleware,
-  correlationIdMiddleware,
-  causationIdMiddleware,
-  toCommandMiddleware,
-} from "@arts-and-crafts/v5-hono";
-import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
+import type { Context } from "hono";
+import { readJsonBody, readHeaders, respond } from "@arts-and-crafts/v5-hono";
+import { buildCommand, runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
+import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
 import type {
   LoadDomainEvents,
@@ -17,10 +12,9 @@ import type { MembershipEventV1 } from "@examples/modules/membership/core/events
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import { OpenMembershipHandler } from "../../handler.ts";
 import { OpenMembershipRepository } from "../../repository.ts";
-import { toOpenMembershipCommand, type OpenMembershipCommand } from "../../command.ts";
+import { toOpenMembershipCommand } from "../../command.ts";
 import { openMembershipSchema } from "./schema.ts";
-
-const factory = createFactory<PipelineEnv>();
+import { openMembershipHooks } from "./hooks.ts";
 
 export function createOpenMembershipHonoHandler(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
@@ -30,14 +24,16 @@ export function createOpenMembershipHonoHandler(
   const repository = new OpenMembershipRepository(eventStore);
   const handler = new OpenMembershipHandler(repository, outbox);
 
-  return factory.createHandlers(
-    parseJsonBodyMiddleware(openMembershipSchema),
-    correlationIdMiddleware(),
-    causationIdMiddleware(),
-    toCommandMiddleware(toOpenMembershipCommand),
-    async (c) => {
-      const command = await runCommand(c.get("command") as OpenMembershipCommand, handler);
-      return c.json({ accepted: true, id: command.payload.membershipId }, { status: 202 });
-    },
-  );
+  return async (c: Context) =>
+    buildCommand({
+      schema: openMembershipSchema,
+      raw: await readJsonBody(c),
+      headers: readHeaders(c),
+      toCommand: toOpenMembershipCommand,
+    })
+      .asyncAndThen((command) => runCommand(command, handler))
+      .match(
+        (command) => c.json({ accepted: true, id: command.payload.membershipId }, 202),
+        (error) => respond(c, resolveError(error, openMembershipHooks)),
+      );
 }

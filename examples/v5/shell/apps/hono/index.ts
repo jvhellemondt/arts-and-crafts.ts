@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { compress } from "hono/compress";
 import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
@@ -9,9 +8,6 @@ import { logger } from "hono/logger";
 import { timeout } from "hono/timeout";
 import { timing } from "hono/timing";
 import { trimTrailingSlash } from "hono/trailing-slash";
-import type { PipelineEnv } from "@arts-and-crafts/v5-hono";
-import { resolveError } from "@arts-and-crafts/v5-utils/adapters/inbound";
-import type { FailureHook, RejectionHook } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
 import type {
   StageNotifications,
@@ -25,14 +21,7 @@ import type { OpenMembershipRejected } from "@examples/modules/membership/useCas
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import { createOpenMembershipHonoHandler } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
-import { openMembershipHooks } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hooks.ts";
 import { createListMembershipsHonoHandler } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
-import { listMembershipsHooks } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hooks.ts";
-
-const routeHooks: Record<string, { onRejection?: RejectionHook; onFailure: FailureHook }> = {
-  "/membership/open": openMembershipHooks,
-  "/memberships": listMembershipsHooks,
-};
 
 export function createHonoApp(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
@@ -41,7 +30,7 @@ export function createHonoApp(
     StageNotifications<OpenMembershipRejected, Promise<void | GatewayFailure>>,
   listMembershipsProjectionLoader: LoadProjection<ListMembershipsProjection>,
 ) {
-  const app = new Hono<PipelineEnv>();
+  const app = new Hono();
   app.use(
     compress(),
     cors(),
@@ -54,17 +43,19 @@ export function createHonoApp(
     trimTrailingSlash(),
   );
 
+  // Each route resolves its own expected errors (validation/rejection/failure)
+  // inside its neverthrow pipeline. This boundary only catches genuinely
+  // unexpected throws — a handler that rejected, or a global middleware fault.
   app
-    .post("membership/open", ...createOpenMembershipHonoHandler(eventStore, outbox))
-    .get("memberships", ...createListMembershipsHonoHandler(listMembershipsProjectionLoader));
+    .post("membership/open", createOpenMembershipHonoHandler(eventStore, outbox))
+    .get("memberships", createListMembershipsHonoHandler(listMembershipsProjectionLoader));
 
   app.notFound((c) => {
     return c.text("Not found", 404);
   });
 
-  app.onError((err, c) => {
-    const outcome = resolveError(err, routeHooks[c.req.path] ?? {});
-    return c.json(outcome.body, { status: outcome.status as ContentfulStatusCode });
+  app.onError((_err, c) => {
+    return c.json({ code: "INTERNAL_ERROR", reason: "Internal server error" }, 500);
   });
 
   return app;

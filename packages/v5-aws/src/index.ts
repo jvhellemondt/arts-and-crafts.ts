@@ -1,117 +1,36 @@
-import type { MiddlewareObj } from "@middy/core";
-import type { APIGatewayProxyEventV2 } from "aws-lambda";
-import type { ZodType } from "zod";
-import type { Command } from "@arts-and-crafts/v5/useCases/command/shapes";
-import type { Query } from "@arts-and-crafts/v5/useCases/query/shapes";
-import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
-import type { MetadataOptions } from "@arts-and-crafts/v5-utils/core";
-import {
-  parseWithZodSchema,
-  correlationIdFromHeaders,
-  causationIdFromHeaders,
-} from "@arts-and-crafts/v5-utils/adapters/inbound";
+import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
+import type { HeadersRecord } from "@arts-and-crafts/v5-utils/core";
+import type { PipelineOutcome } from "@arts-and-crafts/v5-utils/adapters/inbound";
 
-/** Fields these middleware stash on the mutable `event` object (visible to the terminal handler). */
-export interface WithPayload<TPayload> {
-  __payload: TPayload;
-}
-export interface WithMetadataFields {
-  __correlationId: string;
-  __causationId: string;
-}
-export interface WithCommand<TCommand> {
-  __command: TCommand;
-}
-export interface WithQuery<TQuery> {
-  __query: TQuery;
-}
+/**
+ * Thin, host-specific adapters for wiring an API Gateway v2 Lambda to the
+ * neverthrow pipeline in `@arts-and-crafts/v5-utils`: pull the raw request
+ * pieces off the `event`, and turn a resolved `PipelineOutcome` back into a
+ * Lambda result. All pipeline logic (parsing, metadata, error mapping) lives
+ * in `v5-utils` and is shared with the Hono host.
+ */
 
-function safeJsonParse(body: string | null | undefined): unknown {
-  if (!body) return undefined;
+/** Parses `event.body` as JSON, yielding `undefined` for absent or malformed bodies. */
+export function readJsonBody(event: APIGatewayProxyEventV2): unknown {
+  if (!event.body) return undefined;
   try {
-    return JSON.parse(body);
+    return JSON.parse(event.body);
   } catch {
     return undefined;
   }
 }
 
-/** Parses `event.body` against `schema`; throws ZodError on invalid input. */
-export function parseJsonBodyMiddleware<TPayload>(
-  schema: ZodType<TPayload>,
-): MiddlewareObj<APIGatewayProxyEventV2> {
-  return {
-    before: (request) => {
-      const raw = safeJsonParse(request.event.body);
-      (request.event as APIGatewayProxyEventV2 & WithPayload<TPayload>).__payload =
-        parseWithZodSchema(schema)(raw);
-    },
-  };
+/** Reads `event.queryStringParameters`, defaulting to an empty object. */
+export function readQueryParams(event: APIGatewayProxyEventV2): Record<string, string | undefined> {
+  return event.queryStringParameters ?? {};
 }
 
-/** Parses `event.queryStringParameters` against `schema`; throws ZodError on invalid input. */
-export function parseQueryMiddleware<TPayload>(
-  schema: ZodType<TPayload>,
-): MiddlewareObj<APIGatewayProxyEventV2> {
-  return {
-    before: (request) => {
-      (request.event as APIGatewayProxyEventV2 & WithPayload<TPayload>).__payload =
-        parseWithZodSchema(schema)(request.event.queryStringParameters ?? {});
-    },
-  };
+/** Reads `event.headers` (lowercase keys, per API Gateway v2), defaulting to empty. */
+export function readHeaders(event: APIGatewayProxyEventV2): HeadersRecord {
+  return event.headers ?? {};
 }
 
-export function correlationIdMiddleware(
-  options?: MetadataOptions,
-): MiddlewareObj<APIGatewayProxyEventV2> {
-  return {
-    before: (request) => {
-      (request.event as APIGatewayProxyEventV2 & WithMetadataFields).__correlationId =
-        correlationIdFromHeaders(options)(request.event.headers ?? {});
-    },
-  };
-}
-
-export function causationIdMiddleware(
-  options?: MetadataOptions,
-): MiddlewareObj<APIGatewayProxyEventV2> {
-  return {
-    before: (request) => {
-      (request.event as APIGatewayProxyEventV2 & WithMetadataFields).__causationId =
-        causationIdFromHeaders(options)(request.event.headers ?? {});
-    },
-  };
-}
-
-/** Maps `__payload`/`__correlationId`/`__causationId` to a command via `toCommand`, stashed as `__command`. */
-export function toCommandMiddleware<TPayload, TCommand extends Command>(
-  toCommand: (payload: TPayload, metadata: Metadata) => TCommand,
-): MiddlewareObj<APIGatewayProxyEventV2> {
-  return {
-    before: (request) => {
-      const event = request.event as APIGatewayProxyEventV2 &
-        WithPayload<TPayload> &
-        WithMetadataFields;
-      (request.event as APIGatewayProxyEventV2 & WithCommand<TCommand>).__command = toCommand(
-        event.__payload,
-        { correlationId: event.__correlationId, causationId: event.__causationId },
-      );
-    },
-  };
-}
-
-/** Maps `__payload`/`__correlationId`/`__causationId` to a query via `toQuery`, stashed as `__query`. */
-export function toQueryMiddleware<TPayload, TQuery extends Query>(
-  toQuery: (payload: TPayload, metadata: Metadata) => TQuery,
-): MiddlewareObj<APIGatewayProxyEventV2> {
-  return {
-    before: (request) => {
-      const event = request.event as APIGatewayProxyEventV2 &
-        WithPayload<TPayload> &
-        WithMetadataFields;
-      (request.event as APIGatewayProxyEventV2 & WithQuery<TQuery>).__query = toQuery(
-        event.__payload,
-        { correlationId: event.__correlationId, causationId: event.__causationId },
-      );
-    },
-  };
+/** Renders a resolved `PipelineOutcome` as an API Gateway v2 structured result. */
+export function toApiGatewayResult(outcome: PipelineOutcome): APIGatewayProxyStructuredResultV2 {
+  return { statusCode: outcome.status, body: JSON.stringify(outcome.body) };
 }

@@ -2,8 +2,6 @@ import { z } from "zod";
 import type { Rejection } from "@arts-and-crafts/v5/core/shapes";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import { resolveError } from "./resolveError.ts";
-import { RejectionError } from "./RejectionError.ts";
-import { FailureError } from "./FailureError.ts";
 
 const REJECTION: Rejection<"MEMBERSHIP_ALREADY_EXISTS"> = {
   kind: "rejection",
@@ -26,8 +24,8 @@ describe("resolveError", () => {
     expect(outcome.body).toEqual(zodError.flatten());
   });
 
-  it("maps a RejectionError to the default 400 with the rejection's own reason when no hook is registered", () => {
-    const outcome = resolveError(new RejectionError(REJECTION), {});
+  it("maps a Rejection to the default 400 with its own reason when no hook is registered", () => {
+    const outcome = resolveError(REJECTION, {});
     expect(outcome).toEqual({
       status: 400,
       body: { code: "MEMBERSHIP_ALREADY_EXISTS", reason: "Membership already exists" },
@@ -35,7 +33,7 @@ describe("resolveError", () => {
   });
 
   it("uses the onRejection hook's status and falls back to the rejection's reason when no message is returned", () => {
-    const outcome = resolveError(new RejectionError(REJECTION), { onRejection: () => [404] });
+    const outcome = resolveError(REJECTION, { onRejection: () => [404] });
     expect(outcome).toEqual({
       status: 404,
       body: { code: "MEMBERSHIP_ALREADY_EXISTS", reason: "Membership already exists" },
@@ -43,17 +41,15 @@ describe("resolveError", () => {
   });
 
   it("uses the onRejection hook's message override when provided", () => {
-    const outcome = resolveError(new RejectionError(REJECTION), {
-      onRejection: () => [409, "custom message"],
-    });
+    const outcome = resolveError(REJECTION, { onRejection: () => [409, "custom message"] });
     expect(outcome).toEqual({
       status: 409,
       body: { code: "MEMBERSHIP_ALREADY_EXISTS", reason: "custom message" },
     });
   });
 
-  it("maps a FailureError to the default 500 with the first failure's reason when no hook is registered", () => {
-    const outcome = resolveError(new FailureError([FAILURE]), {});
+  it("maps a GatewayFailure[] to the default 500 with the first failure's reason when no hook is registered", () => {
+    const outcome = resolveError([FAILURE], {});
     expect(outcome).toEqual({
       status: 500,
       body: { code: "GATEWAY_FAILURE", reason: "Connection refused" },
@@ -61,17 +57,10 @@ describe("resolveError", () => {
   });
 
   it("uses the onFailure hook's status and message override when provided", () => {
-    const outcome = resolveError(new FailureError([FAILURE]), {
-      onFailure: () => [503, "service unavailable"],
-    });
+    const outcome = resolveError([FAILURE], { onFailure: () => [503, "service unavailable"] });
     expect(outcome).toEqual({
       status: 503,
       body: { code: "GATEWAY_FAILURE", reason: "service unavailable" },
     });
-  });
-
-  it("rethrows an error that is none of ZodError/RejectionError/FailureError", () => {
-    const unexpected = new Error("boom");
-    expect(() => resolveError(unexpected, {})).toThrow(unexpected);
   });
 });

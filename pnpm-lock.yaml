@@ -81,9 +81,6 @@ importers:
       '@arts-and-crafts/v5-utils':
         specifier: workspace:*
         version: link:../../packages/v5-utils
-      '@middy/core':
-        specifier: ^7.7.0
-        version: 7.7.0
       hono:
         specifier: ^4.12.18
         version: 4.12.29
@@ -364,9 +361,6 @@ importers:
       '@arts-and-crafts/v5-utils':
         specifier: workspace:*
         version: link:../v5-utils
-      '@middy/core':
-        specifier: ^7.7.0
-        version: 7.7.0
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -504,6 +498,9 @@ importers:
       '@arts-and-crafts/v5':
         specifier: workspace:*
         version: link:../v5
+      neverthrow:
+        specifier: ^8.2.0
+        version: 8.2.0
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -1389,19 +1386,6 @@ packages:
 
   '@loaderkit/resolve@1.0.6':
     resolution: {integrity: sha512-G8FdIoF5CypfwmD9rl8BXod5HDn8JqB0CCNBXDTaRZ+yRYhARrrSToX1zg1zy9jX3zLqigsELwhT4gNtkdQAUg==}
-
-  '@middy/core@7.7.0':
-    resolution: {integrity: sha512-5KtRHbSZNveR+rcSbJc+8D1/QQVqs3a1ePrP0fuxr41OZodwxz1B/IwjqOjVJMdu6IxhDz5QPInAiefJUNmKpQ==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      '@aws/durable-execution-sdk-js': ^2.0.0
-    peerDependenciesMeta:
-      '@aws/durable-execution-sdk-js':
-        optional: true
-
-  '@middy/util@7.7.0':
-    resolution: {integrity: sha512-d9QHbliwIocuc2n+7dbrd9Ma/LrXaEDX5mxyV3Rqx79h7AyZGUbkXo0rw6JVVFsxOGvjNGN4gQ2fh++RLCS35A==}
-    engines: {node: '>=22'}
 
   '@napi-rs/wasm-runtime@1.1.6':
     resolution: {integrity: sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg==}
@@ -3454,6 +3438,10 @@ packages:
     resolution: {integrity: sha512-eonl3sLUha+S1GzTPxychyhnUzKyeQkZ7jLjKrBagJgPla13F+uQ71HgpFefyHgqrjEbCPkDArxYsjY8/+gLKA==}
     engines: {node: '>= 0.4.0'}
 
+  neverthrow@8.2.0:
+    resolution: {integrity: sha512-kOCT/1MCPAxY5iUV3wytNFUMUolzuwd/VF/1KCx7kf6CutrOsTie+84zTGTpgQycjvfLdBBdvBvFLqFD2c0wkQ==}
+    engines: {node: '>=18'}
+
   new-github-release-url@2.0.0:
     resolution: {integrity: sha512-NHDDGYudnvRutt/VhKFlX26IotXe1w0cmkDm6JGquh5bz/bDTw0LufSmH/GxTjEdpHEO+bVKFTwdrcGa/9XlKQ==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
@@ -4401,7 +4389,7 @@ snapshots:
       '@babel/code-frame': 7.29.7
       '@babel/generator': 7.29.7
       '@babel/helper-compilation-targets': 7.29.7
-      '@babel/helper-module-transforms': 7.29.7(@babel/core@7.29.7(supports-color@8.1.1))
+      '@babel/helper-module-transforms': 7.29.7(@babel/core@7.29.7)
       '@babel/helpers': 7.29.7
       '@babel/parser': 7.29.7
       '@babel/template': 7.29.7
@@ -4441,7 +4429,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/helper-module-transforms@7.29.7(@babel/core@7.29.7(supports-color@8.1.1))':
+  '@babel/helper-module-transforms@7.29.7(@babel/core@7.29.7)':
     dependencies:
       '@babel/core': 7.29.7(supports-color@8.1.1)
       '@babel/helper-module-imports': 7.29.7
@@ -5231,12 +5219,6 @@ snapshots:
   '@loaderkit/resolve@1.0.6':
     dependencies:
       '@braidai/lang': 1.1.2
-
-  '@middy/core@7.7.0':
-    dependencies:
-      '@middy/util': 7.7.0
-
-  '@middy/util@7.7.0': {}
 
   '@napi-rs/wasm-runtime@1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
@@ -7122,6 +7104,10 @@ snapshots:
   neo-async@2.6.2: {}
 
   netmask@2.1.1: {}
+
+  neverthrow@8.2.0:
+    optionalDependencies:
+      '@rollup/rollup-linux-x64-gnu': 4.62.2
 
   new-github-release-url@2.0.0:
     dependencies:

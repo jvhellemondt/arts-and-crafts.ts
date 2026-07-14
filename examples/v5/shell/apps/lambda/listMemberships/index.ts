@@ -1,4 +1,4 @@
-import type { APIGatewayProxyEventV2, Context } from "aws-lambda";
+import type { APIGatewayProxyEventV2 } from "aws-lambda";
 import {
   InMemoryEventStore,
   type TableName,
@@ -29,7 +29,7 @@ const listMembershipsHandler = new ListMembershipsHandler(listMembershipsStore);
 
 const invoke = createListMembershipsLambdaHandler(listMembershipsHandler);
 
-export const handler = async (event: APIGatewayProxyEventV2, context: Context) => {
+export const handler = async (event: APIGatewayProxyEventV2) => {
   await listMembershipsProjector.tick();
-  return invoke(event, context);
+  return invoke(event);
 };

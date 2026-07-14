@@ -37,8 +37,7 @@
   },
   "dependencies": {
     "@arts-and-crafts/v5": "workspace:*",
-    "@arts-and-crafts/v5-utils": "workspace:*",
-    "@middy/core": "^7.7.0"
+    "@arts-and-crafts/v5-utils": "workspace:*"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
