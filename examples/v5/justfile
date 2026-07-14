@@ -7,9 +7,9 @@ set shell := ["bash", "-uc"]
 default:
     @just --list
 
-# Build @arts-and-crafts/v5, required before typecheck/test/dev in this example
+# Build the workspace packages this example depends on, required before typecheck/test/dev
 build-lib:
-    pnpm --filter @arts-and-crafts/v5 run build
+    pnpm --filter @arts-and-crafts/v5 --filter @arts-and-crafts/v5-utils --filter @arts-and-crafts/v5-hono --filter @arts-and-crafts/v5-aws run build
 
 # Run the example shell with file watching
 dev: build-lib
