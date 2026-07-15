@@ -3,7 +3,6 @@ import type { HandleQuery } from "@arts-and-crafts/v5/useCases/query/capabilitie
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import { runQuery } from "./runQuery.ts";
-import { FailureError } from "../../adapters/inbound/FailureError.ts";
 
 interface TestQueryPayload {
   status?: string;
@@ -36,20 +35,21 @@ function handlerReturning<TData>(
 }
 
 describe("runQuery", () => {
-  it("returns the handler's data on success", async () => {
-    const handler = handlerReturning<{ id: string }[]>([{ id: "1" }]);
-    const data = await runQuery(TEST_QUERY, handler);
-    expect(data).toEqual([{ id: "1" }]);
+  it("returns Ok with the handler's data on success", async () => {
+    const result = await runQuery(TEST_QUERY, handlerReturning<{ id: string }[]>([{ id: "1" }]));
+    expect(result.isOk()).toBe(true);
+    expect(result._unsafeUnwrap()).toEqual([{ id: "1" }]);
   });
 
-  it("returns an empty array on success with no results", async () => {
-    const handler = handlerReturning<{ id: string }[]>([]);
-    const data = await runQuery(TEST_QUERY, handler);
-    expect(data).toEqual([]);
+  it("returns Ok with an empty array on success with no results", async () => {
+    const result = await runQuery(TEST_QUERY, handlerReturning<{ id: string }[]>([]));
+    expect(result.isOk()).toBe(true);
+    expect(result._unsafeUnwrap()).toEqual([]);
   });
 
-  it("throws a FailureError wrapping the failures", async () => {
-    const handler = handlerReturning<{ id: string }[]>([FAILURE]);
-    await expect(runQuery(TEST_QUERY, handler)).rejects.toThrow(FailureError);
+  it("returns Err with the failures", async () => {
+    const result = await runQuery(TEST_QUERY, handlerReturning<{ id: string }[]>([FAILURE]));
+    expect(result.isErr()).toBe(true);
+    expect(result._unsafeUnwrapErr()).toEqual([FAILURE]);
   });
 });

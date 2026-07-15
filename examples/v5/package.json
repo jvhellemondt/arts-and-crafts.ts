@@ -24,7 +24,6 @@
     "@arts-and-crafts/v5-aws": "workspace:*",
     "@arts-and-crafts/v5-hono": "workspace:*",
     "@arts-and-crafts/v5-utils": "workspace:*",
-    "@middy/core": "^7.7.0",
     "hono": "^4.12.18"
   },
   "devDependencies": {

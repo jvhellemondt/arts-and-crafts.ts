@@ -1,19 +1,21 @@
+import { ResultAsync, err, ok } from "neverthrow";
 import type { Query } from "@arts-and-crafts/v5/useCases/query/shapes";
 import type { HandleQuery } from "@arts-and-crafts/v5/useCases/query/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import { hasFailures } from "../../core/hasFailures.ts";
-import { FailureError } from "../../adapters/inbound/FailureError.ts";
 
 /**
- * Calls `handler.handle(query)`, and throws `FailureError` on failure so
- * hosts can short-circuit via their own native error handling. Queries never
- * reject — only commands do.
+ * Calls `handler.handle(query)` and threads the outcome through neverthrow:
+ * the data as `Ok` on success, or the domain's own `GatewayFailure[]` as `Err`
+ * — as values, not thrown. Queries never reject; only commands do. A handler
+ * that rejects unexpectedly rejects the returned promise, so the host's error
+ * boundary still treats it as a genuine 500.
  */
-export async function runQuery<TQuery extends Query, TData>(
+export function runQuery<TQuery extends Query, TData>(
   query: TQuery,
   handler: HandleQuery<TQuery, Promise<GatewayFailure[] | TData>>,
-): Promise<TData> {
-  const result = await handler.handle(query);
-  if (hasFailures(result)) throw new FailureError(result);
-  return result as TData;
+): ResultAsync<TData, readonly GatewayFailure[]> {
+  return ResultAsync.fromSafePromise(handler.handle(query)).andThen((result) =>
+    hasFailures(result) ? err(result) : ok(result as TData),
+  );
 }

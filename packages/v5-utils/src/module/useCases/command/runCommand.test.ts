@@ -3,8 +3,6 @@ import type { HandleCommand } from "@arts-and-crafts/v5/useCases/command/capabil
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Rejection, Metadata } from "@arts-and-crafts/v5/core/shapes";
 import { runCommand } from "./runCommand.ts";
-import { RejectionError } from "../../adapters/inbound/RejectionError.ts";
-import { FailureError } from "../../adapters/inbound/FailureError.ts";
 
 interface TestCommandPayload {
   name: string;
@@ -43,19 +41,21 @@ function handlerReturning(
 }
 
 describe("runCommand", () => {
-  it("returns the command on success (empty failures array)", async () => {
-    const handler = handlerReturning([]);
-    const command = await runCommand(TEST_COMMAND, handler);
-    expect(command).toBe(TEST_COMMAND);
+  it("returns Ok with the command on success (empty failures array)", async () => {
+    const result = await runCommand(TEST_COMMAND, handlerReturning([]));
+    expect(result.isOk()).toBe(true);
+    expect(result._unsafeUnwrap()).toBe(TEST_COMMAND);
   });
 
-  it("throws a RejectionError wrapping the rejection", async () => {
-    const handler = handlerReturning(REJECTION);
-    await expect(runCommand(TEST_COMMAND, handler)).rejects.toThrow(RejectionError);
+  it("returns Err with the rejection", async () => {
+    const result = await runCommand(TEST_COMMAND, handlerReturning(REJECTION));
+    expect(result.isErr()).toBe(true);
+    expect(result._unsafeUnwrapErr()).toEqual(REJECTION);
   });
 
-  it("throws a FailureError wrapping the failures", async () => {
-    const handler = handlerReturning([FAILURE]);
-    await expect(runCommand(TEST_COMMAND, handler)).rejects.toThrow(FailureError);
+  it("returns Err with the failures", async () => {
+    const result = await runCommand(TEST_COMMAND, handlerReturning([FAILURE]));
+    expect(result.isErr()).toBe(true);
+    expect(result._unsafeUnwrapErr()).toEqual([FAILURE]);
   });
 });
