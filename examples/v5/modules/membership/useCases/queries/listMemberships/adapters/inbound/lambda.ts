@@ -3,7 +3,8 @@ import { readQueryParams, readHeaders, toApiGatewayResult } from "@arts-and-craf
 import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
 import {
   parsePayload,
-  metadataFromHeaders,
+  correlationIdFromHeaders,
+  causationIdFromHeaders,
   resolveError,
 } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import { createListMembershipsQuery, listMembershipsQueryPayload } from "../../query.ts";
@@ -12,7 +13,11 @@ import { listMembershipsHooks } from "./hooks.ts";
 
 export function createListMembershipsLambdaHandler(handler: ListMembershipsHandler) {
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    const metadata = metadataFromHeaders(readHeaders(event));
+    const headers = readHeaders(event);
+    const metadata = {
+      correlationId: correlationIdFromHeaders()(headers),
+      causationId: causationIdFromHeaders()(headers),
+    };
     return parsePayload(listMembershipsQueryPayload, readQueryParams(event))
       .map((payload) => createListMembershipsQuery(payload, metadata))
       .asyncAndThen((query) => runQuery(query, handler))

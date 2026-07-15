@@ -3,7 +3,8 @@ import { readQueryParams, readHeaders, respond } from "@arts-and-crafts/v5-hono"
 import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
 import {
   parsePayload,
-  metadataFromHeaders,
+  correlationIdFromHeaders,
+  causationIdFromHeaders,
   resolveError,
 } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
@@ -16,7 +17,11 @@ export function createListMembershipsHonoHandler(store: LoadProjection<ListMembe
   const handler = new ListMembershipsHandler(store);
 
   return (c: Context) => {
-    const metadata = metadataFromHeaders(readHeaders(c));
+    const headers = readHeaders(c);
+    const metadata = {
+      correlationId: correlationIdFromHeaders()(headers),
+      causationId: causationIdFromHeaders()(headers),
+    };
     return parsePayload(listMembershipsQueryPayload, readQueryParams(c))
       .map((payload) => createListMembershipsQuery(payload, metadata))
       .asyncAndThen((query) => runQuery(query, handler))

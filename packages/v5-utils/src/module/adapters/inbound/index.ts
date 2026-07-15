@@ -4,7 +4,6 @@ export * from "./HookResult.ts";
 export * from "./RejectionHook.ts";
 export * from "./FailureHook.ts";
 export * from "./parsePayload.ts";
-export * from "./metadataFromHeaders.ts";
 export * from "./correlationIdFromHeaders.ts";
 export * from "./causationIdFromHeaders.ts";
 export * from "./resolveError.ts";

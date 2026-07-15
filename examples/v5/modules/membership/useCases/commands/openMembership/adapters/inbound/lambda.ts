@@ -3,7 +3,8 @@ import { readJsonBody, readHeaders, toApiGatewayResult } from "@arts-and-crafts/
 import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
 import {
   parsePayload,
-  metadataFromHeaders,
+  correlationIdFromHeaders,
+  causationIdFromHeaders,
   resolveError,
 } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import { toOpenMembershipCommand } from "../../command.ts";
@@ -13,7 +14,11 @@ import { openMembershipHooks } from "./hooks.ts";
 
 export function createOpenMembershipLambdaHandler(handler: OpenMembershipHandler) {
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    const metadata = metadataFromHeaders(readHeaders(event));
+    const headers = readHeaders(event);
+    const metadata = {
+      correlationId: correlationIdFromHeaders()(headers),
+      causationId: causationIdFromHeaders()(headers),
+    };
     return parsePayload(openMembershipSchema, readJsonBody(event))
       .map((payload) => toOpenMembershipCommand(payload, metadata))
       .asyncAndThen((command) => runCommand(command, handler))

@@ -3,7 +3,8 @@ import { readJsonBody, readHeaders, respond } from "@arts-and-crafts/v5-hono";
 import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
 import {
   parsePayload,
-  metadataFromHeaders,
+  correlationIdFromHeaders,
+  causationIdFromHeaders,
   resolveError,
 } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
@@ -29,7 +30,11 @@ export function createOpenMembershipHonoHandler(
   const handler = new OpenMembershipHandler(repository, outbox);
 
   return async (c: Context) => {
-    const metadata = metadataFromHeaders(readHeaders(c));
+    const headers = readHeaders(c);
+    const metadata = {
+      correlationId: correlationIdFromHeaders()(headers),
+      causationId: causationIdFromHeaders()(headers),
+    };
     return parsePayload(openMembershipSchema, await readJsonBody(c))
       .map((payload) => toOpenMembershipCommand(payload, metadata))
       .asyncAndThen((command) => runCommand(command, handler))

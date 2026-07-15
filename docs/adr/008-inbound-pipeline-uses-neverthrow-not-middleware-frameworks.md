@@ -43,10 +43,11 @@ as values end to end — `ZodError | Rejection | GatewayFailure[]`, unified as t
   values; `runCommand`/`runQuery` lift them into `ResultAsync`, keeping the
   domain sans-I/O and neverthrow-free.
 - Each adapter **composes the chain explicitly** with `.map`/`.andThen` over
-  small reusable atoms (`parsePayload`, `metadataFromHeaders`, `runCommand`/
-  `runQuery`) rather than through an aggregate `buildCommand`/`buildQuery`
-  helper. The chain's steps stay visible at the call site, the same way the
-  middleware `.use(...)` list did.
+  small reusable atoms (`parsePayload`, `correlationIdFromHeaders`/
+  `causationIdFromHeaders`, `runCommand`/`runQuery`) rather than through
+  aggregate helpers. The chain's steps stay visible at the call site, the same
+  way the middleware `.use(...)` list did — no `buildCommand`/`buildQuery` or
+  `metadataFromHeaders` wrappers to hide them.
 
 Each host package shrinks to thin, host-specific I/O helpers: `v5-aws` and
 `v5-hono` now only pull raw request pieces off their native request object and
