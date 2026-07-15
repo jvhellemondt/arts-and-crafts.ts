@@ -16,8 +16,8 @@ export function createOpenMembershipLambdaHandler(handler: OpenMembershipHandler
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
     const headers = readHeaders(event);
     const metadata = {
-      correlationId: correlationIdFromHeaders()(headers),
-      causationId: causationIdFromHeaders()(headers),
+      correlationId: correlationIdFromHeaders(headers),
+      causationId: causationIdFromHeaders(headers),
     };
     return parsePayload(openMembershipSchema, readJsonBody(event))
       .map((payload) => toOpenMembershipCommand(payload, metadata))

@@ -32,8 +32,8 @@ export function createOpenMembershipHonoHandler(
   return async (c: Context) => {
     const headers = readHeaders(c);
     const metadata = {
-      correlationId: correlationIdFromHeaders()(headers),
-      causationId: causationIdFromHeaders()(headers),
+      correlationId: correlationIdFromHeaders(headers),
+      causationId: causationIdFromHeaders(headers),
     };
     return parsePayload(openMembershipSchema, await readJsonBody(c))
       .map((payload) => toOpenMembershipCommand(payload, metadata))

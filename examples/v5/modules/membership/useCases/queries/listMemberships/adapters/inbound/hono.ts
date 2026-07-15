@@ -19,8 +19,8 @@ export function createListMembershipsHonoHandler(store: LoadProjection<ListMembe
   return (c: Context) => {
     const headers = readHeaders(c);
     const metadata = {
-      correlationId: correlationIdFromHeaders()(headers),
-      causationId: causationIdFromHeaders()(headers),
+      correlationId: correlationIdFromHeaders(headers),
+      causationId: causationIdFromHeaders(headers),
     };
     return parsePayload(listMembershipsQueryPayload, readQueryParams(c))
       .map((payload) => createListMembershipsQuery(payload, metadata))
