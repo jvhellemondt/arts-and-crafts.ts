@@ -13,7 +13,10 @@ describe("correlationIdFromHeaders", () => {
 
   it("uses a custom header name when provided", () => {
     expect(
-      correlationIdFromHeaders({ "x-my-correlation": "custom" }, { headerName: "x-my-correlation" }),
+      correlationIdFromHeaders(
+        { "x-my-correlation": "custom" },
+        { headerName: "x-my-correlation" },
+      ),
     ).toBe("custom");
   });
 

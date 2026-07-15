@@ -12,9 +12,9 @@ describe("causationIdFromHeaders", () => {
   });
 
   it("uses a custom header name when provided", () => {
-    expect(causationIdFromHeaders({ "x-my-request": "custom" }, { headerName: "x-my-request" })).toBe(
-      "custom",
-    );
+    expect(
+      causationIdFromHeaders({ "x-my-request": "custom" }, { headerName: "x-my-request" }),
+    ).toBe("custom");
   });
 
   it("uses a custom idFactory when provided", () => {
