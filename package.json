@@ -10,6 +10,9 @@
     "packages/v3/dist",
     "packages/v4/dist",
     "packages/v5/dist",
+    "packages/v5-hono/dist",
+    "packages/v5-aws/dist",
+    "packages/v5-utils/dist",
     "package.json",
     "README.md",
     "LICENSE"

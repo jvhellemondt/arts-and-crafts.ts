@@ -1,12 +1,11 @@
 import type { Context } from "hono";
-import { readJsonBody, readHeaders, respond } from "@arts-and-crafts/v5-hono";
-import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
 import {
-  parsePayload,
-  correlationIdFromHeaders,
+  parseJsonBody,
   causationIdFromHeaders,
-  resolveError,
-} from "@arts-and-crafts/v5-utils/adapters/inbound";
+  correlationIdFromHeaders,
+} from "@arts-and-crafts/v5-hono";
+import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
+import { parseSchema } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
 import type {
   LoadDomainEvents,
@@ -17,9 +16,10 @@ import type { MembershipEventV1 } from "@examples/modules/membership/core/events
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import { OpenMembershipHandler } from "../../handler.ts";
 import { OpenMembershipRepository } from "../../repository.ts";
-import { toOpenMembershipCommand } from "../../command.ts";
+import { openMembershipCommandPayload, toOpenMembershipCommand } from "../../command.ts";
 import { openMembershipSchema } from "./schema.ts";
-import { openMembershipHooks } from "./hooks.ts";
+import { ok, Result, ResultAsync } from "neverthrow";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 
 export function createOpenMembershipHonoHandler(
   eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
@@ -30,17 +30,24 @@ export function createOpenMembershipHonoHandler(
   const handler = new OpenMembershipHandler(repository, outbox);
 
   return async (c: Context) => {
-    const headers = readHeaders(c);
-    const metadata = {
-      correlationId: correlationIdFromHeaders(headers),
-      causationId: causationIdFromHeaders(headers),
-    };
-    return parsePayload(openMembershipSchema, await readJsonBody(c))
-      .map((payload) => toOpenMembershipCommand(payload, metadata))
-      .asyncAndThen((command) => runCommand(command, handler))
+    return ResultAsync.combine([
+      parseJsonBody(c).andThen(parseSchema(openMembershipSchema)),
+      correlationIdFromHeaders()(c),
+      causationIdFromHeaders()(c),
+    ])
+      .map(([payload, ...metadata]) => ({
+        payload,
+        metadata: metadata.reduce((acc, value) => Object.assign(acc, value), {}) as Metadata,
+      }))
+      .map(toOpenMembershipCommand)
+      .andThen(handler.handle.bind(handler))
       .match(
-        (command) => c.json({ accepted: true, id: command.payload.membershipId }, 202),
-        (error) => respond(c, resolveError(error, openMembershipHooks)),
+        (data) => {
+          return c.json({ data });
+        },
+        (err) => {
+          return c.json({ err });
+        },
       );
   };
 }

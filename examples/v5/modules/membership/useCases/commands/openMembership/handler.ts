@@ -8,10 +8,12 @@ import { isFailure } from "@examples/shared/utils/isFailure.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import { isRejection } from "@examples/shared/utils/isRejection.ts";
 import type { OpenMembershipRepository } from "./repository.ts";
+import { errAsync, fromSafePromise, okAsync, ResultAsync } from "neverthrow";
 
 export class OpenMembershipHandler implements HandleCommand<
   OpenMembershipCommand,
-  Promise<GatewayFailure[] | Rejection>
+  ResultAsync<void, GatewayFailure[] | Rejection>
+  // Promise<GatewayFailure[] | Rejection>
 > {
   constructor(
     private readonly repository: OpenMembershipRepository,
@@ -21,18 +23,43 @@ export class OpenMembershipHandler implements HandleCommand<
     >,
   ) {}
 
-  async handle(command: OpenMembershipCommand): Promise<GatewayFailure[] | Rejection> {
-    const result = await this.repository.load(command.payload.membershipId, command.payload.email);
-    if (isFailure(result)) return [result];
+  // async handle(command: OpenMembershipCommand): Promise<GatewayFailure[] | Rejection> {
+  //   const result = await this.repository.load(command.payload.membershipId, command.payload.email);
+  //   if (isFailure(result)) return [result];
 
-    const currentState = result;
-    const decision = decideOpenMembership(currentState, command);
+  //   const currentState = result;
+  //   const decision = decideOpenMembership(currentState, command);
 
-    if (isRejection(decision)) return decision.rejection;
+  //   if (isRejection(decision)) return decision.rejection;
 
-    const repositoryResult = await this.repository.store(decision.events);
-    const outboxResult = await this.outbox.stage(decision.intents);
+  //   const repositoryResult = await this.repository.store(decision.events);
+  //   const outboxResult = await this.outbox.stage(decision.intents);
 
-    return [repositoryResult, outboxResult].filter(isFailure);
+  //   return [repositoryResult, outboxResult].filter(isFailure);
+  // }
+
+  handle(command: OpenMembershipCommand): ResultAsync<void, GatewayFailure[] | Rejection> {
+    return fromSafePromise(
+      this.repository.load(command.payload.membershipId, command.payload.email),
+    )
+      .andThen((loadResult) => {
+        if (isFailure(loadResult)) return errAsync([loadResult]);
+        return okAsync(decideOpenMembership(loadResult, command));
+      })
+      .andThen((decision) => {
+        if (isRejection(decision)) return errAsync(decision.rejection);
+        return okAsync(decision);
+      })
+      .andThen((decision) => {
+        return ResultAsync.combine([
+          fromSafePromise(this.repository.store(decision.events)),
+          fromSafePromise(this.outbox.stage(decision.intents)),
+        ]);
+      })
+      .andThen((combi) => {
+        const failures = combi.filter(isFailure);
+        if (failures.length) return errAsync(combi.filter(isFailure));
+        return okAsync();
+      });
   }
 }

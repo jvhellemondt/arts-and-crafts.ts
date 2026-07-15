@@ -4,15 +4,15 @@
       "mcp__plugin_qmd-plugin_qmd__search",
       "mcp__plugin_qmd-plugin_qmd__vector_search",
       "mcp__plugin_qmd-plugin_qmd__get",
-      "Bash(bun run lint:fix:*)",
-      "Bash(bun run typecheck:*)",
-      "Bash(bun run coverage:*)",
-      "Bash(bun run test:*)",
-      "Bash(bun run check-exports:*)",
+      "Bash(pnpm run lint:fix:*)",
+      "Bash(pnpm run typecheck:*)",
+      "Bash(pnpm run coverage:*)",
+      "Bash(pnpm run test:*)",
+      "Bash(pnpm run check-exports:*)",
       "mcp__plugin_qmd-plugin_qmd__status",
       "Bash(webstorm:*)",
       "Bash(open -a WebStorm:*)",
-      "Bash(bun run lint:*)"
+      "Bash(pnpm run lint:*)"
     ]
   }
 }

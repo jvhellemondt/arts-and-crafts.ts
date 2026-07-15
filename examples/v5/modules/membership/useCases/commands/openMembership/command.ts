@@ -32,10 +32,13 @@ export function createOpenMembershipCommand(
 
 export type OpenMembershipCommand = ReturnType<typeof createOpenMembershipCommand>;
 
-export function toOpenMembershipCommand(
-  payload: Omit<OpenMembershipCommandPayload, "membershipId">,
-  metadata: Metadata,
-): OpenMembershipCommand {
+export function toOpenMembershipCommand({
+  payload,
+  metadata,
+}: {
+  payload: Omit<OpenMembershipCommandPayload, "membershipId">;
+  metadata: Metadata;
+}): OpenMembershipCommand {
   return createOpenMembershipCommand(
     { ...payload, membershipId: aggregateId.parse(uuidv7()) },
     metadata,
