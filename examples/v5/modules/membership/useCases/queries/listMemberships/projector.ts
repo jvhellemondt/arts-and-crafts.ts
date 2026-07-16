@@ -5,39 +5,45 @@ import type {
   LoadProjection,
   SaveProjection,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure, StoredEvent } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
-import { isFailure } from "@examples/shared/utils/isFailure.ts";
+import { ResultAsync, okAsync } from "neverthrow";
 import { apply, type ListMembershipsProjection } from "./projection.ts";
 
-type ProjectionStore = LoadProjection<ListMembershipsProjection> &
-  SaveProjection<ListMembershipsProjection> &
-  LoadCheckpoint &
-  AdvanceCheckpoint;
+type ProjectionStore = LoadProjection<
+  ListMembershipsProjection,
+  ResultAsync<ListMembershipsProjection, GatewayFailure>
+> &
+  SaveProjection<ListMembershipsProjection, ResultAsync<void, GatewayFailure>> &
+  LoadCheckpoint<ResultAsync<number, GatewayFailure>> &
+  AdvanceCheckpoint<ResultAsync<void, GatewayFailure>>;
 
 export class ListMembershipsProjector {
   constructor(
     private readonly store: ProjectionStore,
-    private readonly events: LoadEventsFrom<MembershipEventV1>,
+    private readonly events: LoadEventsFrom<
+      MembershipEventV1,
+      ResultAsync<StoredEvent<MembershipEventV1>[], GatewayFailure>
+    >,
     private readonly batchSize: number = 100,
   ) {}
 
   async tick(): Promise<void> {
-    const checkpoint = await this.store.loadCheckpoint();
-    if (isFailure(checkpoint)) return;
-
-    const batch = await this.events.loadFrom(checkpoint + 1, this.batchSize);
-    if (isFailure(batch)) return;
-
-    for (const stored of batch) {
-      const current = await this.store.load();
-      if (isFailure(current)) return;
-
-      const next = apply(current, stored.event);
-      const saved = await this.store.save(next);
-      if (isFailure(saved)) return;
-
-      const advanced = await this.store.advanceCheckpoint(stored.globalPosition);
-      if (isFailure(advanced)) return;
-    }
+    await this.store
+      .loadCheckpoint()
+      .andThen((checkpoint) => this.events.loadFrom(checkpoint + 1, this.batchSize))
+      .andThen((batch) =>
+        batch.reduce<ResultAsync<void, GatewayFailure>>(
+          (acc, stored) =>
+            acc.andThen(() =>
+              this.store
+                .load()
+                .map((current) => apply(current, stored.event))
+                .andThen((next) => this.store.save(next))
+                .andThen(() => this.store.advanceCheckpoint(stored.globalPosition)),
+            ),
+          okAsync(undefined),
+        ),
+      );
   }
 }

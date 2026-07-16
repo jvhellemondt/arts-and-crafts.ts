@@ -22,11 +22,11 @@ describe("openMembership Lambda handler", () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it("returns 404 with {code, reason} when the membership already exists", async () => {
+  it("returns 409 with {code, reason} when the membership already exists", async () => {
     const body = { name: "John Doe", email: "duplicate@example.com" };
     await handler(buildEvent(body));
     const res = await handler(buildEvent(body));
-    expect(res.statusCode).toBe(404);
+    expect(res.statusCode).toBe(409);
     expect(JSON.parse(res.body as string)).toEqual({
       code: "MEMBERSHIP_ALREADY_EXISTS",
       reason: "Membership already exists",

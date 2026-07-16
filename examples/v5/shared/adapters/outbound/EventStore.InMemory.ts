@@ -11,6 +11,7 @@ import type {
   StreamKey,
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
+import { ResultAsync, errAsync, okAsync } from "neverthrow";
 
 const EVENT_STORE_TABLE = "event_store";
 const EVENT_TAGS_TABLE = "event_tags";
@@ -48,9 +49,9 @@ export type TableName = TableRow<never>["table"];
  */
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
-    LoadDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>,
-    LoadEventsFrom<TEvent>,
-    AppendToEventStore<TEvent, Promise<void | GatewayFailure>>,
+    LoadDomainEvents<TEvent, ResultAsync<TEvent[], GatewayFailure>>,
+    LoadEventsFrom<TEvent, ResultAsync<StoredEvent<TEvent>[], GatewayFailure>>,
+    AppendToEventStore<TEvent, ResultAsync<void, GatewayFailure>>,
     SimulateFaults
 {
   private simulation?: FaultSimulationMode;
@@ -114,32 +115,32 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     return eventIds;
   }
 
-  async load(concerns: readonly StreamKey[]): Promise<TEvent[] | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+  load(concerns: readonly StreamKey[]): ResultAsync<TEvent[], GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
     const eventIds = this.candidateEventIds(concerns);
 
     // Step 2: join back to the events table, in append order —
     // mirrors `SELECT * FROM events WHERE id IN (...) ORDER BY global_position`.
-    return this.eventRows
-      .filter((row) => eventIds.has(row.data.event.id))
-      .map((row) => row.data.event);
+    return okAsync(
+      this.eventRows.filter((row) => eventIds.has(row.data.event.id)).map((row) => row.data.event),
+    );
   }
 
-  async loadFrom(
+  loadFrom(
     globalPosition: number,
     limit?: number,
-  ): Promise<StoredEvent<TEvent>[] | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+  ): ResultAsync<StoredEvent<TEvent>[], GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
     const filtered = this.eventRows
       .filter((row) => row.data.globalPosition >= globalPosition)
       .map((row) => row.data);
-    return limit !== undefined ? filtered.slice(0, limit) : filtered;
+    return okAsync(limit !== undefined ? filtered.slice(0, limit) : filtered);
   }
 
-  async append(events: TEvent[]): Promise<void | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+  append(events: TEvent[]): ResultAsync<void, GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
     for (const event of events) {
       const row: EventStoreRow<TEvent> = {
@@ -154,5 +155,6 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
       this.eventRows.push(row);
       this.indexConcerns(row);
     }
+    return okAsync(undefined);
   }
 }

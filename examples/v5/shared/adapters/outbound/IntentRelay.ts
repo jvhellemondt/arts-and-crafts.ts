@@ -7,12 +7,16 @@ import type {
   MarkIntentDispatched,
   MarkIntentFailed,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure, OutboxEnvelope } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Intent } from "@arts-and-crafts/v5/core/shapes";
-import { isFailure } from "@examples/shared/utils/isFailure.ts";
+import type { ResultAsync } from "neverthrow";
 
-type IntentOutbox<TIntent extends Intent> = LoadPendingIntents<TIntent> &
-  MarkIntentDispatched &
-  MarkIntentFailed;
+type IntentOutbox<TIntent extends Intent> = LoadPendingIntents<
+  TIntent,
+  ResultAsync<OutboxEnvelope<TIntent>[], GatewayFailure>
+> &
+  MarkIntentDispatched<ResultAsync<void, GatewayFailure>> &
+  MarkIntentFailed<ResultAsync<void, GatewayFailure>>;
 
 export class IntentRelay<TIntent extends Intent> implements RelayPendingIntents {
   constructor(
@@ -23,9 +27,9 @@ export class IntentRelay<TIntent extends Intent> implements RelayPendingIntents 
 
   async relay(): Promise<void> {
     const pending = await this.outbox.loadPending(this.batchSize);
-    if (isFailure(pending)) return;
+    if (pending.isErr()) return;
 
-    for (const envelope of pending) {
+    for (const envelope of pending.value) {
       const handler = this.handlers.get(envelope.entry.type);
       if (!handler) {
         await this.outbox.markFailed(

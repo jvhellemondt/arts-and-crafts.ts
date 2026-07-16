@@ -1,33 +1,40 @@
 import type { Context } from "hono";
-import { readQueryParams, readHeaders, respond } from "@arts-and-crafts/v5-hono";
-import { runQuery } from "@arts-and-crafts/v5-utils/useCases/query";
-import {
-  parsePayload,
-  correlationIdFromHeaders,
-  causationIdFromHeaders,
-  resolveError,
-} from "@arts-and-crafts/v5-utils/adapters/inbound";
+import { causationIdFromHeaders, correlationIdFromHeaders } from "@arts-and-crafts/v5-hono";
+import { parseSchema } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
+import { ResultAsync } from "neverthrow";
 import type { ListMembershipsProjection } from "../../projection.ts";
 import { createListMembershipsQuery, listMembershipsQueryPayload } from "../../query.ts";
 import { ListMembershipsHandler } from "../../handler.ts";
-import { listMembershipsHooks } from "./hooks.ts";
 
-export function createListMembershipsHonoHandler(store: LoadProjection<ListMembershipsProjection>) {
+export function createListMembershipsHonoHandler(
+  store: LoadProjection<
+    ListMembershipsProjection,
+    ResultAsync<ListMembershipsProjection, GatewayFailure>
+  >,
+) {
   const handler = new ListMembershipsHandler(store);
 
   return (c: Context) => {
-    const headers = readHeaders(c);
-    const metadata = {
-      correlationId: correlationIdFromHeaders(headers),
-      causationId: causationIdFromHeaders(headers),
-    };
-    return parsePayload(listMembershipsQueryPayload, readQueryParams(c))
-      .map((payload) => createListMembershipsQuery(payload, metadata))
-      .asyncAndThen((query) => runQuery(query, handler))
+    return ResultAsync.combine([
+      parseSchema(listMembershipsQueryPayload)({ body: c.req.query() }),
+      correlationIdFromHeaders()(c),
+      causationIdFromHeaders()(c),
+    ])
+      .map(([payload, ...metadata]) => ({
+        payload,
+        metadata: metadata.reduce((acc, value) => Object.assign(acc, value), {}) as Metadata,
+      }))
+      .map(({ payload, metadata }) => createListMembershipsQuery(payload, metadata))
+      .andThen((query) => handler.handle(query))
       .match(
         (data) => c.json(data, 200),
-        (error) => respond(c, resolveError(error, listMembershipsHooks)),
+        (error) => {
+          if (Array.isArray(error)) return c.json({ code: "GATEWAY_FAILURE" }, 503);
+          return c.json({ code: error.code, reason: error.reason }, 400);
+        },
       );
   };
 }

@@ -31,6 +31,11 @@ We use a lightweight Markdown format inspired by [MADR](https://adr.github.io/ma
 - [ADR-006: Projection Handlers Guard on isDomainEvent](./006-projection-handlers-guard-on-is-domain-event.md)
 - [ADR-007: ScenarioTest Given Step Publishes to Event Bus](./007-scenario-test-given-publishes-to-event-bus.md)
 
+### v5 neverthrow Pipeline (2026-07)
+
+- [ADR-008: Inbound Pipeline Uses neverthrow Instead of Middleware Frameworks](./008-inbound-pipeline-uses-neverthrow-not-middleware-frameworks.md)
+- [ADR-009: Outbound Ports Return ResultAsync; Rejection Stays in the Ok Channel](./009-outbound-ports-return-resultasync-rejection-stays-in-ok.md)
+
 ## Contributing
 
 When making a significant architectural decision:

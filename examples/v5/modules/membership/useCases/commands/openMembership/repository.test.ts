@@ -37,7 +37,9 @@ describe("OpenMembershipRepository", () => {
 
       await repository.store([event]);
 
-      const stored = await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, aggregateId)]);
+      const stored = (
+        await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, aggregateId)])
+      )._unsafeUnwrap();
       expect(stored).toEqual([event]);
     });
 
@@ -48,10 +50,10 @@ describe("OpenMembershipRepository", () => {
       await repository.store([makeEvent(aggregateId1), makeEvent(aggregateId2)]);
 
       expect(
-        await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, aggregateId1)]),
+        (await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, aggregateId1)]))._unsafeUnwrap(),
       ).toHaveLength(1);
       expect(
-        await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, aggregateId2)]),
+        (await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, aggregateId2)]))._unsafeUnwrap(),
       ).toHaveLength(1);
     });
 
@@ -60,7 +62,9 @@ describe("OpenMembershipRepository", () => {
 
       await repository.store([makeEvent(aggregateId)]);
 
-      expect(await eventStore.load([createStreamKey("other", aggregateId)])).toEqual([]);
+      expect(
+        (await eventStore.load([createStreamKey("other", aggregateId)]))._unsafeUnwrap(),
+      ).toEqual([]);
     });
   });
 
@@ -68,7 +72,7 @@ describe("OpenMembershipRepository", () => {
     it("returns initial state when no events exist for the aggregate", async () => {
       const aggregateId = randomUUID();
 
-      const state = await repository.load(aggregateId, validEmail);
+      const state = (await repository.load(aggregateId, validEmail))._unsafeUnwrap();
 
       expect(state).toEqual({ status: "initial", id: aggregateId });
     });
@@ -77,7 +81,7 @@ describe("OpenMembershipRepository", () => {
       const aggregateId = randomUUID();
       await repository.store([makeEvent(aggregateId)]);
 
-      const state = await repository.load(aggregateId, validEmail);
+      const state = (await repository.load(aggregateId, validEmail))._unsafeUnwrap();
 
       expect(state).toMatchObject({
         status: "open",
@@ -92,7 +96,7 @@ describe("OpenMembershipRepository", () => {
       await repository.store([makeEvent(aggregateId)]);
 
       const otherId = randomUUID();
-      const state = await repository.load(otherId, validEmail);
+      const state = (await repository.load(otherId, validEmail))._unsafeUnwrap();
 
       expect(state).toEqual({ status: "initial", id: otherId });
     });
@@ -100,7 +104,7 @@ describe("OpenMembershipRepository", () => {
     it("returns a GatewayFailure when the event store is offline", async () => {
       eventStore.simulate("offline");
 
-      const state = await repository.load(randomUUID(), validEmail);
+      const state = (await repository.load(randomUUID(), validEmail))._unsafeUnwrapErr();
 
       expect(state).toMatchObject({ code: "GATEWAY_FAILURE" });
     });

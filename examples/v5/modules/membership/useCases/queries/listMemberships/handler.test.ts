@@ -1,9 +1,15 @@
 import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import { type ResultAsync, errAsync, okAsync } from "neverthrow";
 import { randomUUID } from "node:crypto";
 import { ListMembershipsHandler } from "./handler.ts";
 import type { ListMembershipsProjection, MembershipSummary } from "./projection.ts";
 import { createListMembershipsQuery, listMembershipsQueryPayload } from "./query.ts";
+
+type Loader = LoadProjection<
+  ListMembershipsProjection,
+  ResultAsync<ListMembershipsProjection, GatewayFailure>
+>;
 
 const makeQuery = (status?: "open" | "initial" | "active" | "closed") =>
   createListMembershipsQuery(listMembershipsQueryPayload.parse({ status }), {
@@ -18,18 +24,18 @@ const makeSummary = (overrides: Partial<MembershipSummary> = {}): MembershipSumm
   status: "open",
 });
 
-const makeLoader = (
-  state: ListMembershipsProjection | GatewayFailure,
-): LoadProjection<ListMembershipsProjection> => ({
-  async load() {
-    return state;
-  },
+const makeLoader = (state: ListMembershipsProjection): Loader => ({
+  load: () => okAsync(state),
+});
+
+const makeFailingLoader = (failure: GatewayFailure): Loader => ({
+  load: () => errAsync(failure),
 });
 
 describe("ListMembershipsHandler", () => {
   it("returns an empty list when the projection is empty", async () => {
     const handler = new ListMembershipsHandler(makeLoader({}));
-    const result = await handler.handle(makeQuery("open"));
+    const result = (await handler.handle(makeQuery("open")))._unsafeUnwrap();
     expect(result).toEqual([]);
   });
 
@@ -37,7 +43,7 @@ describe("ListMembershipsHandler", () => {
     const a = makeSummary();
     const b = makeSummary();
     const handler = new ListMembershipsHandler(makeLoader({ [a.id]: a, [b.id]: b }));
-    const result = await handler.handle(makeQuery("open"));
+    const result = (await handler.handle(makeQuery("open")))._unsafeUnwrap();
     expect(result).toEqual(expect.arrayContaining([a, b]));
     expect(result).toHaveLength(2);
   });
@@ -45,14 +51,14 @@ describe("ListMembershipsHandler", () => {
   it("returns an empty list when no memberships match the status filter", async () => {
     const a = makeSummary();
     const handler = new ListMembershipsHandler(makeLoader({ [a.id]: a }));
-    const result = await handler.handle(makeQuery("active"));
+    const result = (await handler.handle(makeQuery("active")))._unsafeUnwrap();
     expect(result).toEqual([]);
   });
 
-  it("returns an empty list when status is undefined", async () => {
+  it("returns all memberships when status is undefined", async () => {
     const state = makeSummary();
     const handler = new ListMembershipsHandler(makeLoader({ [state.id]: state }));
-    const result = await handler.handle(makeQuery());
+    const result = (await handler.handle(makeQuery()))._unsafeUnwrap();
     expect(result).toEqual([state]);
   });
 
@@ -63,8 +69,8 @@ describe("ListMembershipsHandler", () => {
       gateway: "InMemoryProjectionStore",
       reason: "offline",
     };
-    const handler = new ListMembershipsHandler(makeLoader(failure));
-    const result = await handler.handle(makeQuery("open"));
+    const handler = new ListMembershipsHandler(makeFailingLoader(failure));
+    const result = (await handler.handle(makeQuery("open")))._unsafeUnwrapErr();
     expect(result).toEqual([failure]);
   });
 });
