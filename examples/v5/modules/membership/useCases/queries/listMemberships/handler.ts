@@ -1,21 +1,29 @@
 import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { HandleQuery } from "@arts-and-crafts/v5/useCases/query/capabilities";
-import { isFailure } from "@examples/shared/utils/isFailure.ts";
+import type { ResultAsync } from "neverthrow";
 import type { ListMembershipsProjection, MembershipSummary } from "./projection.ts";
 import type { ListMembershipsQuery } from "./query.ts";
 
 export class ListMembershipsHandler implements HandleQuery<
   ListMembershipsQuery,
-  Promise<GatewayFailure[] | MembershipSummary[]>
+  ResultAsync<MembershipSummary[], GatewayFailure[]>
 > {
-  constructor(private readonly store: LoadProjection<ListMembershipsProjection>) {}
+  constructor(
+    private readonly store: LoadProjection<
+      ListMembershipsProjection,
+      ResultAsync<ListMembershipsProjection, GatewayFailure>
+    >,
+  ) {}
 
-  async handle(query: ListMembershipsQuery): Promise<GatewayFailure[] | MembershipSummary[]> {
-    const projection = await this.store.load();
-    if (isFailure(projection)) return [projection];
-    return Object.values(projection).filter((m) =>
-      query.payload.status ? m.status === query.payload.status : true,
-    );
+  handle(query: ListMembershipsQuery): ResultAsync<MembershipSummary[], GatewayFailure[]> {
+    return this.store
+      .load()
+      .mapErr((failure): GatewayFailure[] => [failure])
+      .map((projection) =>
+        Object.values(projection).filter((m) =>
+          query.payload.status ? m.status === query.payload.status : true,
+        ),
+      );
   }
 }

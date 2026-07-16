@@ -7,13 +7,14 @@ import type {
   SimulateFaults,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import { ResultAsync, errAsync, okAsync } from "neverthrow";
 
 export class InMemoryProjectionStore<TState>
   implements
-    LoadProjection<TState>,
-    SaveProjection<TState>,
-    LoadCheckpoint,
-    AdvanceCheckpoint,
+    LoadProjection<TState, ResultAsync<TState, GatewayFailure>>,
+    SaveProjection<TState, ResultAsync<void, GatewayFailure>>,
+    LoadCheckpoint<ResultAsync<number, GatewayFailure>>,
+    AdvanceCheckpoint<ResultAsync<void, GatewayFailure>>,
     SimulateFaults
 {
   private state: TState;
@@ -49,23 +50,25 @@ export class InMemoryProjectionStore<TState>
     };
   }
 
-  async load(): Promise<TState | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
-    return this.state;
+  load(): ResultAsync<TState, GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
+    return okAsync(this.state);
   }
 
-  async save(state: TState): Promise<void | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+  save(state: TState): ResultAsync<void, GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
     this.state = state;
+    return okAsync(undefined);
   }
 
-  async loadCheckpoint(): Promise<number | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
-    return this.checkpoint;
+  loadCheckpoint(): ResultAsync<number, GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
+    return okAsync(this.checkpoint);
   }
 
-  async advanceCheckpoint(position: number): Promise<void | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+  advanceCheckpoint(position: number): ResultAsync<void, GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
     this.checkpoint = position;
+    return okAsync(undefined);
   }
 }

@@ -20,15 +20,22 @@ import type { MembershipIntents } from "@examples/modules/membership/core/intent
 import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
+import type { ResultAsync } from "neverthrow";
 import { createOpenMembershipHonoHandler } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
 import { createListMembershipsHonoHandler } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/hono.ts";
 
 export function createHonoApp(
-  eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
-    AppendToEventStore<MembershipEventV1, Promise<void | GatewayFailure>>,
-  outbox: StageIntents<MembershipIntents, Promise<void | GatewayFailure>> &
-    StageNotifications<OpenMembershipRejected, Promise<void | GatewayFailure>>,
-  listMembershipsProjectionLoader: LoadProjection<ListMembershipsProjection>,
+  eventStore: LoadDomainEvents<
+    MembershipEventV1,
+    ResultAsync<MembershipEventV1[], GatewayFailure>
+  > &
+    AppendToEventStore<MembershipEventV1, ResultAsync<void, GatewayFailure>>,
+  outbox: StageIntents<MembershipIntents, ResultAsync<void, GatewayFailure>> &
+    StageNotifications<OpenMembershipRejected, ResultAsync<void, GatewayFailure>>,
+  listMembershipsProjectionLoader: LoadProjection<
+    ListMembershipsProjection,
+    ResultAsync<ListMembershipsProjection, GatewayFailure>
+  >,
 ) {
   const app = new Hono();
   app.use(

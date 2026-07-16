@@ -30,32 +30,35 @@ describe("OpenMembershipHandler", () => {
     handler = new OpenMembershipHandler(repository, outbox);
   });
 
-  it("returns void when the membership is successfully opened", async () => {
-    const result = await handler.handle(command);
-    expect(result).toEqual([]);
+  it("returns an accepted decision when the membership is successfully opened", async () => {
+    const decision = (await handler.handle(command))._unsafeUnwrap();
+    expect(decision.accepted).toBe(true);
   });
 
-  it("returns the rejection when the membership already exists", async () => {
+  it("returns a rejected decision (in the Ok channel) when the membership already exists", async () => {
     await handler.handle(command);
 
-    const result = await handler.handle(command);
+    const decision = (await handler.handle(command))._unsafeUnwrap();
 
-    expect(result).toMatchObject({
-      code: "MEMBERSHIP_ALREADY_EXISTS",
-      kind: "rejection",
-      reason: "Membership already exists",
+    expect(decision).toMatchObject({
+      accepted: false,
+      rejection: {
+        code: "MEMBERSHIP_ALREADY_EXISTS",
+        kind: "rejection",
+        reason: "Membership already exists",
+      },
     });
   });
 
   it("returns a GatewayFailure when the event store is offline", async () => {
     eventStore.simulate("offline");
-    const result = await handler.handle(command);
-    expect(result).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" }]);
+    const failures = (await handler.handle(command))._unsafeUnwrapErr();
+    expect(failures).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" }]);
   });
 
   it("returns GatewayFailures when the outbox is offline", async () => {
     outbox.simulate("offline");
-    const result = await handler.handle(command);
-    expect(result).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" }]);
+    const failures = (await handler.handle(command))._unsafeUnwrapErr();
+    expect(failures).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" }]);
   });
 });

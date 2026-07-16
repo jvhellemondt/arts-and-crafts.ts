@@ -7,8 +7,6 @@ export default defineConfig({
   entry: {
     "core/index": "src/module/core/index.ts",
     "adapters-inbound/index": "src/module/adapters/inbound/index.ts",
-    "useCases-command/index": "src/module/useCases/command/index.ts",
-    "useCases-query/index": "src/module/useCases/query/index.ts",
   },
   format: ["cjs", "esm"],
   dts: true,

@@ -4,7 +4,6 @@ import {
   causationIdFromHeaders,
   correlationIdFromHeaders,
 } from "@arts-and-crafts/v5-hono";
-import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
 import { parseSchema } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
 import type {
@@ -12,24 +11,27 @@ import type {
   AppendToEventStore,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
+import { ResultAsync } from "neverthrow";
 import { OpenMembershipHandler } from "../../handler.ts";
 import { OpenMembershipRepository } from "../../repository.ts";
-import { openMembershipCommandPayload, toOpenMembershipCommand } from "../../command.ts";
+import { toOpenMembershipCommand } from "../../command.ts";
 import { openMembershipSchema } from "./schema.ts";
-import { ok, Result, ResultAsync } from "neverthrow";
-import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 
 export function createOpenMembershipHonoHandler(
-  eventStore: LoadDomainEvents<MembershipEventV1, Promise<MembershipEventV1[] | GatewayFailure>> &
-    AppendToEventStore<MembershipEventV1, Promise<void | GatewayFailure>>,
-  outbox: StageIntents<NotifyUserToVerifyEmailV1, Promise<void | GatewayFailure>>,
+  eventStore: LoadDomainEvents<
+    MembershipEventV1,
+    ResultAsync<MembershipEventV1[], GatewayFailure>
+  > &
+    AppendToEventStore<MembershipEventV1, ResultAsync<void, GatewayFailure>>,
+  outbox: StageIntents<NotifyUserToVerifyEmailV1, ResultAsync<void, GatewayFailure>>,
 ) {
   const repository = new OpenMembershipRepository(eventStore);
   const handler = new OpenMembershipHandler(repository, outbox);
 
-  return async (c: Context) => {
+  return (c: Context) => {
     return ResultAsync.combine([
       parseJsonBody(c).andThen(parseSchema(openMembershipSchema)),
       correlationIdFromHeaders()(c),
@@ -40,13 +42,16 @@ export function createOpenMembershipHonoHandler(
         metadata: metadata.reduce((acc, value) => Object.assign(acc, value), {}) as Metadata,
       }))
       .map(toOpenMembershipCommand)
-      .andThen(handler.handle.bind(handler))
+      .andThen((command) => handler.handle(command))
       .match(
-        (data) => {
-          return c.json({ data });
-        },
-        (err) => {
-          return c.json({ err });
+        (decision) =>
+          decision.accepted
+            ? c.json({ accepted: true, id: decision.events[0].payload.membershipId }, 202)
+            : c.json({ code: decision.rejection.code, reason: decision.rejection.reason }, 409),
+        (error) => {
+          if (Array.isArray(error)) return c.json({ code: "GATEWAY_FAILURE" }, 503);
+          if ("kind" in error) return c.json({ code: error.code, reason: error.reason }, 400);
+          return c.json({ code: error.name, reason: error.message }, 400);
         },
       );
   };

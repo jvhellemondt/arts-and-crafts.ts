@@ -8,7 +8,15 @@ import type {
 import type { OutboxEnvelope, GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
 import { IntentRelay } from "./IntentRelay.ts";
+import { type ResultAsync, errAsync, okAsync } from "neverthrow";
 import { randomUUID } from "node:crypto";
+
+type FakeOutbox = LoadPendingIntents<
+  TestIntent,
+  ResultAsync<OutboxEnvelope<TestIntent>[], GatewayFailure>
+> &
+  MarkIntentDispatched<ResultAsync<void, GatewayFailure>> &
+  MarkIntentFailed<ResultAsync<void, GatewayFailure>>;
 
 interface NotifyIntent extends Intent<"Notify.v1", { channel: "email" | "push" }> {}
 interface WelcomeIntent extends Intent<"Welcome.v1", { name: string }> {}
@@ -206,10 +214,10 @@ describe("IntentRelay", () => {
       attemptCount: 0,
       entry: makeNotify(),
     };
-    const fakeOutbox: LoadPendingIntents<TestIntent> & MarkIntentDispatched & MarkIntentFailed = {
-      loadPending: async () => [envelope],
-      markDispatched: async () => offlineFailure,
-      markFailed: async () => undefined,
+    const fakeOutbox: FakeOutbox = {
+      loadPending: () => okAsync([envelope]),
+      markDispatched: () => errAsync(offlineFailure),
+      markFailed: () => okAsync(undefined),
     };
 
     const notify = new RecordingHandler<NotifyIntent>();
@@ -231,15 +239,16 @@ describe("IntentRelay", () => {
       attemptCount: 0,
       entry: makeNotify(),
     };
-    const fakeOutbox: LoadPendingIntents<TestIntent> & MarkIntentDispatched & MarkIntentFailed = {
-      loadPending: async () => [envelope],
-      markDispatched: async () => undefined,
-      markFailed: async () => ({
-        kind: "failure",
-        code: "GATEWAY_FAILURE",
-        gateway: "FakeOutbox",
-        reason: "boom",
-      }),
+    const fakeOutbox: FakeOutbox = {
+      loadPending: () => okAsync([envelope]),
+      markDispatched: () => okAsync(undefined),
+      markFailed: () =>
+        errAsync({
+          kind: "failure",
+          code: "GATEWAY_FAILURE",
+          gateway: "FakeOutbox",
+          reason: "boom",
+        }),
     };
 
     const failing = new RecordingHandler<NotifyIntent>(async () => {

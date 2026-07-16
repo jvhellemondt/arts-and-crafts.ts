@@ -9,6 +9,7 @@ import type { MembershipEventV1 } from "@examples/modules/membership/core/events
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
+import { type ResultAsync, errAsync, okAsync } from "neverthrow";
 import { randomUUID } from "node:crypto";
 import type { ListMembershipsProjection } from "./projection.ts";
 import { ListMembershipsProjector } from "./projector.ts";
@@ -22,16 +23,19 @@ const stubFailure: GatewayFailure = {
   reason: "stub failure",
 };
 
-type StubStore = LoadProjection<ListMembershipsProjection> &
-  SaveProjection<ListMembershipsProjection> &
-  LoadCheckpoint &
-  AdvanceCheckpoint;
+type StubStore = LoadProjection<
+  ListMembershipsProjection,
+  ResultAsync<ListMembershipsProjection, GatewayFailure>
+> &
+  SaveProjection<ListMembershipsProjection, ResultAsync<void, GatewayFailure>> &
+  LoadCheckpoint<ResultAsync<number, GatewayFailure>> &
+  AdvanceCheckpoint<ResultAsync<void, GatewayFailure>>;
 
 const stubStore = (overrides: Partial<StubStore>): StubStore => ({
-  load: async () => ({}),
-  save: async () => {},
-  loadCheckpoint: async () => 0,
-  advanceCheckpoint: async () => {},
+  load: () => okAsync({}),
+  save: () => okAsync(undefined),
+  loadCheckpoint: () => okAsync(0),
+  advanceCheckpoint: () => okAsync(undefined),
   ...overrides,
 });
 
@@ -60,7 +64,7 @@ describe("ListMembershipsProjector", () => {
       await eventStore.append([makeEvent({ aggregateId: "id-1" })]);
       await projector.tick();
 
-      expect(await projectionStore.load()).toMatchObject({
+      expect((await projectionStore.load())._unsafeUnwrap()).toMatchObject({
         "id-1": expect.objectContaining({ id: "id-1" }),
       });
     });
@@ -77,7 +81,7 @@ describe("ListMembershipsProjector", () => {
       ]);
       await projector.tick();
 
-      expect(await projectionStore.loadCheckpoint()).toBe(3);
+      expect((await projectionStore.loadCheckpoint())._unsafeUnwrap()).toBe(3);
     });
 
     it("resumes from the saved checkpoint on the next tick", async () => {
@@ -97,9 +101,9 @@ describe("ListMembershipsProjector", () => {
       ]);
       await projector.tick();
 
-      const state = (await projectionStore.load()) as ListMembershipsProjection;
+      const state = (await projectionStore.load())._unsafeUnwrap();
       expect(Object.keys(state)).toEqual(expect.arrayContaining(["id-1", "id-2", "id-3", "id-4"]));
-      expect(await projectionStore.loadCheckpoint()).toBe(4);
+      expect((await projectionStore.loadCheckpoint())._unsafeUnwrap()).toBe(4);
     });
 
     it("does nothing when no new events are available", async () => {
@@ -109,8 +113,8 @@ describe("ListMembershipsProjector", () => {
 
       await projector.tick();
 
-      expect(await projectionStore.load()).toEqual({});
-      expect(await projectionStore.loadCheckpoint()).toBe(0);
+      expect((await projectionStore.load())._unsafeUnwrap()).toEqual({});
+      expect((await projectionStore.loadCheckpoint())._unsafeUnwrap()).toBe(0);
     });
 
     it("does not advance the checkpoint when the projection store is offline", async () => {
@@ -123,8 +127,8 @@ describe("ListMembershipsProjector", () => {
       await projector.tick();
 
       projectionStore.restore();
-      expect(await projectionStore.load()).toEqual({});
-      expect(await projectionStore.loadCheckpoint()).toBe(0);
+      expect((await projectionStore.load())._unsafeUnwrap()).toEqual({});
+      expect((await projectionStore.loadCheckpoint())._unsafeUnwrap()).toBe(0);
     });
 
     it("returns early when the event store is offline", async () => {
@@ -137,17 +141,18 @@ describe("ListMembershipsProjector", () => {
       await projector.tick();
 
       eventStore.restore();
-      expect(await projectionStore.load()).toEqual({});
-      expect(await projectionStore.loadCheckpoint()).toBe(0);
+      expect((await projectionStore.load())._unsafeUnwrap()).toEqual({});
+      expect((await projectionStore.loadCheckpoint())._unsafeUnwrap()).toBe(0);
     });
 
     it("bails mid-batch when projection load fails", async () => {
       const eventStore = new InMemoryEventStore<MembershipEventV1>();
       const advanced: number[] = [];
       const store = stubStore({
-        load: async () => stubFailure,
-        advanceCheckpoint: async (position) => {
+        load: () => errAsync(stubFailure),
+        advanceCheckpoint: (position) => {
           advanced.push(position);
+          return okAsync(undefined);
         },
       });
       const projector = new ListMembershipsProjector(store, eventStore);
@@ -162,9 +167,10 @@ describe("ListMembershipsProjector", () => {
       const eventStore = new InMemoryEventStore<MembershipEventV1>();
       const advanced: number[] = [];
       const store = stubStore({
-        save: async () => stubFailure,
-        advanceCheckpoint: async (position) => {
+        save: () => errAsync(stubFailure),
+        advanceCheckpoint: (position) => {
           advanced.push(position);
+          return okAsync(undefined);
         },
       });
       const projector = new ListMembershipsProjector(store, eventStore);
@@ -179,10 +185,11 @@ describe("ListMembershipsProjector", () => {
       const eventStore = new InMemoryEventStore<MembershipEventV1>();
       const saved: ListMembershipsProjection[] = [];
       const store = stubStore({
-        save: async (state) => {
+        save: (state) => {
           saved.push(state);
+          return okAsync(undefined);
         },
-        advanceCheckpoint: async () => stubFailure,
+        advanceCheckpoint: () => errAsync(stubFailure),
       });
       const projector = new ListMembershipsProjector(store, eventStore);
 
@@ -207,9 +214,9 @@ describe("ListMembershipsProjector", () => {
       ]);
       await projector.tick();
 
-      expect(await projectionStore.loadCheckpoint()).toBe(2);
+      expect((await projectionStore.loadCheckpoint())._unsafeUnwrap()).toBe(2);
       await projector.tick();
-      expect(await projectionStore.loadCheckpoint()).toBe(3);
+      expect((await projectionStore.loadCheckpoint())._unsafeUnwrap()).toBe(3);
     });
   });
 });

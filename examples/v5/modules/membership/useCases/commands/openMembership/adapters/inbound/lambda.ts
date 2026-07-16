@@ -1,33 +1,56 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { readJsonBody, readHeaders, toApiGatewayResult } from "@arts-and-crafts/v5-aws";
-import { runCommand } from "@arts-and-crafts/v5-utils/useCases/command";
+import { parseJsonBody } from "@arts-and-crafts/v5-aws";
 import {
-  parsePayload,
+  parseSchema,
   correlationIdFromHeaders,
   causationIdFromHeaders,
-  resolveError,
 } from "@arts-and-crafts/v5-utils/adapters/inbound";
+import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import { toOpenMembershipCommand } from "../../command.ts";
 import type { OpenMembershipHandler } from "../../handler.ts";
 import { openMembershipSchema } from "./schema.ts";
-import { openMembershipHooks } from "./hooks.ts";
 
 export function createOpenMembershipLambdaHandler(handler: OpenMembershipHandler) {
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    const headers = readHeaders(event);
-    const metadata = {
+    const headers = event.headers ?? {};
+    const metadata: Metadata = {
       correlationId: correlationIdFromHeaders(headers),
       causationId: causationIdFromHeaders(headers),
     };
-    return parsePayload(openMembershipSchema, readJsonBody(event))
-      .map((payload) => toOpenMembershipCommand(payload, metadata))
-      .asyncAndThen((command) => runCommand(command, handler))
+    return parseJsonBody(event)
+      .asyncAndThen(parseSchema(openMembershipSchema))
+      .map((payload) => toOpenMembershipCommand({ payload, metadata }))
+      .andThen((command) => handler.handle(command))
       .match(
-        (command): APIGatewayProxyStructuredResultV2 => ({
-          statusCode: 202,
-          body: JSON.stringify({ accepted: true, id: command.payload.membershipId }),
-        }),
-        (error) => toApiGatewayResult(resolveError(error, openMembershipHooks)),
+        (decision): APIGatewayProxyStructuredResultV2 =>
+          decision.accepted
+            ? {
+                statusCode: 202,
+                body: JSON.stringify({
+                  accepted: true,
+                  id: decision.events[0].payload.membershipId,
+                }),
+              }
+            : {
+                statusCode: 409,
+                body: JSON.stringify({
+                  code: decision.rejection.code,
+                  reason: decision.rejection.reason,
+                }),
+              },
+        (error): APIGatewayProxyStructuredResultV2 => {
+          if (Array.isArray(error))
+            return { statusCode: 503, body: JSON.stringify({ code: "GATEWAY_FAILURE" }) };
+          if ("kind" in error)
+            return {
+              statusCode: 400,
+              body: JSON.stringify({ code: error.code, reason: error.reason }),
+            };
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ code: error.name, reason: error.message }),
+          };
+        },
       );
   };
 }

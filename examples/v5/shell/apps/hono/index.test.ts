@@ -51,7 +51,7 @@ describe("POST /membership/open", () => {
     expect(res.status).toBe(400);
   });
 
-  it("returns 404 with {code, reason} when the membership already exists", async () => {
+  it("returns 409 with {code, reason} when the membership already exists", async () => {
     const { app } = buildApp();
     const body = { name: "John Doe", email: "john@example.com" };
     await app.request("/membership/open", {
@@ -64,14 +64,14 @@ describe("POST /membership/open", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(409);
     expect(await res.json()).toEqual({
       code: "MEMBERSHIP_ALREADY_EXISTS",
       reason: "Membership already exists",
     });
   });
 
-  it("returns 500 with {code, reason} when the event store is offline", async () => {
+  it("returns 503 with {code, reason} when the event store is offline", async () => {
     const { app, eventStore } = buildApp();
     eventStore.simulate("offline");
     const res = await app.request("/membership/open", {
@@ -79,7 +79,7 @@ describe("POST /membership/open", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "John Doe", email: "john@example.com" }),
     });
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
     const responseBody = await res.json();
     expect(responseBody.code).toBe("GATEWAY_FAILURE");
   });

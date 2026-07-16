@@ -13,14 +13,15 @@ import type {
   Notification,
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Intent } from "@arts-and-crafts/v5/core/shapes";
+import { ResultAsync, errAsync, okAsync } from "neverthrow";
 
 export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notification>
   implements
-    StageIntents<TIntent, Promise<void | GatewayFailure>>,
-    StageNotifications<TNotification, Promise<void | GatewayFailure>>,
-    LoadPendingIntents<TIntent>,
-    MarkIntentDispatched,
-    MarkIntentFailed,
+    StageIntents<TIntent, ResultAsync<void, GatewayFailure>>,
+    StageNotifications<TNotification, ResultAsync<void, GatewayFailure>>,
+    LoadPendingIntents<TIntent, ResultAsync<OutboxEnvelope<TIntent>[], GatewayFailure>>,
+    MarkIntentDispatched<ResultAsync<void, GatewayFailure>>,
+    MarkIntentFailed<ResultAsync<void, GatewayFailure>>,
     SimulateFaults
 {
   private readonly tableName: string = "outbox";
@@ -62,8 +63,8 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
     };
   }
 
-  async stage(items: TIntent[] | TNotification[]): Promise<void | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+  stage(items: TIntent[] | TNotification[]): ResultAsync<void, GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
     for (const item of items) {
       this.rows.push({
@@ -73,49 +74,52 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
         entry: item,
       });
     }
+    return okAsync(undefined);
   }
 
-  async loadPending(limit?: number): Promise<OutboxEnvelope<TIntent>[] | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+  loadPending(limit?: number): ResultAsync<OutboxEnvelope<TIntent>[], GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
     const pending = this.rows.filter(
       (row): row is OutboxEnvelope<TIntent> =>
         row.status === "pending" && row.entry.kind === "intent",
     );
-    return pending.slice(0, limit ?? pending.length);
+    return okAsync(pending.slice(0, limit ?? pending.length));
   }
 
-  async markDispatched(intentId: string): Promise<void | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+  markDispatched(intentId: string): ResultAsync<void, GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
     const row = this.rows.find((r) => r.entry.id === intentId);
     if (!row) {
-      return {
+      return errAsync({
         kind: "failure",
         code: "GATEWAY_FAILURE",
         gateway: "InMemoryIntentOutbox",
         reason: `Intent ${intentId} not found in outbox`,
-      };
+      });
     }
     row.status = "dispatched";
     row.dispatchedAt = Date.now();
+    return okAsync(undefined);
   }
 
-  async markFailed(intentId: string, reason: string): Promise<void | GatewayFailure> {
-    if (this.activeFault === "offline") return this.offlineFailure();
+  markFailed(intentId: string, reason: string): ResultAsync<void, GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
     const row = this.rows.find((r) => r.entry.id === intentId);
     if (!row) {
-      return {
+      return errAsync({
         kind: "failure",
         code: "GATEWAY_FAILURE",
         gateway: "InMemoryIntentOutbox",
         reason: `Intent ${intentId} not found in outbox`,
-      };
+      });
     }
     row.status = "failed";
     row.failedAt = Date.now();
     row.lastError = reason;
     row.attemptCount += 1;
+    return okAsync(undefined);
   }
 }

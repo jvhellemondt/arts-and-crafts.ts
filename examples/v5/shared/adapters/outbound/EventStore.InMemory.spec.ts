@@ -10,6 +10,7 @@ import type {
   StreamKey,
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
+import type { ResultAsync } from "neverthrow";
 import { randomUUID } from "node:crypto";
 import { InMemoryEventStore } from "./EventStore.InMemory.ts";
 
@@ -46,9 +47,12 @@ describe("in-memory event store", () => {
       `${showBoundedContext}#${randomUUID()}`,
     ],
   ];
-  let eventStore: LoadDomainEvents<TestDomainEvent, Promise<TestDomainEvent[] | GatewayFailure>> &
-    LoadEventsFrom<TestDomainEvent> &
-    AppendToEventStore<TestDomainEvent, Promise<void | GatewayFailure>> &
+  let eventStore: LoadDomainEvents<
+    TestDomainEvent,
+    ResultAsync<TestDomainEvent[], GatewayFailure>
+  > &
+    LoadEventsFrom<TestDomainEvent, ResultAsync<StoredEvent<TestDomainEvent>[], GatewayFailure>> &
+    AppendToEventStore<TestDomainEvent, ResultAsync<void, GatewayFailure>> &
     SimulateFaults;
 
   const fixture = [
@@ -82,13 +86,12 @@ describe("in-memory event store", () => {
     },
   ])("should load domain events by given concerns", async ({ concerns, expected }) => {
     await Promise.all(fixture.map((event) => eventStore.append([event])));
-    const events = await eventStore.load(concerns);
-    if (!Array.isArray(events)) throw new Error("expected array");
+    const events = (await eventStore.load(concerns))._unsafeUnwrap();
     expect(events.map(({ id }) => id)).toEqual(expected.map(({ id }) => id));
   });
 
   it("should return empty array if no events were appended", async () => {
-    const events = await eventStore.load(streamKeys[0]);
+    const events = (await eventStore.load(streamKeys[0]))._unsafeUnwrap();
     expect(events).toEqual([]);
   });
 
@@ -103,38 +106,38 @@ describe("in-memory event store", () => {
       ],
     },
   ])("should append $events.length domain event(s)", async ({ events }) => {
-    const promise = Promise.all(events.map((event) => eventStore.append([event])));
-    await expect(promise).resolves.not.toThrow();
+    const results = await Promise.all(events.map((event) => eventStore.append([event])));
+    expect(results.every((result) => result.isOk())).toBe(true);
   });
 
   it("should append events when events already exist in the store", async () => {
     await eventStore.append(fixture);
     const event = makeEvent(streamKeys[0]);
-    await expect(eventStore.append([event])).resolves.not.toThrow();
+    expect((await eventStore.append([event])).isOk()).toBe(true);
   });
 
   describe("loadFrom", () => {
     it("returns all stored events from globalPosition 1", async () => {
       await eventStore.append(fixture);
-      const result = (await eventStore.loadFrom(1)) as StoredEvent<TestDomainEvent>[];
+      const result = (await eventStore.loadFrom(1))._unsafeUnwrap();
       expect(result).toHaveLength(fixture.length);
       expect(result.map((row) => row.globalPosition)).toEqual([1, 2, 3, 4, 5]);
     });
 
     it("filters out rows before the given globalPosition", async () => {
       await eventStore.append(fixture);
-      const result = (await eventStore.loadFrom(2)) as StoredEvent<TestDomainEvent>[];
+      const result = (await eventStore.loadFrom(2))._unsafeUnwrap();
       expect(result.map((row) => row.globalPosition)).toEqual([2, 3, 4, 5]);
     });
 
     it("honours the optional limit", async () => {
       await eventStore.append(fixture);
-      const result = (await eventStore.loadFrom(1, 2)) as StoredEvent<TestDomainEvent>[];
+      const result = (await eventStore.loadFrom(1, 2))._unsafeUnwrap();
       expect(result.map((row) => row.globalPosition)).toEqual([1, 2]);
     });
 
     it("returns an empty array when nothing has been appended", async () => {
-      const result = await eventStore.loadFrom(1);
+      const result = (await eventStore.loadFrom(1))._unsafeUnwrap();
       expect(result).toEqual([]);
     });
   });
@@ -149,7 +152,7 @@ describe("in-memory event store", () => {
     });
 
     it("should return gateway failure when loading events", async () => {
-      const response = await eventStore.load(streamKeys[0]);
+      const response = (await eventStore.load(streamKeys[0]))._unsafeUnwrapErr();
       expect(response).toEqual({
         kind: "failure",
         code: "GATEWAY_FAILURE",
@@ -160,7 +163,7 @@ describe("in-memory event store", () => {
 
     it("should return gateway failure when appending events", async () => {
       const event = makeEvent(streamKeys[0]);
-      const response = await eventStore.append([event]);
+      const response = (await eventStore.append([event]))._unsafeUnwrapErr();
       expect(response).toEqual({
         kind: "failure",
         code: "GATEWAY_FAILURE",
@@ -170,7 +173,7 @@ describe("in-memory event store", () => {
     });
 
     it("should return gateway failure from loadFrom", async () => {
-      const response = await eventStore.loadFrom(0);
+      const response = (await eventStore.loadFrom(0))._unsafeUnwrapErr();
       expect(response).toMatchObject({
         code: "GATEWAY_FAILURE",
         gateway: "InMemoryEventStore",
@@ -181,8 +184,7 @@ describe("in-memory event store", () => {
       eventStore.restore();
       expect(eventStore.isSimulating).toBe(false);
       await Promise.all(fixture.map((event) => eventStore.append([event])));
-      const events = await eventStore.load([streamKeys[0][0]]);
-      if (!Array.isArray(events)) throw new Error("expected array");
+      const events = (await eventStore.load([streamKeys[0][0]]))._unsafeUnwrap();
       expect(events.map(({ id }) => id)).toEqual(fixture.slice(0, 3).map(({ id }) => id));
     });
   });
