@@ -31,26 +31,6 @@
         "default": "./dist/adapters-inbound/index.cjs"
       }
     },
-    "./useCases/command": {
-      "import": {
-        "types": "./dist/useCases-command/index.d.ts",
-        "default": "./dist/useCases-command/index.js"
-      },
-      "require": {
-        "types": "./dist/useCases-command/index.d.cts",
-        "default": "./dist/useCases-command/index.cjs"
-      }
-    },
-    "./useCases/query": {
-      "import": {
-        "types": "./dist/useCases-query/index.d.ts",
-        "default": "./dist/useCases-query/index.js"
-      },
-      "require": {
-        "types": "./dist/useCases-query/index.d.cts",
-        "default": "./dist/useCases-query/index.cjs"
-      }
-    },
     "./package.json": "./package.json"
   },
   "scripts": {

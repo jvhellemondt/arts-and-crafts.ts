@@ -53,10 +53,12 @@ only the example's instantiations and implementations move.
   decision is a success value; only infrastructure `GatewayFailure`s are `Err`.
   The inbound adapter branches on `decision.accepted` to choose the response
   (202 vs. 409), and maps the `Err` channel to 503.
-- **The example no longer uses `runCommand`/`runQuery`.** With handlers already
-  returning `ResultAsync`, the adapters call `handler.handle(...)` and `.match`
-  the result. The library helpers remain for consumers that still return union
-  values.
+- **`runCommand`/`runQuery` are deleted from `v5-utils`.** They existed only to
+  lift a handler's `GatewayFailure[] | Rejection` union return into a
+  `ResultAsync`. Handlers now return `ResultAsync` directly, so the adapters call
+  `handler.handle(...)` and `.match` the result with no lifting step. The
+  `./useCases/command` and `./useCases/query` export subpaths are removed with
+  them.
 
 ## Rationale
 
