@@ -90,8 +90,8 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
   markDispatched(intentId: string): ResultAsync<void, GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
-    const row = this.rows.find((r) => r.entry.id === intentId);
-    if (!row) {
+    const index = this.rows.findIndex((r) => r.entry.id === intentId);
+    if (index === -1) {
       return errAsync({
         kind: "failure",
         code: "GATEWAY_FAILURE",
@@ -99,16 +99,19 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
         reason: `Intent ${intentId} not found in outbox`,
       });
     }
-    row.status = "dispatched";
-    row.dispatchedAt = Date.now();
+    this.rows[index] = {
+      ...this.rows[index],
+      status: "dispatched",
+      dispatchedAt: Date.now(),
+    };
     return okAsync(undefined);
   }
 
   markFailed(intentId: string, reason: string): ResultAsync<void, GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
-    const row = this.rows.find((r) => r.entry.id === intentId);
-    if (!row) {
+    const index = this.rows.findIndex((r) => r.entry.id === intentId);
+    if (index === -1) {
       return errAsync({
         kind: "failure",
         code: "GATEWAY_FAILURE",
@@ -116,10 +119,14 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
         reason: `Intent ${intentId} not found in outbox`,
       });
     }
-    row.status = "failed";
-    row.failedAt = Date.now();
-    row.lastError = reason;
-    row.attemptCount += 1;
+    const current = this.rows[index];
+    this.rows[index] = {
+      ...current,
+      status: "failed",
+      failedAt: Date.now(),
+      lastError: reason,
+      attemptCount: current.attemptCount + 1,
+    };
     return okAsync(undefined);
   }
 }

@@ -23,7 +23,7 @@ const makeIntent = (channel: "email" | "push"): TestIntent => ({
 });
 
 const makeNotification = (reason: string): TestNotification => ({
-  kind: "rejection",
+  kind: "notification",
   type: "MembershipOpeningRejected",
   payload: { reason },
   timestamp: Date.now(),
