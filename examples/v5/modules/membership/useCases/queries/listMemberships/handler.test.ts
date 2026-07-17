@@ -12,10 +12,7 @@ type Loader = LoadProjection<
 >;
 
 const makeQuery = (status?: "open" | "initial" | "active" | "closed") =>
-  createListMembershipsQuery(listMembershipsQueryPayload.parse({ status }), {
-    correlationId: randomUUID(),
-    causationId: randomUUID(),
-  });
+  createListMembershipsQuery(listMembershipsQueryPayload.parse({ status }));
 
 const makeSummary = (overrides: Partial<MembershipSummary> = {}): MembershipSummary => ({
   id: overrides.id ?? randomUUID(),
