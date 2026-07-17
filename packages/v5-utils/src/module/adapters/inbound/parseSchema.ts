@@ -8,8 +8,8 @@ import { type ZodType } from "zod";
  * thread them through a neverthrow pipeline instead of a try/catch boundary.
  */
 export function parseSchema<TPayload>(schema: ZodType<TPayload>) {
-  return (candidate: { body: unknown }): ResultAsync<TPayload, Rejection> => {
-    const result = schema.safeParse(candidate.body);
+  return (candidate: unknown): ResultAsync<TPayload, Rejection> => {
+    const result = schema.safeParse(candidate);
     return result.success
       ? okAsync(result.data)
       : errAsync({

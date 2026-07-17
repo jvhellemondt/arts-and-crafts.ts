@@ -21,9 +21,7 @@ export class ListMembershipsHandler implements HandleQuery<
       .load()
       .mapErr((failure): GatewayFailure[] => [failure])
       .map((projection) =>
-        Object.values(projection).filter((m) =>
-          query.payload.status ? m.status === query.payload.status : true,
-        ),
+        Object.values(projection).filter((m) => (query.status ? m.status === query.status : true)),
       );
   }
 }

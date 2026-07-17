@@ -1,12 +1,10 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { causationIdFromHeaders, correlationIdFromHeaders } from "@arts-and-crafts/v5-aws";
 import { parseSchema } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
-import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
-import { ResultAsync } from "neverthrow";
+import type { ResultAsync } from "neverthrow";
 import type { ListMembershipsProjection } from "../../projection.ts";
-import { createListMembershipsQuery, listMembershipsQueryPayload } from "../../query.ts";
+import { listMembershipsQuery } from "../../query.ts";
 import { ListMembershipsHandler } from "../../handler.ts";
 
 export function createListMembershipsLambdaHandler(
@@ -18,16 +16,7 @@ export function createListMembershipsLambdaHandler(
   const handler = new ListMembershipsHandler(store);
 
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    return ResultAsync.combine([
-      parseSchema(listMembershipsQueryPayload)({ body: event.queryStringParameters ?? {} }),
-      correlationIdFromHeaders()(event),
-      causationIdFromHeaders()(event),
-    ])
-      .map(([payload, ...metadata]) => ({
-        payload,
-        metadata: metadata.reduce((acc, value) => Object.assign(acc, value), {}) as Metadata,
-      }))
-      .map(({ payload, metadata }) => createListMembershipsQuery(payload, metadata))
+    return parseSchema(listMembershipsQuery)(event.queryStringParameters ?? {})
       .andThen((query) => handler.handle(query))
       .match(
         (data): APIGatewayProxyStructuredResultV2 => ({

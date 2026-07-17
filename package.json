@@ -131,16 +131,6 @@
         "default": "./packages/v5/dist/useCases/query/capabilities/index.cjs"
       }
     },
-    "./v5/module/useCases/query/shapes": {
-      "import": {
-        "types": "./packages/v5/dist/useCases/query/shapes/index.d.ts",
-        "default": "./packages/v5/dist/useCases/query/shapes/index.js"
-      },
-      "require": {
-        "types": "./packages/v5/dist/useCases/query/shapes/index.d.cts",
-        "default": "./packages/v5/dist/useCases/query/shapes/index.cjs"
-      }
-    },
     "./package.json": "./package.json"
   },
   "scripts": {

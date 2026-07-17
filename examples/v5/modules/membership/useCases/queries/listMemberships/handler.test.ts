@@ -4,7 +4,7 @@ import { type ResultAsync, errAsync, okAsync } from "neverthrow";
 import { randomUUID } from "node:crypto";
 import { ListMembershipsHandler } from "./handler.ts";
 import type { ListMembershipsProjection, MembershipSummary } from "./projection.ts";
-import { createListMembershipsQuery, listMembershipsQueryPayload } from "./query.ts";
+import { listMembershipsQuery } from "./query.ts";
 
 type Loader = LoadProjection<
   ListMembershipsProjection,
@@ -12,10 +12,7 @@ type Loader = LoadProjection<
 >;
 
 const makeQuery = (status?: "open" | "initial" | "active" | "closed") =>
-  createListMembershipsQuery(listMembershipsQueryPayload.parse({ status }), {
-    correlationId: randomUUID(),
-    causationId: randomUUID(),
-  });
+  listMembershipsQuery.parse({ status });
 
 const makeSummary = (overrides: Partial<MembershipSummary> = {}): MembershipSummary => ({
   id: overrides.id ?? randomUUID(),

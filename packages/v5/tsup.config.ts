@@ -10,7 +10,6 @@ export default defineConfig({
     "src/module/useCases/command/shapes/index.ts",
     "src/module/useCases/policy/capabilities/index.ts",
     "src/module/useCases/query/capabilities/index.ts",
-    "src/module/useCases/query/shapes/index.ts",
   ],
   format: ["cjs", "esm"],
   dts: true,
