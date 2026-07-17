@@ -1,39 +1,23 @@
 import { describe, expect, it } from "vitest";
-import {
-  createListMembershipsQuery,
-  listMembershipsQueryPayload,
-  type ListMembershipsQueryPayload,
-} from "./query.ts";
+import { listMembershipsQuery } from "./query.ts";
 
-const VALID_PAYLOAD: ListMembershipsQueryPayload = listMembershipsQueryPayload.parse({
-  status: "open",
-});
-
-describe("createListMembershipsQuery", () => {
-  describe("listMembershipsQueryPayload", () => {
-    it("parses an empty object (all fields optional)", () => {
-      const result = listMembershipsQueryPayload.safeParse({});
-      expect(result.success).toBe(true);
-    });
-
-    it("parses a valid status value", () => {
-      const result = listMembershipsQueryPayload.safeParse({ status: "open" });
-      expect(result.success).toBe(true);
-    });
-
-    it("rejects an invalid status value", () => {
-      const result = listMembershipsQueryPayload.safeParse({ status: "unknown" });
-      expect(result.success).toBe(false);
-    });
+describe("listMembershipsQuery", () => {
+  it("parses an empty object (all fields optional)", () => {
+    const result = listMembershipsQuery.safeParse({});
+    expect(result.success).toBe(true);
   });
 
-  it("returns a query carrying the provided payload", () => {
-    const query = createListMembershipsQuery(VALID_PAYLOAD);
-    expect(query.payload).toBe(VALID_PAYLOAD);
+  it("parses a valid status value", () => {
+    const result = listMembershipsQuery.safeParse({ status: "open" });
+    expect(result.success).toBe(true);
   });
 
-  it("returns a query with status undefined by default", () => {
-    const query = createListMembershipsQuery(listMembershipsQueryPayload.parse({}));
-    expect(query.payload.status).toBeUndefined();
+  it("rejects an invalid status value", () => {
+    const result = listMembershipsQuery.safeParse({ status: "unknown" });
+    expect(result.success).toBe(false);
+  });
+
+  it("leaves status undefined when omitted", () => {
+    expect(listMembershipsQuery.parse({}).status).toBeUndefined();
   });
 });

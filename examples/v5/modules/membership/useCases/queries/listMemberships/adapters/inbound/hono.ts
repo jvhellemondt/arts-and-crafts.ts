@@ -4,7 +4,7 @@ import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capab
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { ResultAsync } from "neverthrow";
 import type { ListMembershipsProjection } from "../../projection.ts";
-import { createListMembershipsQuery, listMembershipsQueryPayload } from "../../query.ts";
+import { listMembershipsQuery } from "../../query.ts";
 import { ListMembershipsHandler } from "../../handler.ts";
 
 export function createListMembershipsHonoHandler(
@@ -16,9 +16,8 @@ export function createListMembershipsHonoHandler(
   const handler = new ListMembershipsHandler(store);
 
   return (c: Context) => {
-    return parseSchema(listMembershipsQueryPayload)({ body: c.req.query() })
-      .map((payload) => createListMembershipsQuery(payload))
-      .andThen((query) => handler.handle(query))
+    return parseSchema(listMembershipsQuery)({ body: c.req.query() })
+      .andThen((payload) => handler.handle(payload))
       .match(
         (data) => c.json(data, 200),
         (error) => {

@@ -4,7 +4,7 @@ import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capab
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { ResultAsync } from "neverthrow";
 import type { ListMembershipsProjection } from "../../projection.ts";
-import { createListMembershipsQuery, listMembershipsQueryPayload } from "../../query.ts";
+import { listMembershipsQuery } from "../../query.ts";
 import { ListMembershipsHandler } from "../../handler.ts";
 
 export function createListMembershipsLambdaHandler(
@@ -16,9 +16,8 @@ export function createListMembershipsLambdaHandler(
   const handler = new ListMembershipsHandler(store);
 
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    return parseSchema(listMembershipsQueryPayload)({ body: event.queryStringParameters ?? {} })
-      .map((payload) => createListMembershipsQuery(payload))
-      .andThen((query) => handler.handle(query))
+    return parseSchema(listMembershipsQuery)({ body: event.queryStringParameters ?? {} })
+      .andThen((payload) => handler.handle(payload))
       .match(
         (data): APIGatewayProxyStructuredResultV2 => ({
           statusCode: 200,
