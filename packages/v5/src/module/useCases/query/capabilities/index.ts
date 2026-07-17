@@ -1,1 +1,1 @@
-export * from './HandleQuery.ts';
+export * from "./HandleQuery.ts";

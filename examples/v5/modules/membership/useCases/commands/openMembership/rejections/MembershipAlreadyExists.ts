@@ -9,6 +9,5 @@ export interface MembershipAlreadyExists extends Rejection<"MEMBERSHIP_ALREADY_E
 export type OpenMembershipRejected = Notification<
   "OpenMembershipRejected",
   OpenMembershipCommandPayload,
-  "MEMBERSHIP_ALREADY_EXISTS",
-  MembershipAlreadyExists
+  "MEMBERSHIP_ALREADY_EXISTS"
 >;

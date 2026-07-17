@@ -1,6 +1,6 @@
-import type { DomainEvent } from '../../../core/shapes/DomainEvent.ts';
-import type { Intent } from '../../../core/shapes/Intent.ts';
-import type { Rejection } from '../../../core/shapes/Rejection.ts';
+import type { DomainEvent } from "../../../core/shapes/DomainEvent.ts";
+import type { Intent } from "../../../core/shapes/Intent.ts";
+import type { Rejection } from "../../../core/shapes/Rejection.ts";
 
 /**
  * Represents a successful decision made by a decider.

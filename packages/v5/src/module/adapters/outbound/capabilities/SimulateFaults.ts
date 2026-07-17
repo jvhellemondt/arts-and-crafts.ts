@@ -14,7 +14,7 @@ export type CustomFaultMode = string & {
   readonly [customFaultModeBrand]: true;
 };
 
-export type FaultSimulationMode = 'offline' | 'timeout' | CustomFaultMode;
+export type FaultSimulationMode = "offline" | "timeout" | CustomFaultMode;
 
 /**
  * Capability for adapters that support fault simulation.

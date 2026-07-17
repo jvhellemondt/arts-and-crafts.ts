@@ -5,7 +5,7 @@
  */
 export interface Rejection<TCode = string> {
   /** Tag that distinguishes a `Rejection` from a `Failure` at runtime. */
-  readonly kind: 'rejection';
+  readonly kind: "rejection";
   readonly code: TCode;
   readonly reason: string;
   readonly validationErrors?: {

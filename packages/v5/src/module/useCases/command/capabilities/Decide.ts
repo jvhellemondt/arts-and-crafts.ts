@@ -1,7 +1,7 @@
-import type { DomainEvent } from '../../../core/shapes/DomainEvent.ts';
-import type { Intent } from '../../../core/shapes/Intent.ts';
-import type { Rejection } from '../../../core/shapes/Rejection.ts';
-import type { Decision } from '../shapes/Decision.ts';
+import type { DomainEvent } from "../../../core/shapes/DomainEvent.ts";
+import type { Intent } from "../../../core/shapes/Intent.ts";
+import type { Rejection } from "../../../core/shapes/Rejection.ts";
+import type { Decision } from "../shapes/Decision.ts";
 
 export interface Decide<
   TCommand,

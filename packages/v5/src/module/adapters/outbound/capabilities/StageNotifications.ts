@@ -1,5 +1,5 @@
-import type { GatewayFailure } from '../shapes/GatewayFailure.ts';
-import type { Notification } from '../shapes/Notification.ts';
+import type { GatewayFailure } from "../shapes/GatewayFailure.ts";
+import type { Notification } from "../shapes/Notification.ts";
 
 export interface StageNotifications<
   TNotification extends Notification,
