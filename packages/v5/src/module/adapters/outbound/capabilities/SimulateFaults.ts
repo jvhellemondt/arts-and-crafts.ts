@@ -5,10 +5,16 @@
  * - `offline` — the gateway is unreachable, operations fail immediately
  * - `timeout` — the gateway is reachable but operations hang or take too long
  *
- * The type accepts any string to allow custom fault modes in user-land,
- * while preserving autocomplete for the built-in modes.
+ * Custom modes must be explicitly branded as `CustomFaultMode`, preventing
+ * misspelled built-in modes from being accepted as arbitrary strings.
  */
-export type FaultSimulationMode = "offline" | "timeout" | (string & {});
+declare const customFaultModeBrand: unique symbol;
+
+export type CustomFaultMode = string & {
+  readonly [customFaultModeBrand]: true;
+};
+
+export type FaultSimulationMode = 'offline' | 'timeout' | CustomFaultMode;
 
 /**
  * Capability for adapters that support fault simulation.

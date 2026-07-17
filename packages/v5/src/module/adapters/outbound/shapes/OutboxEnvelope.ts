@@ -1,12 +1,18 @@
-import type { Intent } from "@core/shapes/Intent.ts";
-import type { Notification } from "@adapters/outbound/shapes/Notification.ts";
+import type { Intent } from '../../../core/shapes/Intent.ts';
+import type { Notification } from '../../../adapters/outbound/shapes/Notification.ts';
 
+/**
+ * An immutable snapshot of an entry staged in the outbox.
+ *
+ * Status transitions and retry updates produce a new envelope rather than
+ * mutating an existing instance.
+ */
 export type OutboxEnvelope<TEntry extends Intent | Notification> = {
-  status: "pending" | "dispatched" | "failed";
+  readonly status: 'pending' | 'dispatched' | 'failed';
   readonly stagedAt: number;
-  attemptCount: number;
-  dispatchedAt?: number;
-  failedAt?: number;
-  lastError?: string;
+  readonly attemptCount: number;
+  readonly dispatchedAt?: number;
+  readonly failedAt?: number;
+  readonly lastError?: string;
   readonly entry: TEntry;
 };

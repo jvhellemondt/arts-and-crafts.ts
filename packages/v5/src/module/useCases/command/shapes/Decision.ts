@@ -1,6 +1,6 @@
-import type { DomainEvent } from "@core/shapes/DomainEvent.ts";
-import type { Intent } from "@core/shapes/Intent.ts";
-import type { Rejection } from "@core/shapes/Rejection.ts";
+import type { DomainEvent } from '../../../core/shapes/DomainEvent.ts';
+import type { Intent } from '../../../core/shapes/Intent.ts';
+import type { Rejection } from '../../../core/shapes/Rejection.ts';
 
 /**
  * Represents a successful decision made by a decider.
@@ -73,5 +73,5 @@ export type Rejected<TRejection extends Rejection> = {
 export type Decision<
   TEvent extends DomainEvent,
   TIntent extends Intent = never,
-  TRejection extends Rejection = never,
+  TRejection extends Rejection = Rejection,
 > = Accepted<TEvent, TIntent> | Rejected<TRejection>;

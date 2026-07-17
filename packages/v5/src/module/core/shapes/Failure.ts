@@ -14,7 +14,7 @@
  */
 export interface Failure<TCode = string> {
   /** Tag that distinguishes a `Failure` from a `Rejection` at runtime. */
-  readonly kind: "failure";
+  readonly kind: 'failure';
   /** Specific failure subtype, e.g. `"GATEWAY_FAILURE"`. */
   readonly code: TCode;
   readonly reason: string;
