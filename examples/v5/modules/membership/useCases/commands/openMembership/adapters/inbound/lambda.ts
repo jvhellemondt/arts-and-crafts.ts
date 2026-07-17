@@ -5,13 +5,32 @@ import {
   correlationIdFromHeaders,
 } from "@arts-and-crafts/v5-aws";
 import { parseSchema } from "@arts-and-crafts/v5-utils/adapters/inbound";
+import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
+import type {
+  LoadDomainEvents,
+  AppendToEventStore,
+} from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
+import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
+import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import { ResultAsync } from "neverthrow";
+import { OpenMembershipHandler } from "../../handler.ts";
+import { OpenMembershipRepository } from "../../repository.ts";
 import { toOpenMembershipCommand } from "../../command.ts";
-import type { OpenMembershipHandler } from "../../handler.ts";
 import { openMembershipSchema } from "./schema.ts";
 
-export function createOpenMembershipLambdaHandler(handler: OpenMembershipHandler) {
+export function createOpenMembershipLambdaHandler(
+  eventStore: LoadDomainEvents<
+    MembershipEventV1,
+    ResultAsync<MembershipEventV1[], GatewayFailure>
+  > &
+    AppendToEventStore<MembershipEventV1, ResultAsync<void, GatewayFailure>>,
+  outbox: StageIntents<NotifyUserToVerifyEmailV1, ResultAsync<void, GatewayFailure>>,
+) {
+  const repository = new OpenMembershipRepository(eventStore);
+  const handler = new OpenMembershipHandler(repository, outbox);
+
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
     return ResultAsync.combine([
       parseJsonBody(event).asyncAndThen(parseSchema(openMembershipSchema)),

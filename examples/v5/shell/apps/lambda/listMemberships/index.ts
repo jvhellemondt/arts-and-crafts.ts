@@ -11,7 +11,6 @@ import {
   type ListMembershipsProjection,
 } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import { ListMembershipsProjector } from "@examples/modules/membership/useCases/queries/listMemberships/projector.ts";
-import { ListMembershipsHandler } from "@examples/modules/membership/useCases/queries/listMemberships/handler.ts";
 import { createListMembershipsLambdaHandler } from "@examples/modules/membership/useCases/queries/listMemberships/adapters/inbound/lambda.ts";
 
 // Module-scope so a warm container reuses it across invocations, same as
@@ -25,9 +24,8 @@ const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjecti
   emptyProjection,
 );
 const listMembershipsProjector = new ListMembershipsProjector(listMembershipsStore, eventStore);
-const listMembershipsHandler = new ListMembershipsHandler(listMembershipsStore);
 
-const invoke = createListMembershipsLambdaHandler(listMembershipsHandler);
+const invoke = createListMembershipsLambdaHandler(listMembershipsStore);
 
 export const handler = async (event: APIGatewayProxyEventV2) => {
   await listMembershipsProjector.tick();

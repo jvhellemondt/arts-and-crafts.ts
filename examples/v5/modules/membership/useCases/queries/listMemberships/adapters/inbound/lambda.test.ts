@@ -1,6 +1,5 @@
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
-import { ListMembershipsHandler } from "../../handler.ts";
 import type { ListMembershipsProjection, MembershipSummary } from "../../projection.ts";
 import { createListMembershipsLambdaHandler } from "./lambda.ts";
 
@@ -14,7 +13,7 @@ describe("createListMembershipsLambdaHandler", () => {
 
   beforeEach(() => {
     store = new InMemoryProjectionStore<ListMembershipsProjection>({});
-    invoke = createListMembershipsLambdaHandler(new ListMembershipsHandler(store));
+    invoke = createListMembershipsLambdaHandler(store);
   });
 
   it("returns 200 with the matching memberships", async () => {
