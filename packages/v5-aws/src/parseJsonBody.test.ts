@@ -6,7 +6,7 @@ describe("parseJsonBody", () => {
     const result = parseJsonBody(event);
     result.match(
       (data) => {
-        expect(data.body).toEqual({
+        expect(data).toEqual({
           name: "John",
         });
       },

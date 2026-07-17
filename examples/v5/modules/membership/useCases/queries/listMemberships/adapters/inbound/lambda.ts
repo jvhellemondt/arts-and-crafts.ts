@@ -16,7 +16,7 @@ export function createListMembershipsLambdaHandler(
   const handler = new ListMembershipsHandler(store);
 
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    return parseSchema(listMembershipsQuery)({ body: event.queryStringParameters ?? {} })
+    return parseSchema(listMembershipsQuery)(event.queryStringParameters ?? {})
       .andThen((query) => handler.handle(query))
       .match(
         (data): APIGatewayProxyStructuredResultV2 => ({

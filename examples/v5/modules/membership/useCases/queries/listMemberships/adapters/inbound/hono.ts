@@ -16,7 +16,7 @@ export function createListMembershipsHonoHandler(
   const handler = new ListMembershipsHandler(store);
 
   return (c: Context) => {
-    return parseSchema(listMembershipsQuery)({ body: c.req.query() })
+    return parseSchema(listMembershipsQuery)(c.req.query())
       .andThen((query) => handler.handle(query))
       .match(
         (data) => c.json(data, 200),

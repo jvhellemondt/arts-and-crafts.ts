@@ -20,7 +20,7 @@ describe("parseJsonBody", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "John" }),
     });
-    expect(await res.json()).toEqual({ body: { name: "John" } });
+    expect(await res.json()).toEqual({ name: "John" });
   });
 
   it("yields JSONParseError for a malformed body", async () => {

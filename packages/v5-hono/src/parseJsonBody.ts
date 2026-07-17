@@ -5,7 +5,7 @@ import { parseAsError } from "@arts-and-crafts/v5-utils/core";
 /** Parses `event.body` as JSON, yielding err for absent or malformed bodies. */
 export function parseJsonBody(
   c: Context,
-): ResultAsync<{ body: unknown }, { name: "NoBodyError" | "JSONParseError"; message: string }> {
+): ResultAsync<unknown, { name: "NoBodyError" | "JSONParseError"; message: string }> {
   const result = fromPromise(c.req.json(), (e: unknown) => {
     const error = parseAsError(e);
     return {
@@ -19,6 +19,6 @@ export function parseJsonBody(
         name: "NoBodyError" as const,
         message: "parseJsonBody > no body found in event",
       });
-    return ok({ body });
+    return ok(body);
   });
 }
