@@ -1,6 +1,6 @@
-import type { DomainEvent } from '../../../core/shapes/DomainEvent.ts';
-import type { GatewayFailure } from '../shapes/GatewayFailure.ts';
-import type { StoredEvent } from '../shapes/StoredEvent.ts';
+import type { DomainEvent } from "../../../core/shapes/DomainEvent.ts";
+import type { GatewayFailure } from "../shapes/GatewayFailure.ts";
+import type { StoredEvent } from "../shapes/StoredEvent.ts";
 
 export interface LoadEventsFrom<
   TEvent extends DomainEvent,

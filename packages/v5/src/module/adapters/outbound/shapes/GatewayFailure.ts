@@ -1,4 +1,4 @@
-import type { Failure } from '../../../core/shapes/Failure.ts';
+import type { Failure } from "../../../core/shapes/Failure.ts";
 
 /**
  * A specialisation of `Failure` for I/O related infrastructure failures.
@@ -24,6 +24,6 @@ import type { Failure } from '../../../core/shapes/Failure.ts';
  * };
  */
 export type GatewayFailure<TCode = string> = Failure<TCode> & {
-  readonly code: 'GATEWAY_FAILURE';
+  readonly code: "GATEWAY_FAILURE";
   readonly gateway: string;
 };

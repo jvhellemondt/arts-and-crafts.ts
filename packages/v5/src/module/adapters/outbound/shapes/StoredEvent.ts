@@ -1,4 +1,4 @@
-import type { DomainEvent } from '../../../core/shapes/DomainEvent.ts';
+import type { DomainEvent } from "../../../core/shapes/DomainEvent.ts";
 
 /**
  * StoredEvent wraps a DomainEvent for persistence in the event store based on its concerns.
@@ -12,5 +12,5 @@ export type StoredEvent<TEvent extends DomainEvent> = {
   /** The actual domain event. */
   readonly event: TEvent;
   /** Concerns (streamkeys) of the event, hoisted */
-  readonly concerns: TEvent['concerns'];
+  readonly concerns: TEvent["concerns"];
 };

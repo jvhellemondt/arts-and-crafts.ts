@@ -4,11 +4,11 @@
  * context directly; map them to IntegrationEvents when publishing externally.
  */
 
-import type { StreamKey } from '../../adapters/outbound/shapes/StreamKey.ts';
-import type { Message } from './Message.ts';
+import type { StreamKey } from "../../adapters/outbound/shapes/StreamKey.ts";
+import type { Message } from "./Message.ts";
 
 export interface DomainEvent<TType = string, TPayload = unknown> extends Message<TType, TPayload> {
-  readonly kind: 'domain';
+  readonly kind: "domain";
   readonly concerns: readonly StreamKey[];
   /**
    * Typed domain provenance: the command that produced this event. This is the
