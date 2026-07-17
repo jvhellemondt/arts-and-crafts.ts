@@ -17,7 +17,7 @@ export function createListMembershipsHonoHandler(
 
   return (c: Context) => {
     return parseSchema(listMembershipsQuery)({ body: c.req.query() })
-      .andThen((payload) => handler.handle(payload))
+      .andThen((query) => handler.handle(query))
       .match(
         (data) => c.json(data, 200),
         (error) => {

@@ -16,14 +16,12 @@ export class ListMembershipsHandler implements HandleQuery<
     >,
   ) {}
 
-  handle(payload: ListMembershipsQuery): ResultAsync<MembershipSummary[], GatewayFailure[]> {
+  handle(query: ListMembershipsQuery): ResultAsync<MembershipSummary[], GatewayFailure[]> {
     return this.store
       .load()
       .mapErr((failure): GatewayFailure[] => [failure])
       .map((projection) =>
-        Object.values(projection).filter((m) =>
-          payload.status ? m.status === payload.status : true,
-        ),
+        Object.values(projection).filter((m) => (query.status ? m.status === query.status : true)),
       );
   }
 }

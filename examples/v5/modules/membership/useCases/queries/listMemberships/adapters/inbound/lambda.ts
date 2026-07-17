@@ -17,7 +17,7 @@ export function createListMembershipsLambdaHandler(
 
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
     return parseSchema(listMembershipsQuery)({ body: event.queryStringParameters ?? {} })
-      .andThen((payload) => handler.handle(payload))
+      .andThen((query) => handler.handle(query))
       .match(
         (data): APIGatewayProxyStructuredResultV2 => ({
           statusCode: 200,
