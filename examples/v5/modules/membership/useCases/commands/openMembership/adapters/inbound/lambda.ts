@@ -1,25 +1,28 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import { parseJsonBody } from "@arts-and-crafts/v5-aws";
 import {
-  parseSchema,
-  correlationIdFromHeaders,
+  parseJsonBody,
   causationIdFromHeaders,
-} from "@arts-and-crafts/v5-utils/adapters/inbound";
+  correlationIdFromHeaders,
+} from "@arts-and-crafts/v5-aws";
+import { parseSchema } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
+import { ResultAsync } from "neverthrow";
 import { toOpenMembershipCommand } from "../../command.ts";
 import type { OpenMembershipHandler } from "../../handler.ts";
 import { openMembershipSchema } from "./schema.ts";
 
 export function createOpenMembershipLambdaHandler(handler: OpenMembershipHandler) {
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    const headers = event.headers ?? {};
-    const metadata: Metadata = {
-      correlationId: correlationIdFromHeaders(headers),
-      causationId: causationIdFromHeaders(headers),
-    };
-    return parseJsonBody(event)
-      .asyncAndThen(parseSchema(openMembershipSchema))
-      .map((payload) => toOpenMembershipCommand({ payload, metadata }))
+    return ResultAsync.combine([
+      parseJsonBody(event).asyncAndThen(parseSchema(openMembershipSchema)),
+      correlationIdFromHeaders()(event),
+      causationIdFromHeaders()(event),
+    ])
+      .map(([payload, ...metadata]) => ({
+        payload,
+        metadata: metadata.reduce((acc, value) => Object.assign(acc, value), {}) as Metadata,
+      }))
+      .map(toOpenMembershipCommand)
       .andThen((command) => handler.handle(command))
       .match(
         (decision): APIGatewayProxyStructuredResultV2 =>
