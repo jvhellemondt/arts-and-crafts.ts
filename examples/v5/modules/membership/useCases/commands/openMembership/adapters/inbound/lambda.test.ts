@@ -3,8 +3,6 @@ import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStor
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
-import { OpenMembershipHandler } from "../../handler.ts";
-import { OpenMembershipRepository } from "../../repository.ts";
 import { createOpenMembershipLambdaHandler } from "./lambda.ts";
 
 const VALID_PAYLOAD = { name: "Alice", email: "alice@example.com" };
@@ -24,8 +22,7 @@ describe("createOpenMembershipLambdaHandler", () => {
   beforeEach(() => {
     eventStore = new InMemoryEventStore<MembershipEventV1>();
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, never>();
-    const handler = new OpenMembershipHandler(new OpenMembershipRepository(eventStore), outbox);
-    invoke = createOpenMembershipLambdaHandler(handler);
+    invoke = createOpenMembershipLambdaHandler(eventStore, outbox);
   });
 
   it("returns 202 with the new membership id on success", async () => {

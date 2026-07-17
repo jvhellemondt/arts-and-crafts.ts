@@ -1,22 +1,33 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from "aws-lambda";
-import {
-  parseSchema,
-  correlationIdFromHeaders,
-  causationIdFromHeaders,
-} from "@arts-and-crafts/v5-utils/adapters/inbound";
+import { causationIdFromHeaders, correlationIdFromHeaders } from "@arts-and-crafts/v5-aws";
+import { parseSchema } from "@arts-and-crafts/v5-utils/adapters/inbound";
+import type { LoadProjection } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
+import { ResultAsync } from "neverthrow";
+import type { ListMembershipsProjection } from "../../projection.ts";
 import { createListMembershipsQuery, listMembershipsQueryPayload } from "../../query.ts";
-import type { ListMembershipsHandler } from "../../handler.ts";
+import { ListMembershipsHandler } from "../../handler.ts";
 
-export function createListMembershipsLambdaHandler(handler: ListMembershipsHandler) {
+export function createListMembershipsLambdaHandler(
+  store: LoadProjection<
+    ListMembershipsProjection,
+    ResultAsync<ListMembershipsProjection, GatewayFailure>
+  >,
+) {
+  const handler = new ListMembershipsHandler(store);
+
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
-    const headers = event.headers ?? {};
-    const metadata: Metadata = {
-      correlationId: correlationIdFromHeaders(headers),
-      causationId: causationIdFromHeaders(headers),
-    };
-    return parseSchema(listMembershipsQueryPayload)({ body: event.queryStringParameters ?? {} })
-      .map((payload) => createListMembershipsQuery(payload, metadata))
+    return ResultAsync.combine([
+      parseSchema(listMembershipsQueryPayload)({ body: event.queryStringParameters ?? {} }),
+      correlationIdFromHeaders()(event),
+      causationIdFromHeaders()(event),
+    ])
+      .map(([payload, ...metadata]) => ({
+        payload,
+        metadata: metadata.reduce((acc, value) => Object.assign(acc, value), {}) as Metadata,
+      }))
+      .map(({ payload, metadata }) => createListMembershipsQuery(payload, metadata))
       .andThen((query) => handler.handle(query))
       .match(
         (data): APIGatewayProxyStructuredResultV2 => ({
