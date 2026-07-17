@@ -38,7 +38,8 @@
   "dependencies": {
     "@arts-and-crafts/v5": "workspace:*",
     "@arts-and-crafts/v5-utils": "workspace:*",
-    "neverthrow": "^8.2.0"
+    "neverthrow": "^8.2.0",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
