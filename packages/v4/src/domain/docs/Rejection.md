@@ -14,12 +14,12 @@ it is:
 - **Not a [`DomainEvent`](./DomainEvent.md)** — nothing happened; there is no
   fact to record in the event stream. A rejection is never written to the
   [`EventStore`](../../infrastructure/docs/EventStore.md)
-  (see [ADR-001](../../../../docs/adr/001-rejection-is-not-a-domain-event.md)).
+  (see [ADR-001](../../../docs/adr/001-rejection-is-not-a-domain-event.md)).
 - **Not an exception** — business rule violations are _expected_ outcomes, not
   bugs. Throwing an exception from domain logic breaks purity and makes
   outcomes harder to test. The `TEvent[] | Rejection` return type keeps
   everything as plain values
-  (see [ADR-004](../../../../docs/adr/004-decider-returns-rejection-for-business-rule-violations.md)).
+  (see [ADR-004](../../../docs/adr/004-decider-returns-rejection-for-business-rule-violations.md)).
 - **Not silent** — unlike returning an empty `[]`, a rejection carries rich
   metadata: `reasonCode`, `classification`, `retryable`, `reason`, and optional
   `validationErrors`. Callers can log it, publish it as an
@@ -115,8 +115,8 @@ flowchart TD
 
 - **Utils**: [`createRejection`](./createRejection.md),
   [`isRejection`](./isRejection.md)
-- **ADR**: [ADR-001 — Rejection is Not a Domain Event](../../../../docs/adr/001-rejection-is-not-a-domain-event.md),
-  [ADR-004 — Decider Returns Rejection](../../../../docs/adr/004-decider-returns-rejection-for-business-rule-violations.md)
+- **ADR**: [ADR-001 — Rejection is Not a Domain Event](../../../docs/adr/001-rejection-is-not-a-domain-event.md),
+  [ADR-004 — Decider Returns Rejection](../../../docs/adr/004-decider-returns-rejection-for-business-rule-violations.md)
 - **Used by**: [`Decider`](./Decider.md),
   [`Outbox`](../../infrastructure/docs/Outbox.md),
   [`ScenarioTest`](../../infrastructure/docs/ScenarioTest.md)

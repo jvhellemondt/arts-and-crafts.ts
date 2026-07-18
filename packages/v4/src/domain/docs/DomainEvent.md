@@ -24,7 +24,7 @@ directly to external consumers. To notify other services, convert it to an
 [`Outbox`](../../infrastructure/docs/Outbox.md). This boundary is a **DDD**
 (Bounded Context) and **hexagonal architecture** (don't let domain objects leak
 out of the port) concern — see
-[ADR-001](../../../../docs/adr/001-rejection-is-not-a-domain-event.md) for
+[ADR-001](../../../docs/adr/001-rejection-is-not-a-domain-event.md) for
 the full rationale.
 
 **They are append-only and immutable.** Once written to the
@@ -109,7 +109,7 @@ sequenceDiagram
 - **Tests**: [`DomainEvent.spec.ts`](../DomainEvent.spec.ts)
 - **Utils**: [`createDomainEvent`](./createDomainEvent.md),
   [`isDomainEvent`](./isDomainEvent.md), [`isEvent`](./isEvent.md)
-- **ADR**: [ADR-001 — Rejection is Not a Domain Event](../../../../docs/adr/001-rejection-is-not-a-domain-event.md)
+- **ADR**: [ADR-001 — Rejection is Not a Domain Event](../../../docs/adr/001-rejection-is-not-a-domain-event.md)
 - **Used by**: [`Decider`](./Decider.md), [`EventStore`](../../infrastructure/docs/EventStore.md),
   [`Outbox`](../../infrastructure/docs/Outbox.md),
   [`EventBus`](../../infrastructure/docs/EventBus.md),

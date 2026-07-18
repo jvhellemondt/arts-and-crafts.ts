@@ -1,9 +1,6 @@
 # Architecture Decision Records
 
-This directory contains Architecture Decision Records (ADRs) for `packages/v5`.
-
-> The v4 ADRs (001–007) now live alongside the v4 package at
-> [`packages/v4/docs/adr`](../../packages/v4/docs/adr/README.md).
+This directory contains Architecture Decision Records (ADRs) for the `@arts-n-crafts/ts` library.
 
 ## What is an ADR?
 
@@ -24,11 +21,15 @@ We use a lightweight Markdown format inspired by [MADR](https://adr.github.io/ma
 
 ## Index
 
-### v5 neverthrow Pipeline (2026-07)
+### v4 ScenarioTest Implementation (2026-02-18)
 
-- [ADR-008: Inbound Pipeline Uses neverthrow Instead of Middleware Frameworks](./008-inbound-pipeline-uses-neverthrow-not-middleware-frameworks.md)
-- [ADR-009: Outbound Ports Return ResultAsync; Rejection Stays in the Ok Channel](./009-outbound-ports-return-resultasync-rejection-stays-in-ok.md)
-- [ADR-010: Validation Is an Invalid Outcome; Outcomes Share an Outcome Base](./010-validation-is-an-invalid-outcome-not-a-rejection.md)
+- [ADR-001: Rejection is Not a Domain Event](./001-rejection-is-not-a-domain-event.md)
+- [ADR-002: Outbox Owns IntegrationEvent Conversion](./002-outbox-owns-integration-event-conversion.md)
+- [ADR-003: Command Handler Orchestrates Rejection Publishing](./003-command-handler-orchestrates-rejection-publishing.md)
+- [ADR-004: Decider Returns Rejection for Business Rule Violations](./004-decider-returns-rejection-for-business-rule-violations.md)
+- [ADR-005: ScenarioTest Asserts Rejections via Outbox](./005-scenario-test-asserts-rejections-via-outbox.md)
+- [ADR-006: Projection Handlers Guard on isDomainEvent](./006-projection-handlers-guard-on-is-domain-event.md)
+- [ADR-007: ScenarioTest Given Step Publishes to Event Bus](./007-scenario-test-given-publishes-to-event-bus.md)
 
 ## Contributing
 
@@ -46,3 +47,4 @@ When making a significant architectural decision:
 - [MADR: Markdown Architectural Decision Records](https://adr.github.io/madr/)
 - [AWS: Using ADRs to Streamline Technical Decision-Making](https://docs.aws.amazon.com/prescriptive-guidance/latest/architectural-decision-records/welcome.html)
 - [Google Cloud: Architecture Decision Records Overview](https://cloud.google.com/architecture/architecture-decision-records)
+
