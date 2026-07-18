@@ -1,3 +1,5 @@
+import type { Outcome } from "./Outcome.ts";
+
 /**
  * A generic failure value object representing something that went wrong
  * outside of the domain's control.
@@ -10,13 +12,10 @@
  * inbound adapter layer lifts them into `Err` values (via neverthrow) so hosts
  * can short-circuit their request pipeline without a try/catch boundary. A
  * `Failure` is always unexpected — if the domain explicitly said no, that is a
- * `Rejection`, not a `Failure`.
+ * `Rejection`; if the request was malformed, that is an `Invalid`.
  */
-export interface Failure<TCode = string> {
-  /** Tag that distinguishes a `Failure` from a `Rejection` at runtime. */
+export interface Failure<TCode = string> extends Outcome<TCode> {
+  /** Tag that distinguishes a `Failure` from a `Rejection`/`Invalid` at runtime. */
   readonly kind: "failure";
-  /** Specific failure subtype, e.g. `"GATEWAY_FAILURE"`. */
-  readonly code: TCode;
-  readonly reason: string;
   readonly cause?: unknown;
 }

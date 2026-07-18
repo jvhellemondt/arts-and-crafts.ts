@@ -24,7 +24,7 @@ describe("parseJsonBody", () => {
         throw new Error("parseJsonBody > did not expect an ok result");
       },
       (err) => {
-        expect(err.name).toBe("JSONParseError");
+        expect(err.code).toBe("MALFORMED_JSON");
       },
     );
   });
@@ -37,7 +37,7 @@ describe("parseJsonBody", () => {
         throw new Error("parseJsonBody > did not expect an ok result");
       },
       (err) => {
-        expect(err.name).toBe("NoBodyError");
+        expect(err.code).toBe("NO_BODY");
       },
     );
   });

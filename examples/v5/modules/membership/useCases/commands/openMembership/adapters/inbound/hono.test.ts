@@ -53,7 +53,7 @@ describe("createOpenMembershipHonoHandler", () => {
   it("returns 400 when the body is empty", async () => {
     const res = await post(app, JSON.stringify({}));
     expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ code: "NoBodyError" });
+    expect(await res.json()).toMatchObject({ code: "NO_BODY" });
   });
 
   it("returns 503 when the event store is offline", async () => {

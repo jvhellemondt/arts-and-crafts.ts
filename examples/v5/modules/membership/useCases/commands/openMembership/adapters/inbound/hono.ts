@@ -50,8 +50,7 @@ export function createOpenMembershipHonoHandler(
             : c.json({ code: decision.rejection.code, reason: decision.rejection.reason }, 409),
         (error) => {
           if (Array.isArray(error)) return c.json({ code: "GATEWAY_FAILURE" }, 503);
-          if ("kind" in error) return c.json({ code: error.code, reason: error.reason }, 400);
-          return c.json({ code: error.name, reason: error.message }, 400);
+          return c.json({ code: error.code, reason: error.reason }, 400);
         },
       );
   };

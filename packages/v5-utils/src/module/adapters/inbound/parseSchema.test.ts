@@ -17,6 +17,7 @@ describe("parseSchema", () => {
         throw new Error("parseSchema > should return an Err");
       },
       (err) => {
+        expect(err.kind).toBe("invalid");
         expect(err.code).toBe("PARSE_FAILED");
         expect(err.validationErrors?.at(0)?.field).toBe("name");
       },

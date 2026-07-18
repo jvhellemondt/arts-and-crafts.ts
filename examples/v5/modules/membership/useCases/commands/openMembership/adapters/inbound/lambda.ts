@@ -63,14 +63,9 @@ export function createOpenMembershipLambdaHandler(
         (error): APIGatewayProxyStructuredResultV2 => {
           if (Array.isArray(error))
             return { statusCode: 503, body: JSON.stringify({ code: "GATEWAY_FAILURE" }) };
-          if ("kind" in error)
-            return {
-              statusCode: 400,
-              body: JSON.stringify({ code: error.code, reason: error.reason }),
-            };
           return {
             statusCode: 400,
-            body: JSON.stringify({ code: error.name, reason: error.message }),
+            body: JSON.stringify({ code: error.code, reason: error.reason }),
           };
         },
       );

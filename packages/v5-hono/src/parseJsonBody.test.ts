@@ -23,19 +23,19 @@ describe("parseJsonBody", () => {
     expect(await res.json()).toEqual({ name: "John" });
   });
 
-  it("yields JSONParseError for a malformed body", async () => {
+  it("yields MALFORMED_JSON for a malformed body", async () => {
     const res = await buildApp().request("/", { method: "POST" });
     const json = await res.json();
-    expect(json.name).toBe("JSONParseError");
+    expect(json.code).toBe("MALFORMED_JSON");
   });
 
-  it("yields undefined for an absent body", async () => {
+  it("yields NO_BODY for an absent body", async () => {
     const res = await buildApp().request("/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
     });
     const json = await res.json();
-    expect(json.name).toBe("NoBodyError");
+    expect(json.code).toBe("NO_BODY");
   });
 });
