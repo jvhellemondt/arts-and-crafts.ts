@@ -53,7 +53,7 @@ class UserProjection {
 
 - **Tests**: [`isEvent.spec.ts`](../utils/isEvent.spec.ts)
 - **See also**: [`isEvent`](./isEvent.md), [`isRejection`](./isRejection.md),
-  [`isDomainEvent` in ADR-006](../../../../docs/adr/006-projection-handlers-guard-on-is-domain-event.md)
+  [`isDomainEvent` in ADR-006](../../../docs/adr/006-projection-handlers-guard-on-is-domain-event.md)
 - **Examples**: [`UserProjection.ts`](../../core/examples/UserProjection.ts)
 - **Used by**: [`ScenarioTest`](../../infrastructure/docs/ScenarioTest.md),
   projection handlers
