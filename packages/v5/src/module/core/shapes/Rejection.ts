@@ -1,17 +1,12 @@
+import type { Outcome } from "./Outcome.ts";
+
 /**
- * A first-class business outcome: the command was valid and understood, but a
- * business rule said no. Distinct from a `Failure`, which is an unexpected,
- * infrastructure-level fault.
+ * A first-class business outcome: the request was valid and understood, but a
+ * business rule said no. Distinct from a `Failure` (an unexpected,
+ * infrastructure-level fault) and an `Invalid` (a malformed request that never
+ * reached the domain).
  */
-export interface Rejection<TCode = string> {
-  /** Tag that distinguishes a `Rejection` from a `Failure` at runtime. */
+export interface Rejection<TCode = string> extends Outcome<TCode> {
+  /** Tag that distinguishes a `Rejection` from a `Failure`/`Invalid` at runtime. */
   readonly kind: "rejection";
-  readonly code: TCode;
-  readonly reason: string;
-  readonly validationErrors?: {
-    readonly code: string;
-    readonly field?: string;
-    readonly message?: string;
-    readonly expected?: string;
-  }[];
 }

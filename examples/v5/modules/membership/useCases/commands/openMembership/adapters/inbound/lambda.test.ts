@@ -49,7 +49,7 @@ describe("createOpenMembershipLambdaHandler", () => {
   it("returns 400 when the body is absent", async () => {
     const res = await invoke(buildEvent(undefined));
     expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body as string)).toMatchObject({ code: "NoBodyError" });
+    expect(JSON.parse(res.body as string)).toMatchObject({ code: "NO_BODY" });
   });
 
   it("returns 503 when the event store is offline", async () => {
