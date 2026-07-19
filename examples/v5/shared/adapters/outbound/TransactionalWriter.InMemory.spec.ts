@@ -48,7 +48,7 @@ describe("InMemoryTransactionalWriter", () => {
     const event = makeEvent();
     const intent = makeIntent();
 
-    await writer.appendEventsAndIntents([event], [intent]);
+    await writer.persist([event], [intent]);
 
     expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([event]);
     const pending = (await outbox.loadPending())._unsafeUnwrap();
@@ -59,7 +59,7 @@ describe("InMemoryTransactionalWriter", () => {
   it("persists neither the event nor the intent when the event store is offline", async () => {
     eventStore.simulate("offline");
 
-    const result = await writer.appendEventsAndIntents([makeEvent()], [makeIntent()]);
+    const result = await writer.persist([makeEvent()], [makeIntent()]);
 
     expect(result._unsafeUnwrapErr()).toMatchObject({
       code: "GATEWAY_FAILURE",
@@ -73,7 +73,7 @@ describe("InMemoryTransactionalWriter", () => {
   it("persists neither the event nor the intent when the outbox is offline", async () => {
     outbox.simulate("offline");
 
-    const result = await writer.appendEventsAndIntents([makeEvent()], [makeIntent()]);
+    const result = await writer.persist([makeEvent()], [makeIntent()]);
 
     expect(result._unsafeUnwrapErr()).toMatchObject({
       code: "GATEWAY_FAILURE",
@@ -110,7 +110,7 @@ describe("InMemoryTransactionalWriter", () => {
 
     const event = makeEvent();
     const intent = makeIntent();
-    await writer.appendEventsAndIntents([event], [intent]);
+    await writer.persist([event], [intent]);
     expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([event]);
   });
 });

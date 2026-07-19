@@ -43,7 +43,7 @@ event store and the outbox behind a single failure domain.
 ```ts
 // packages/v5/src/module/adapters/outbound/capabilities/AppendEventsAndIntents.ts
 export interface AppendEventsAndIntents<TDomainEvent extends DomainEvent, TIntent extends Intent, TReturn> {
-  appendEventsAndIntents(events: TDomainEvent[], intents: TIntent[]): TReturn;
+  persist(events: TDomainEvent[], intents: TIntent[]): TReturn;
 }
 ```
 
@@ -61,7 +61,7 @@ export class InMemoryTransactionalWriter<TEvent extends DomainEvent, TIntent ext
     return this.eventStore.isSimulating || this.outbox.isSimulating;
   }
 
-  appendEventsAndIntents(events: TEvent[], intents: TIntent[]) {
+  persist(events: TEvent[], intents: TIntent[]) {
     if (this.isSimulating) return errAsync(this.offlineFailure());
     return this.eventStore.append(events).andThen(() => this.outbox.stage(intents));
   }
@@ -75,7 +75,7 @@ combining two independent writes:
 ```ts
 decision.accepted
   ? this.writer
-      .appendEventsAndIntents(decision.events, decision.intents)
+      .persist(decision.events, decision.intents)
       .mapErr((failure): GatewayFailure[] => [failure])
       .map(() => decision)
   : okAsync(decision)
@@ -120,7 +120,7 @@ points into one shape. But its origin changed. Before, the array could hold up
 to two failures from one `combineWithAllErrors` call, because two gateways
 could fail independently within a single step. Now, `combineWithAllErrors` is
 gone — each of the two failure points (`repository.load`, `writer.
-appendEventsAndIntents`) can produce at most one failure, and each is wrapped
+persist`) can produce at most one failure, and each is wrapped
 individually via `.mapErr((f) => [f])`. The array shape is preserved for
 consistency across call sites, but it is no longer "intrinsic" to a
 multi-gateway combinator (contra ADR-009's framing of the old design) — it is

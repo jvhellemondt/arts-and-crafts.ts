@@ -18,5 +18,5 @@ export interface AppendEventsAndIntents<
   TIntent extends Intent,
   TReturn = Promise<void | GatewayFailure>,
 > {
-  appendEventsAndIntents(events: TDomainEvent[], intents: TIntent[]): TReturn;
+  persist(events: TDomainEvent[], intents: TIntent[]): TReturn;
 }

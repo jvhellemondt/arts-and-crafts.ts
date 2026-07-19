@@ -60,7 +60,7 @@ export class InMemoryTransactionalWriter<
     };
   }
 
-  appendEventsAndIntents(events: TEvent[], intents: TIntent[]): ResultAsync<void, GatewayFailure> {
+  persist(events: TEvent[], intents: TIntent[]): ResultAsync<void, GatewayFailure> {
     if (this.isSimulating) return errAsync(this.offlineFailure());
 
     return this.eventStore.append(events).andThen(() => this.outbox.stage(intents));

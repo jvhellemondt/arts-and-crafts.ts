@@ -30,7 +30,7 @@ export class OpenMembershipHandler implements HandleCommand<
       .andThen((decision) =>
         decision.accepted
           ? this.writer
-              .appendEventsAndIntents(decision.events, decision.intents)
+              .persist(decision.events, decision.intents)
               .mapErr((failure): GatewayFailure[] => [failure])
               .map(() => decision)
           : okAsync(decision),

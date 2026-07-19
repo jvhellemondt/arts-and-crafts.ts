@@ -233,7 +233,7 @@ const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(out
 const writer = new InMemoryTransactionalWriter(eventStore, outbox);
 
 // inside the command handler, on the accepted branch
-await writer.appendEventsAndIntents(decision.events, decision.intents);
+await writer.persist(decision.events, decision.intents);
 ```
 
 **Architecture fit.** Outbound adapter layer. Consumed by `OpenMembershipHandler` in place of a bare `StageIntents` outbox dependency. `IntentRelay` still reads from `outbox` directly (`loadPending`/`markDispatched`/`markFailed`) — those are unaffected, since a relay draining already-staged intents has no atomicity concern with the event store.
@@ -663,7 +663,7 @@ handle(command: OpenMembershipCommand): ResultAsync<OpenMembershipDecision, Gate
     .andThen((decision) =>
       decision.accepted
         ? this.writer
-            .appendEventsAndIntents(decision.events, decision.intents)
+            .persist(decision.events, decision.intents)
             .mapErr((failure): GatewayFailure[] => [failure])
             .map(() => decision)
         : okAsync(decision),
@@ -673,7 +673,7 @@ handle(command: OpenMembershipCommand): ResultAsync<OpenMembershipDecision, Gate
 
 **Return type contract:**
 - `Ok(decision)` where `decision.accepted` is `true` or `false` — both an accepted and a rejected decision are success values (ADR-009); the domain saying no is not an infrastructure error.
-- `Err(GatewayFailure[])` (always non-empty) — infrastructure failed, either at `load` or at the atomic `appendEventsAndIntents` write. The array holds exactly one failure per call; it exists to give both failure points one consistent return shape, not because either point can itself produce more than one failure — see [ADR-011](../../docs/adr/011-events-and-intents-persist-atomically-via-a-transactional-writer.md).
+- `Err(GatewayFailure[])` (always non-empty) — infrastructure failed, either at `load` or at the atomic `persist` write. The array holds exactly one failure per call; it exists to give both failure points one consistent return shape, not because either point can itself produce more than one failure — see [ADR-011](../../docs/adr/011-events-and-intents-persist-atomically-via-a-transactional-writer.md).
 
 ---
 
