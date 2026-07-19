@@ -1,4 +1,5 @@
 export * from "./AdvanceCheckpoint.ts";
+export * from "./AppendEventsAndIntents.ts";
 export * from "./AppendToEventStore.ts";
 export * from "./LoadCheckpoint.ts";
 export * from "./LoadDomainEvents.ts";

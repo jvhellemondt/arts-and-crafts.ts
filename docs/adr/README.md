@@ -29,6 +29,7 @@ We use a lightweight Markdown format inspired by [MADR](https://adr.github.io/ma
 - [ADR-008: Inbound Pipeline Uses neverthrow Instead of Middleware Frameworks](./008-inbound-pipeline-uses-neverthrow-not-middleware-frameworks.md)
 - [ADR-009: Outbound Ports Return ResultAsync; Rejection Stays in the Ok Channel](./009-outbound-ports-return-resultasync-rejection-stays-in-ok.md)
 - [ADR-010: Validation Is an Invalid Outcome; Outcomes Share an Outcome Base](./010-validation-is-an-invalid-outcome-not-a-rejection.md)
+- [ADR-011: Events and Intents Persist Atomically via a Transactional Writer](./011-events-and-intents-persist-atomically-via-a-transactional-writer.md)
 
 ## Contributing
 

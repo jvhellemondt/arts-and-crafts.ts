@@ -13,12 +13,15 @@ import type {
   StageNotifications,
   LoadDomainEvents,
   AppendToEventStore,
+  AppendEventsAndIntents,
   LoadProjection,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
 import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
+import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
+import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import type { ListMembershipsProjection } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 import type { ResultAsync } from "neverthrow";
 import { createOpenMembershipHonoHandler } from "@examples/modules/membership/useCases/commands/openMembership/adapters/inbound/hono.ts";
@@ -32,6 +35,11 @@ export function createHonoApp(
     AppendToEventStore<MembershipEventV1, ResultAsync<void, GatewayFailure>>,
   outbox: StageIntents<MembershipIntents, ResultAsync<void, GatewayFailure>> &
     StageNotifications<OpenMembershipRejected, ResultAsync<void, GatewayFailure>>,
+  openMembershipWriter: AppendEventsAndIntents<
+    MembershipOpenedV1,
+    NotifyUserToVerifyEmailV1,
+    ResultAsync<void, GatewayFailure>
+  >,
   listMembershipsProjectionLoader: LoadProjection<
     ListMembershipsProjection,
     ResultAsync<ListMembershipsProjection, GatewayFailure>
@@ -54,7 +62,7 @@ export function createHonoApp(
   // inside its neverthrow pipeline. This boundary only catches genuinely
   // unexpected throws — a handler that rejected, or a global middleware fault.
   app
-    .post("membership/open", createOpenMembershipHonoHandler(eventStore, outbox))
+    .post("membership/open", createOpenMembershipHonoHandler(eventStore, openMembershipWriter))
     .get("memberships", createListMembershipsHonoHandler(listMembershipsProjectionLoader));
 
   app.notFound((c) => {

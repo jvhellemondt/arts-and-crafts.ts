@@ -4,6 +4,7 @@ import {
   type TableRow,
 } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
+import { InMemoryTransactionalWriter } from "@examples/shared/adapters/outbound/TransactionalWriter.InMemory.ts";
 import type { OutboxEnvelope } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
@@ -21,5 +22,6 @@ const outboxDatasource = new Map<
 
 const eventStore = new InMemoryEventStore<MembershipEventV1>(eventStoreDatasource);
 const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(outboxDatasource);
+const writer = new InMemoryTransactionalWriter(eventStore, outbox);
 
-export const handler = createOpenMembershipLambdaHandler(eventStore, outbox);
+export const handler = createOpenMembershipLambdaHandler(eventStore, writer);

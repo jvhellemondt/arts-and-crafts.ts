@@ -30,44 +30,6 @@ describe("OpenMembershipRepository", () => {
     repository = new OpenMembershipRepository(eventStore);
   });
 
-  describe("store", () => {
-    it("appends the event to the membership stream", async () => {
-      const aggregateId = randomUUID();
-      const event = makeEvent(aggregateId);
-
-      await repository.store([event]);
-
-      const stored = (
-        await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, aggregateId)])
-      )._unsafeUnwrap();
-      expect(stored).toEqual([event]);
-    });
-
-    it("appends multiple events to their respective aggregate streams", async () => {
-      const aggregateId1 = randomUUID();
-      const aggregateId2 = randomUUID();
-
-      await repository.store([makeEvent(aggregateId1), makeEvent(aggregateId2)]);
-
-      expect(
-        (await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, aggregateId1)]))._unsafeUnwrap(),
-      ).toHaveLength(1);
-      expect(
-        (await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, aggregateId2)]))._unsafeUnwrap(),
-      ).toHaveLength(1);
-    });
-
-    it("does not append to any other stream", async () => {
-      const aggregateId = randomUUID();
-
-      await repository.store([makeEvent(aggregateId)]);
-
-      expect(
-        (await eventStore.load([createStreamKey("other", aggregateId)]))._unsafeUnwrap(),
-      ).toEqual([]);
-    });
-  });
-
   describe("load", () => {
     it("returns initial state when no events exist for the aggregate", async () => {
       const aggregateId = randomUUID();
@@ -77,9 +39,9 @@ describe("OpenMembershipRepository", () => {
       expect(state).toEqual({ status: "initial", id: aggregateId });
     });
 
-    it("returns the evolved state after storing events", async () => {
+    it("returns the evolved state after events exist for the aggregate", async () => {
       const aggregateId = randomUUID();
-      await repository.store([makeEvent(aggregateId)]);
+      await eventStore.append([makeEvent(aggregateId)]);
 
       const state = (await repository.load(aggregateId, validEmail))._unsafeUnwrap();
 
@@ -93,7 +55,7 @@ describe("OpenMembershipRepository", () => {
 
     it("returns initial state for a different aggregate", async () => {
       const aggregateId = randomUUID();
-      await repository.store([makeEvent(aggregateId)]);
+      await eventStore.append([makeEvent(aggregateId)]);
 
       const otherId = randomUUID();
       const state = (await repository.load(otherId, validEmail))._unsafeUnwrap();

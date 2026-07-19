@@ -5,6 +5,7 @@ import {
   type TableRow,
 } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
+import { InMemoryTransactionalWriter } from "@examples/shared/adapters/outbound/TransactionalWriter.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
 import { InMemoryEmailGateway } from "@examples/shared/adapters/outbound/EmailGateway.ts";
 import { IntentRelay } from "@examples/shared/adapters/outbound/IntentRelay.ts";
@@ -30,6 +31,7 @@ const outboxDatasource = new Map<
 
 const eventStore = new InMemoryEventStore<MembershipEventV1>(eventStoreDatasource);
 const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(outboxDatasource);
+const openMembershipWriter = new InMemoryTransactionalWriter(eventStore, outbox);
 
 const emailGateway = new InMemoryEmailGateway();
 
@@ -42,7 +44,7 @@ const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjecti
 );
 const listMembershipsProjector = new ListMembershipsProjector(listMembershipsStore, eventStore);
 
-const honoApp = createHonoApp(eventStore, outbox, listMembershipsStore);
+const honoApp = createHonoApp(eventStore, outbox, openMembershipWriter, listMembershipsStore);
 
 const RELAY_INTERVAL_MS = 1000;
 const relayTimer = setInterval(() => {

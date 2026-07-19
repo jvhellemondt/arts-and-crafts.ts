@@ -1,6 +1,7 @@
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
+import { InMemoryTransactionalWriter } from "@examples/shared/adapters/outbound/TransactionalWriter.InMemory.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 import { createOpenMembershipLambdaHandler } from "./lambda.ts";
@@ -22,7 +23,8 @@ describe("createOpenMembershipLambdaHandler", () => {
   beforeEach(() => {
     eventStore = new InMemoryEventStore<MembershipEventV1>();
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, never>();
-    invoke = createOpenMembershipLambdaHandler(eventStore, outbox);
+    const writer = new InMemoryTransactionalWriter(eventStore, outbox);
+    invoke = createOpenMembershipLambdaHandler(eventStore, writer);
   });
 
   it("returns 202 with the new membership id on success", async () => {

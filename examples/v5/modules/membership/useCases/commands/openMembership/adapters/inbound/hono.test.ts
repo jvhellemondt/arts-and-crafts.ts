@@ -3,6 +3,7 @@ import { createOpenMembershipHonoHandler } from "./hono.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
+import { InMemoryTransactionalWriter } from "@examples/shared/adapters/outbound/TransactionalWriter.InMemory.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
 
 const VALID_PAYLOAD = {
@@ -25,8 +26,9 @@ describe("createOpenMembershipHonoHandler", () => {
   beforeEach(() => {
     eventStore = new InMemoryEventStore<MembershipEventV1>();
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, never>();
+    const writer = new InMemoryTransactionalWriter(eventStore, outbox);
     app = new Hono();
-    app.post("/", createOpenMembershipHonoHandler(eventStore, outbox));
+    app.post("/", createOpenMembershipHonoHandler(eventStore, writer));
   });
 
   it("returns 202 with the new membership id on success", async () => {

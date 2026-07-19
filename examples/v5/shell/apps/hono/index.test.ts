@@ -5,6 +5,7 @@ import {
   type TableRow,
 } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
+import { InMemoryTransactionalWriter } from "@examples/shared/adapters/outbound/TransactionalWriter.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
@@ -20,10 +21,11 @@ function buildApp() {
     new Map<TableName, TableRow<MembershipEventV1>[]>(),
   );
   const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>();
+  const openMembershipWriter = new InMemoryTransactionalWriter(eventStore, outbox);
   const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjection>(
     emptyProjection,
   );
-  const app = createHonoApp(eventStore, outbox, listMembershipsStore);
+  const app = createHonoApp(eventStore, outbox, openMembershipWriter, listMembershipsStore);
   return { app, eventStore, outbox, listMembershipsStore };
 }
 
