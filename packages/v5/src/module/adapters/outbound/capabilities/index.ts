@@ -1,5 +1,4 @@
 export * from "./AdvanceCheckpoint.ts";
-export * from "./AppendEventsAndIntents.ts";
 export * from "./AppendToEventStore.ts";
 export * from "./LoadCheckpoint.ts";
 export * from "./LoadDomainEvents.ts";
@@ -8,6 +7,7 @@ export * from "./LoadPendingIntents.ts";
 export * from "./LoadProjection.ts";
 export * from "./MarkIntentDispatched.ts";
 export * from "./MarkIntentFailed.ts";
+export * from "./PersistEventsAndIntents.ts";
 export * from "./PublishIntegrationEvents.ts";
 export * from "./SaveProjection.ts";
 export * from "./SimulateFaults.ts";

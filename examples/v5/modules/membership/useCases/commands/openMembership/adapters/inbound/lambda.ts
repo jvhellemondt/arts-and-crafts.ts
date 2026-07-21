@@ -7,13 +7,15 @@ import {
 import { parseSchema } from "@arts-and-crafts/v5-utils/adapters/inbound";
 import type {
   LoadDomainEvents,
-  AppendEventsAndIntents,
+  PersistEventsAndIntents,
+  StageNotifications,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
+import type { OpenMembershipRejected } from "../../rejections/MembershipAlreadyExists.ts";
 import { ResultAsync } from "neverthrow";
 import { OpenMembershipHandler } from "../../handler.ts";
 import { OpenMembershipRepository } from "../../repository.ts";
@@ -22,14 +24,15 @@ import { openMembershipSchema } from "./schema.ts";
 
 export function createOpenMembershipLambdaHandler(
   eventStore: LoadDomainEvents<MembershipEventV1, ResultAsync<MembershipEventV1[], GatewayFailure>>,
-  writer: AppendEventsAndIntents<
+  writer: PersistEventsAndIntents<
     MembershipOpenedV1,
     NotifyUserToVerifyEmailV1,
     ResultAsync<void, GatewayFailure>
   >,
+  notifications: StageNotifications<OpenMembershipRejected, ResultAsync<void, GatewayFailure>>,
 ) {
   const repository = new OpenMembershipRepository(eventStore);
-  const handler = new OpenMembershipHandler(repository, writer);
+  const handler = new OpenMembershipHandler(repository, writer, notifications);
 
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
     return ResultAsync.combine([

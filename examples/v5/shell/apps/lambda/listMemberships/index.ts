@@ -1,9 +1,6 @@
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
-import {
-  InMemoryEventStore,
-  type TableName,
-  type TableRow,
-} from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
+import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
+import { InMemoryDatasource } from "@examples/shared/adapters/outbound/InMemoryDatasource.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import {
@@ -18,8 +15,8 @@ import { createListMembershipsLambdaHandler } from "@examples/modules/membership
 // with the openMembership function's event store — swap for a real,
 // centrally shared EventStore/ProjectionStore once the persistent backend
 // is decided.
-const eventStoreDatasource = new Map<TableName, TableRow<MembershipEventV1>[]>([]);
-const eventStore = new InMemoryEventStore<MembershipEventV1>(eventStoreDatasource);
+const datasource = new InMemoryDatasource();
+const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
 const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjection>(
   emptyProjection,
 );

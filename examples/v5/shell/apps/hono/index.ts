@@ -13,7 +13,7 @@ import type {
   StageNotifications,
   LoadDomainEvents,
   AppendToEventStore,
-  AppendEventsAndIntents,
+  PersistEventsAndIntents,
   LoadProjection,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
@@ -35,7 +35,7 @@ export function createHonoApp(
     AppendToEventStore<MembershipEventV1, ResultAsync<void, GatewayFailure>>,
   outbox: StageIntents<MembershipIntents, ResultAsync<void, GatewayFailure>> &
     StageNotifications<OpenMembershipRejected, ResultAsync<void, GatewayFailure>>,
-  openMembershipWriter: AppendEventsAndIntents<
+  openMembershipWriter: PersistEventsAndIntents<
     MembershipOpenedV1,
     NotifyUserToVerifyEmailV1,
     ResultAsync<void, GatewayFailure>
@@ -62,7 +62,10 @@ export function createHonoApp(
   // inside its neverthrow pipeline. This boundary only catches genuinely
   // unexpected throws — a handler that rejected, or a global middleware fault.
   app
-    .post("membership/open", createOpenMembershipHonoHandler(eventStore, openMembershipWriter))
+    .post(
+      "membership/open",
+      createOpenMembershipHonoHandler(eventStore, openMembershipWriter, outbox),
+    )
     .get("memberships", createListMembershipsHonoHandler(listMembershipsProjectionLoader));
 
   app.notFound((c) => {

@@ -1,10 +1,7 @@
 import { createHonoApp } from "./index.ts";
-import {
-  InMemoryEventStore,
-  type TableName,
-  type TableRow,
-} from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
+import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
+import { InMemoryDatasource } from "@examples/shared/adapters/outbound/InMemoryDatasource.ts";
 import { InMemoryTransactionalWriter } from "@examples/shared/adapters/outbound/TransactionalWriter.InMemory.ts";
 import { InMemoryProjectionStore } from "@examples/shared/adapters/outbound/ProjectionStore.InMemory.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
@@ -17,11 +14,10 @@ import {
 } from "@examples/modules/membership/useCases/queries/listMemberships/projection.ts";
 
 function buildApp() {
-  const eventStore = new InMemoryEventStore<MembershipEventV1>(
-    new Map<TableName, TableRow<MembershipEventV1>[]>(),
-  );
-  const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>();
-  const openMembershipWriter = new InMemoryTransactionalWriter(eventStore, outbox);
+  const datasource = new InMemoryDatasource();
+  const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
+  const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(datasource);
+  const openMembershipWriter = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
   const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjection>(
     emptyProjection,
   );

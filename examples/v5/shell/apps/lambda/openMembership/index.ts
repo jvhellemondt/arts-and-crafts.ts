@@ -1,11 +1,7 @@
-import {
-  InMemoryEventStore,
-  type TableName,
-  type TableRow,
-} from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
+import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
+import { InMemoryDatasource } from "@examples/shared/adapters/outbound/InMemoryDatasource.ts";
 import { InMemoryTransactionalWriter } from "@examples/shared/adapters/outbound/TransactionalWriter.InMemory.ts";
-import type { OutboxEnvelope } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipIntents } from "@examples/modules/membership/core/intents/index.ts";
 import type { OpenMembershipRejected } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
@@ -14,14 +10,10 @@ import { createOpenMembershipLambdaHandler } from "@examples/modules/membership/
 // Module-scope so a warm container reuses it across invocations, same as
 // shell/apps/hono/main.ts. Not durable across cold starts — swap for a real
 // EventStore/Outbox once the persistent backend is decided.
-const eventStoreDatasource = new Map<TableName, TableRow<MembershipEventV1>[]>([]);
-const outboxDatasource = new Map<
-  string,
-  OutboxEnvelope<MembershipIntents | OpenMembershipRejected>[]
->([]);
+const datasource = new InMemoryDatasource();
 
-const eventStore = new InMemoryEventStore<MembershipEventV1>(eventStoreDatasource);
-const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(outboxDatasource);
-const writer = new InMemoryTransactionalWriter(eventStore, outbox);
+const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
+const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(datasource);
+const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
 
-export const handler = createOpenMembershipLambdaHandler(eventStore, writer);
+export const handler = createOpenMembershipLambdaHandler(eventStore, writer, outbox);

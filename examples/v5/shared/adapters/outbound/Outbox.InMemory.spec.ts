@@ -1,4 +1,5 @@
 import { InMemoryOutbox } from "./Outbox.InMemory.ts";
+import { InMemoryDatasource, OUTBOX_TABLE } from "./InMemoryDatasource.ts";
 import type { Intent } from "@arts-and-crafts/v5/core/shapes";
 import type { Notification, OutboxEnvelope } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import { randomUUID } from "node:crypto";
@@ -39,7 +40,7 @@ const makeNotification = (reason: string): TestNotification => ({
 });
 
 describe("InMemoryIntentOutbox", () => {
-  let datasource: Map<string, OutboxEnvelope<TestIntent | TestNotification>[]>;
+  let datasource: InMemoryDatasource;
   let outbox: InMemoryOutbox<TestIntent, TestNotification>;
 
   const intentFixture: TestIntent[] = [makeIntent("email"), makeIntent("push"), makeIntent("push")];
@@ -49,7 +50,7 @@ describe("InMemoryIntentOutbox", () => {
   ];
 
   beforeEach(() => {
-    datasource = new Map();
+    datasource = new InMemoryDatasource();
     outbox = new InMemoryOutbox<TestIntent, TestNotification>(datasource);
   });
 
@@ -68,32 +69,32 @@ describe("InMemoryIntentOutbox", () => {
       attemptCount: 0,
       entry: makeIntent("email"),
     };
-    datasource.set("outbox", [existing]);
+    datasource.write(OUTBOX_TABLE, [existing]);
     outbox = new InMemoryOutbox<TestIntent, TestNotification>(datasource);
 
     await outbox.stage(intentFixture);
 
-    expect(datasource.get("outbox")).toHaveLength(intentFixture.length + 1);
+    expect(datasource.read(OUTBOX_TABLE)).toHaveLength(intentFixture.length + 1);
   });
 
   describe("staging intents", () => {
     it("should stage intents as pending envelopes", async () => {
       await outbox.stage(intentFixture);
 
-      const rows = datasource.get("outbox");
+      const rows = datasource.read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE);
       expect(rows).toHaveLength(intentFixture.length);
-      expect(rows?.every((r) => r.status === "pending")).toBe(true);
-      expect(rows?.map((r) => r.entry)).toEqual(intentFixture);
+      expect(rows.every((r) => r.status === "pending")).toBe(true);
+      expect(rows.map((r) => r.entry)).toEqual(intentFixture);
     });
 
     it("should stage intents with attemptCount of 0 and no dispatched/failed metadata", async () => {
       await outbox.stage(intentFixture);
 
-      const rows = datasource.get("outbox");
-      expect(rows?.every((r) => r.attemptCount === 0)).toBe(true);
-      expect(rows?.every((r) => r.dispatchedAt === undefined)).toBe(true);
-      expect(rows?.every((r) => r.failedAt === undefined)).toBe(true);
-      expect(rows?.every((r) => r.lastError === undefined)).toBe(true);
+      const rows = datasource.read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE);
+      expect(rows.every((r) => r.attemptCount === 0)).toBe(true);
+      expect(rows.every((r) => r.dispatchedAt === undefined)).toBe(true);
+      expect(rows.every((r) => r.failedAt === undefined)).toBe(true);
+      expect(rows.every((r) => r.lastError === undefined)).toBe(true);
     });
   });
 
@@ -101,17 +102,17 @@ describe("InMemoryIntentOutbox", () => {
     it("should stage notifications as pending envelopes", async () => {
       await outbox.stage(notificationFixture);
 
-      const rows = datasource.get("outbox");
+      const rows = datasource.read<OutboxEnvelope<TestNotification>>(OUTBOX_TABLE);
       expect(rows).toHaveLength(notificationFixture.length);
-      expect(rows?.every((r) => r.status === "pending")).toBe(true);
-      expect(rows?.map((r) => r.entry)).toEqual(notificationFixture);
+      expect(rows.every((r) => r.status === "pending")).toBe(true);
+      expect(rows.map((r) => r.entry)).toEqual(notificationFixture);
     });
 
     it("should stage intents and notifications to the same table", async () => {
       await outbox.stage(intentFixture);
       await outbox.stage(notificationFixture);
 
-      expect(datasource.get("outbox")).toHaveLength(
+      expect(datasource.read(OUTBOX_TABLE)).toHaveLength(
         intentFixture.length + notificationFixture.length,
       );
     });
@@ -140,7 +141,7 @@ describe("InMemoryIntentOutbox", () => {
       await outbox.stage(intentFixture);
       await outbox.stage(notificationFixture);
 
-      expect(datasource.get("outbox")).toBeUndefined();
+      expect(datasource.read(OUTBOX_TABLE)).toEqual([]);
     });
 
     it("should restore to online state", async () => {
@@ -148,7 +149,7 @@ describe("InMemoryIntentOutbox", () => {
 
       expect(outbox.isSimulating).toBe(false);
       await outbox.stage(intentFixture);
-      expect(datasource.get("outbox")).toHaveLength(intentFixture.length);
+      expect(datasource.read(OUTBOX_TABLE)).toHaveLength(intentFixture.length);
     });
   });
 
@@ -205,7 +206,9 @@ describe("InMemoryIntentOutbox", () => {
       const result = await outbox.markDispatched(target.id);
 
       expect(result.isOk()).toBe(true);
-      const row = datasource.get("outbox")?.find((r) => r.entry.id === target.id);
+      const row = datasource
+        .read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE)
+        .find((r) => r.entry.id === target.id);
       expect(row?.status).toBe("dispatched");
       expect(row?.dispatchedAt).toBeGreaterThanOrEqual(before);
     });
@@ -235,7 +238,9 @@ describe("InMemoryIntentOutbox", () => {
       const result = await outbox.markFailed(target.id, "smtp down");
 
       expect(result.isOk()).toBe(true);
-      const row = datasource.get("outbox")?.find((r) => r.entry.id === target.id);
+      const row = datasource
+        .read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE)
+        .find((r) => r.entry.id === target.id);
       expect(row?.status).toBe("failed");
       expect(row?.lastError).toBe("smtp down");
       expect(row?.failedAt).toBeGreaterThanOrEqual(before);
@@ -249,7 +254,9 @@ describe("InMemoryIntentOutbox", () => {
       await outbox.markFailed(target.id, "first");
       await outbox.markFailed(target.id, "second");
 
-      const row = datasource.get("outbox")?.find((r) => r.entry.id === target.id);
+      const row = datasource
+        .read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE)
+        .find((r) => r.entry.id === target.id);
       expect(row?.attemptCount).toBe(2);
       expect(row?.lastError).toBe("second");
     });

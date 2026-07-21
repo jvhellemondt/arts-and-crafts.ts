@@ -1,23 +1,31 @@
-import type { AppendEventsAndIntents } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
+import type { PersistEventsAndIntents } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type {
   FaultSimulationMode,
   SimulateFaults,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure, Notification } from "@arts-and-crafts/v5/adapters/outbound/shapes";
-import type { DomainEvent, Intent } from "@arts-and-crafts/v5/core/shapes";
-import { errAsync, type ResultAsync } from "neverthrow";
+import type { DomainEvent, EventsAndIntents, Intent } from "@arts-and-crafts/v5/core/shapes";
+import type { ResultAsync } from "neverthrow";
+import type { InMemoryDatasource } from "./InMemoryDatasource.ts";
 import type { InMemoryEventStore } from "./EventStore.InMemory.ts";
 import type { InMemoryOutbox } from "./Outbox.InMemory.ts";
 
 /**
- * Persists domain events and intents atomically by composing an event store
- * and an outbox that share one failure domain: if either is faulted, neither
- * write happens. Once the shared fault gate has passed, the two underlying
- * writes are synchronous in-memory pushes with no `await` between them, so
- * nothing else can interleave — the pair commits as a single unit, the same
- * guarantee a database transaction gives two INSERTs into the same
- * connection. This is what makes the "same transaction" claim in ADR-0003
- * concrete instead of aspirational (see docs/adr/011 for the full writeup).
+ * Persists an events+intents pairing atomically: opens a transaction on the
+ * shared datasource, appends the events, stages the intents, then commits —
+ * or rolls back if either step failed.
+ *
+ * `eventStore` and `outbox` must be constructed against the same
+ * `datasource` (see `InMemoryDatasource.ts`). Opening the transaction here
+ * means their writes only stage rather than land immediately for the
+ * duration of this call; a write made outside of `persist()` (e.g. staging a
+ * standalone rejection notification directly on the same outbox) still
+ * commits immediately, since the datasource sits in autocommit mode whenever
+ * no transaction is open. If `append` or `stage` fails, whatever the other
+ * already staged is discarded via `rollback()` instead of becoming visible —
+ * real atomicity, not a pre-flight guess. This is what makes the "same
+ * transaction" claim in ADR-0003 concrete instead of aspirational (see
+ * docs/adr/011 for the full writeup).
  */
 export class InMemoryTransactionalWriter<
   TEvent extends DomainEvent,
@@ -25,12 +33,13 @@ export class InMemoryTransactionalWriter<
   TNotification extends Notification = never,
 >
   implements
-    AppendEventsAndIntents<TEvent, TIntent, ResultAsync<void, GatewayFailure>>,
+    PersistEventsAndIntents<TEvent, TIntent, ResultAsync<void, GatewayFailure>>,
     SimulateFaults
 {
   constructor(
     private readonly eventStore: InMemoryEventStore<TEvent>,
     private readonly outbox: InMemoryOutbox<TIntent, TNotification>,
+    private readonly datasource: InMemoryDatasource,
   ) {}
 
   simulate(mode: "offline"): void {
@@ -51,18 +60,18 @@ export class InMemoryTransactionalWriter<
     return this.eventStore.activeFault ?? this.outbox.activeFault;
   }
 
-  private offlineFailure(): GatewayFailure {
-    return {
-      kind: "failure",
-      code: "GATEWAY_FAILURE",
-      gateway: "InMemoryTransactionalWriter",
-      reason: "The store is offline — neither events nor intents were persisted",
-    };
-  }
-
-  persist(events: TEvent[], intents: TIntent[]): ResultAsync<void, GatewayFailure> {
-    if (this.isSimulating) return errAsync(this.offlineFailure());
-
-    return this.eventStore.append(events).andThen(() => this.outbox.stage(intents));
+  persist({
+    events,
+    intents,
+  }: EventsAndIntents<TEvent, TIntent>): ResultAsync<void, GatewayFailure> {
+    this.datasource.begin();
+    return this.eventStore
+      .append(events)
+      .andThen(() => this.outbox.stage(intents))
+      .map(() => this.datasource.commit())
+      .mapErr((failure) => {
+        this.datasource.rollback();
+        return failure;
+      });
   }
 }

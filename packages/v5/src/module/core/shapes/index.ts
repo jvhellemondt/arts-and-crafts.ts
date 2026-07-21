@@ -1,4 +1,5 @@
 export * from "./DomainEvent.ts";
+export * from "./EventsAndIntents.ts";
 export * from "./Failure.ts";
 export * from "./Intent.ts";
 export * from "./Invalid.ts";

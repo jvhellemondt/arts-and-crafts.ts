@@ -1,4 +1,5 @@
 import type { DomainEvent } from "../../../core/shapes/DomainEvent.ts";
+import type { EventsAndIntents } from "../../../core/shapes/EventsAndIntents.ts";
 import type { Intent } from "../../../core/shapes/Intent.ts";
 import type { Rejection } from "../../../core/shapes/Rejection.ts";
 
@@ -7,7 +8,8 @@ import type { Rejection } from "../../../core/shapes/Rejection.ts";
  *
  * An accepted decision is the result of a command passing all business rules.
  * It carries one or more domain events to be appended to the event stream,
- * and zero or more intents to be staged in the outbox.
+ * and zero or more intents to be staged in the outbox — the `EventsAndIntents`
+ * pairing, plus the command-outcome discriminant.
  *
  * An accepted decision does NOT mean the command has been fully processed —
  * it means the domain has decided what should happen. Infrastructure concerns
@@ -15,9 +17,7 @@ import type { Rejection } from "../../../core/shapes/Rejection.ts";
  */
 export type Accepted<TEvent extends DomainEvent, TIntent extends Intent = never> = {
   readonly accepted: true;
-  readonly events: [TEvent, ...TEvent[]];
-  readonly intents: TIntent[];
-};
+} & EventsAndIntents<TEvent, TIntent>;
 
 /**
  * Represents a rejection decision made by a decider.

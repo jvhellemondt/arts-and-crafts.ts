@@ -1,9 +1,11 @@
 import type { APIGatewayProxyEventV2 } from "aws-lambda";
 import { InMemoryEventStore } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import { InMemoryOutbox } from "@examples/shared/adapters/outbound/Outbox.InMemory.ts";
+import { InMemoryDatasource } from "@examples/shared/adapters/outbound/InMemoryDatasource.ts";
 import { InMemoryTransactionalWriter } from "@examples/shared/adapters/outbound/TransactionalWriter.InMemory.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
+import type { OpenMembershipRejected } from "../../rejections/MembershipAlreadyExists.ts";
 import { createOpenMembershipLambdaHandler } from "./lambda.ts";
 
 const VALID_PAYLOAD = { name: "Alice", email: "alice@example.com" };
@@ -17,14 +19,15 @@ function buildEvent(body: unknown): APIGatewayProxyEventV2 {
 
 describe("createOpenMembershipLambdaHandler", () => {
   let eventStore: InMemoryEventStore<MembershipEventV1>;
-  let outbox: InMemoryOutbox<NotifyUserToVerifyEmailV1, never>;
+  let outbox: InMemoryOutbox<NotifyUserToVerifyEmailV1, OpenMembershipRejected>;
   let invoke: ReturnType<typeof createOpenMembershipLambdaHandler>;
 
   beforeEach(() => {
-    eventStore = new InMemoryEventStore<MembershipEventV1>();
-    outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, never>();
-    const writer = new InMemoryTransactionalWriter(eventStore, outbox);
-    invoke = createOpenMembershipLambdaHandler(eventStore, writer);
+    const datasource = new InMemoryDatasource();
+    eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
+    outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, OpenMembershipRejected>(datasource);
+    const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
+    invoke = createOpenMembershipLambdaHandler(eventStore, writer, outbox);
   });
 
   it("returns 202 with the new membership id on success", async () => {
