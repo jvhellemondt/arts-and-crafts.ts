@@ -24,8 +24,9 @@ import type { InMemoryOutbox } from "./Outbox.InMemory.ts";
  * no transaction is open. If `append` or `stage` fails, whatever the other
  * already staged is discarded via `rollback()` instead of becoming visible —
  * real atomicity, not a pre-flight guess. This is what makes the "same
- * transaction" claim in ADR-0003 concrete instead of aspirational (see
- * docs/adr/011 for the full writeup).
+ * transaction" claim in ADR-0005 concrete instead of aspirational (see
+ * packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md for the
+ * full writeup).
  */
 export class InMemoryTransactionalWriter<
   TEvent extends DomainEvent,

@@ -125,7 +125,7 @@ await emailGateway.send({
 - **Autocommit (default state)** — `write()` lands in the table immediately, exactly like a standalone in-memory adapter used on its own.
 - **`begin()`** opens a transaction — subsequent `write()`s only stage rows; nothing is visible via `read()` until `commit()` flushes every staged write at once, or `rollback()` discards them instead. Either way, the datasource returns to autocommit afterward.
 
-**Why to use it.** This is what makes atomic persistence possible at all: `InMemoryEventStore` and `InMemoryOutbox` never gained any special "transactional" methods of their own — they still just `append()`/`stage()`, exactly as before. What changed is that both can be pointed at the *same* `InMemoryDatasource`. `InMemoryTransactionalWriter` opens the transaction around its own coordinated write; a write made outside of that (e.g. staging a standalone rejection notification straight onto the shared outbox) still commits immediately, because the datasource isn't mid-transaction — see [ADR-011](../../docs/adr/011-events-and-intents-persist-atomically-via-a-transactional-writer.md).
+**Why to use it.** This is what makes atomic persistence possible at all: `InMemoryEventStore` and `InMemoryOutbox` never gained any special "transactional" methods of their own — they still just `append()`/`stage()`, exactly as before. What changed is that both can be pointed at the *same* `InMemoryDatasource`. `InMemoryTransactionalWriter` opens the transaction around its own coordinated write; a write made outside of that (e.g. staging a standalone rejection notification straight onto the shared outbox) still commits immediately, because the datasource isn't mid-transaction — see [ADR-0010](../../packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md).
 
 **How to use it.**
 
@@ -251,7 +251,7 @@ await outbox.markDispatched(intent.id);
 
 **Type:** Outbound adapter — atomic event + intent writer
 
-**What it is.** `InMemoryTransactionalWriter<TEvent, TIntent>` drives an `InMemoryEventStore` and an `InMemoryOutbox` — both constructed against the same `InMemoryDatasource` — and implements the library's `PersistEventsAndIntents<TEvent, TIntent>` capability. It exists to make ADR-0003's "same transaction" guarantee concrete: `persist()` opens a transaction on the datasource, so `append()` and `stage()` only stage their writes for its duration; it commits both together, or rolls both back if either failed. Either both the event and its intent become visible, or neither does — see [ADR-011](../../docs/adr/011-events-and-intents-persist-atomically-via-a-transactional-writer.md) for the full design.
+**What it is.** `InMemoryTransactionalWriter<TEvent, TIntent>` drives an `InMemoryEventStore` and an `InMemoryOutbox` — both constructed against the same `InMemoryDatasource` — and implements the library's `PersistEventsAndIntents<TEvent, TIntent>` capability. It exists to make ADR-0005's "same transaction" guarantee concrete: `persist()` opens a transaction on the datasource, so `append()` and `stage()` only stage their writes for its duration; it commits both together, or rolls both back if either failed. Either both the event and its intent become visible, or neither does — see [ADR-0010](../../packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md) for the full design.
 
 **Why to use it.** Appending events and staging intents as two independent calls (even combined only for error reporting, e.g. via `ResultAsync.combineWithAllErrors`) allows one to succeed while the other fails — the event stream and the outbox drift out of sync with no way to detect it after the fact. This adapter closes that gap for the in-memory example.
 
@@ -671,7 +671,7 @@ load(membershipId: string, email: string): ResultAsync<DecisionState, GatewayFai
 }
 ```
 
-**Why to use it.** The handler should not know about stream keys or event evolution — that is the repository's job. The repository is the single coupling point between the domain model and the event store for reads. It does **not** implement `StoreDomainEvents` — writing an accepted decision's events back is the transactional writer's job (see `TransactionalWriter.InMemory.ts` above and [ADR-011](../../docs/adr/011-events-and-intents-persist-atomically-via-a-transactional-writer.md)), since it must happen atomically with staging the decision's intents, not as an independent repository call.
+**Why to use it.** The handler should not know about stream keys or event evolution — that is the repository's job. The repository is the single coupling point between the domain model and the event store for reads. It does **not** implement `StoreDomainEvents` — writing an accepted decision's events back is the transactional writer's job (see `TransactionalWriter.InMemory.ts` above and [ADR-0010](../../packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md)), since it must happen atomically with staging the decision's intents, not as an independent repository call.
 
 ---
 
@@ -709,7 +709,7 @@ The two branches use different capabilities on purpose: `writer.persist` needs t
 
 **Return type contract:**
 - `Ok(decision)` where `decision.accepted` is `true` or `false` — both an accepted and a rejected decision are success values (ADR-009); the domain saying no is not an infrastructure error.
-- `Err(GatewayFailure[])` (always non-empty) — infrastructure failed, either at `load`, at the atomic `persist` write, or while staging the rejection notification. The array holds exactly one failure per call; it exists to give all three failure points one consistent return shape, not because any one point can itself produce more than one failure — see [ADR-011](../../docs/adr/011-events-and-intents-persist-atomically-via-a-transactional-writer.md).
+- `Err(GatewayFailure[])` (always non-empty) — infrastructure failed, either at `load`, at the atomic `persist` write, or while staging the rejection notification. The array holds exactly one failure per call; it exists to give all three failure points one consistent return shape, not because any one point can itself produce more than one failure — see [ADR-0010](../../packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md).
 
 ---
 

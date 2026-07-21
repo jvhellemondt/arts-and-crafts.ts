@@ -1,4 +1,4 @@
-# ADR-011: Events and Intents Persist Atomically via a Transactional Writer
+# ADR-0010: Events and Intents Persist Atomically via a Transactional Writer
 
 **Date:** 2026-07-21
 **Status:** Accepted
@@ -6,10 +6,10 @@
 
 ## Context
 
-ADR-0003 (`packages/v5/docs/adr/0003-intent-and-outbox-pattern.md`) established
-that intents must survive process crashes via the outbox pattern, and states
-the guarantee plainly: *"the outbox provides this guarantee by writing intents
-durably in the same transaction as domain events."*
+ADR-0005 (`packages/v5/docs/adr/0005-intents-outbox-and-intent-relay.md`)
+established that intents must survive process crashes via the outbox pattern:
+*"the intent is written in the same step as the events, [so] no accepted
+decision loses its follow-up."*
 
 The example implementation did not deliver that guarantee. `OpenMembershipHandler`
 persisted the two writes as independent calls, combined only for error
@@ -242,7 +242,7 @@ within a single step. Now there are three failure points —
 producing at most one failure, wrapped individually via
 `.mapErr((f) => [f])`. The array shape is preserved for consistency across
 call sites, but it is no longer "intrinsic" to a multi-gateway combinator
-(contra ADR-009's framing of the old design) — it is hand-wrapped, because
+(contra ADR-0008's framing of the old design) — it is hand-wrapped, because
 there is nothing left to combine at any single point.
 
 Failures also keep their originating identity — `gateway:
@@ -255,13 +255,13 @@ unchanged through the chain.
 
 ### Positive
 
-- Closes the gap between ADR-0003's stated guarantee and what the example
+- Closes the gap between ADR-0005's stated guarantee and what the example
   actually did: an event is never persisted without its intent, or vice
   versa.
 - A rejected decision is now actually observable outside the synchronous HTTP
   response — `OpenMembershipRejected` is constructed and staged, closing the
-  gap between ADR-0003/ADR-0007's described rejection-notification pattern
-  and what the example implemented (previously nothing).
+  gap between ADR-0005's described caller-`Notification` pattern and what the
+  example implemented (previously nothing).
 - `InMemoryEventStore` and `InMemoryOutbox` are unchanged in shape — every
   existing standalone test needed zero changes, because autocommit is always
   the state a fresh or standalone-used datasource is in.
@@ -303,7 +303,7 @@ ResultAsync<T, GatewayFailure>` — that any adapter could participate in.
 **Rejected for now because:** it generalises past what any current adapter
 needs. The only two things that must ever be atomic together in this codebase
 are an accepted decision's events and its intents — that is precisely what
-the outbox pattern (ADR-0003) exists to guarantee. A narrower, purpose-built
+the outbox pattern (ADR-0005) exists to guarantee. A narrower, purpose-built
 capability (`PersistEventsAndIntents`) says exactly what it does; a generic
 unit-of-work abstraction would need real design work (nesting, isolation,
 adapter participation) with no second use case yet to validate it against.
@@ -345,9 +345,9 @@ command was fully processed, one way or another. `GatewayFailure` means the
 opposite: infrastructure was unavailable and the outcome couldn't even be
 determined. Staging a "the infrastructure failed" notification through that
 same infrastructure is circular — if the event store is down, the outbox
-sharing its datasource is likely down too. This is closer to what ADR-0004's
-Technical Event Pattern exists for (a separate observability path), not this
-capability's job.
+sharing its datasource is likely down too. Infrastructure-failure
+observability belongs to a separate path (structured logs, metrics, a dead-
+letter mechanism) — not this capability's job.
 
 ### Alternative 5: `prepareX`/`commitX` methods on each store
 
@@ -390,10 +390,10 @@ capabilities for this.
 
 ## References
 
-- ADR-0003: Intent and Outbox Pattern (`packages/v5/docs/adr/0003-intent-and-outbox-pattern.md`)
-- ADR-0004: Technical Event Pattern (`packages/v5/docs/adr/0004-technical-event-pattern.md`)
-- ADR-0007: Incoming Event Handling Pattern (`packages/v5/docs/adr/0007-incoming-event-handling-pattern.md`)
-- ADR-009: Outbound Ports Return ResultAsync; Rejection Stays in the Ok Channel
+- ADR-0003: Command Handling — Pure Decider, Specifications, and Decision
+- ADR-0005: Intents, Outbox, and Intent Relay
+- ADR-0008: Outbound Ports Return ResultAsync; Rejection Stays in the Ok Channel
+- ADR-0009: Outcome Taxonomy — Rejection / Failure / Invalid Share an Outcome Base
 - `packages/v5/src/module/core/shapes/EventsAndIntents.ts`
 - `packages/v5/src/module/adapters/outbound/capabilities/PersistEventsAndIntents.ts`
 - `examples/v5/shared/adapters/outbound/InMemoryDatasource.ts`
