@@ -7,7 +7,7 @@ export * from "./LoadPendingIntents.ts";
 export * from "./LoadProjection.ts";
 export * from "./MarkIntentDispatched.ts";
 export * from "./MarkIntentFailed.ts";
-export * from "./PersistEventsAndIntents.ts";
+export * from "./PersistDecision.ts";
 export * from "./PublishIntegrationEvents.ts";
 export * from "./SaveProjection.ts";
 export * from "./SimulateFaults.ts";

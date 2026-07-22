@@ -12,7 +12,7 @@ import { evolveOpenMembership } from "./evolve.ts";
  * Read-only: loads and evolves decision state. Writing events back is not
  * this repository's concern — persisting an accepted decision's events
  * together with its intents is handled atomically by the handler's
- * `PersistEventsAndIntents` writer, not by a separate store() call here.
+ * `PersistDecision` writer, not by a separate store() call here.
  */
 export class OpenMembershipRepository implements LoadDecisionState<
   MembershipEventV1,

@@ -9,8 +9,15 @@ import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
 import { ANCHOR_MEMBERSHIP } from "@examples/modules/membership/core/anchors.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
-import type { OpenMembershipRejected } from "./rejections/MembershipAlreadyExists.ts";
-import { createOpenMembershipCommand, openMembershipCommandPayload } from "./command.ts";
+import type {
+  MembershipAlreadyExists,
+  OpenMembershipRejected,
+} from "./rejections/MembershipAlreadyExists.ts";
+import {
+  createOpenMembershipCommand,
+  openMembershipCommandPayload,
+  type OpenMembershipCommand,
+} from "./command.ts";
 import { OpenMembershipHandler } from "./handler.ts";
 import { randomUUID } from "node:crypto";
 import { OpenMembershipRepository } from "./repository.ts";
@@ -31,8 +38,10 @@ describe("OpenMembershipHandler", () => {
   let eventStore: InMemoryEventStore<MembershipEventV1>;
   let outbox: InMemoryOutbox<NotifyUserToVerifyEmailV1, OpenMembershipRejected>;
   let writer: InMemoryTransactionalWriter<
+    OpenMembershipCommand,
     MembershipEventV1,
     NotifyUserToVerifyEmailV1,
+    MembershipAlreadyExists,
     OpenMembershipRejected
   >;
   let repository: OpenMembershipRepository;
@@ -42,9 +51,14 @@ describe("OpenMembershipHandler", () => {
     datasource = new InMemoryDatasource();
     eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, OpenMembershipRejected>(datasource);
-    writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
+    writer = new InMemoryTransactionalWriter(
+      eventStore,
+      outbox,
+      datasource,
+      "OpenMembershipRejected",
+    );
     repository = new OpenMembershipRepository(eventStore);
-    handler = new OpenMembershipHandler(repository, writer, outbox);
+    handler = new OpenMembershipHandler(repository, writer);
   });
 
   it("returns an accepted decision when the membership is successfully opened", async () => {
@@ -93,22 +107,22 @@ describe("OpenMembershipHandler", () => {
 
   it("returns a GatewayFailure when the event store is offline (fails at load, before any write)", async () => {
     eventStore.simulate("offline");
-    const failures = (await handler.handle(command))._unsafeUnwrapErr();
-    expect(failures).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" }]);
+    const failure = (await handler.handle(command))._unsafeUnwrapErr();
+    expect(failure).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" });
   });
 
   it("returns a GatewayFailure when the outbox is offline (fails at the atomic write)", async () => {
     outbox.simulate("offline");
-    const failures = (await handler.handle(command))._unsafeUnwrapErr();
-    expect(failures).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" }]);
+    const failure = (await handler.handle(command))._unsafeUnwrapErr();
+    expect(failure).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" });
   });
 
   it("returns a GatewayFailure when the outbox is offline and the command is rejected", async () => {
     await handler.handle(command);
     outbox.simulate("offline");
 
-    const failures = (await handler.handle(command))._unsafeUnwrapErr();
-    expect(failures).toMatchObject([{ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" }]);
+    const failure = (await handler.handle(command))._unsafeUnwrapErr();
+    expect(failure).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" });
   });
 
   it("persists neither the event nor the intent when the outbox side is offline (atomic rollback)", async () => {

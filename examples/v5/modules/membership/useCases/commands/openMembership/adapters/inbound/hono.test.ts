@@ -29,9 +29,14 @@ describe("createOpenMembershipHonoHandler", () => {
     const datasource = new InMemoryDatasource();
     eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, OpenMembershipRejected>(datasource);
-    const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
+    const writer = new InMemoryTransactionalWriter(
+      eventStore,
+      outbox,
+      datasource,
+      "OpenMembershipRejected",
+    );
     app = new Hono();
-    app.post("/", createOpenMembershipHonoHandler(eventStore, writer, outbox));
+    app.post("/", createOpenMembershipHonoHandler(eventStore, writer));
   });
 
   it("returns 202 with the new membership id on success", async () => {

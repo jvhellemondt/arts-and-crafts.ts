@@ -1,15 +1,38 @@
 import { InMemoryTransactionalWriter } from "./TransactionalWriter.InMemory.ts";
 import { InMemoryEventStore } from "./EventStore.InMemory.ts";
 import { InMemoryOutbox } from "./Outbox.InMemory.ts";
-import { InMemoryDatasource } from "./InMemoryDatasource.ts";
-import type { DomainEvent, Intent } from "@arts-and-crafts/v5/core/shapes";
-import type { StreamKey } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import { InMemoryDatasource, OUTBOX_TABLE } from "./InMemoryDatasource.ts";
+import type { DomainEvent, Intent, Rejection } from "@arts-and-crafts/v5/core/shapes";
+import type {
+  Notification,
+  OutboxEnvelope,
+  StreamKey,
+} from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { Command, Decision } from "@arts-and-crafts/v5/useCases/command/shapes";
 import { randomUUID } from "node:crypto";
 
 interface TestDomainEvent extends DomainEvent<"TestDomainEvent", { name: string }> {}
 interface TestIntent extends Intent<"TestIntent", { channel: "email" }> {}
+interface TestCommand extends Command<"TestCommand", { name: string }> {}
+interface TestRejection extends Rejection<"TEST_REJECTED"> {
+  reason: "Test rejected";
+}
+interface TestNotification extends Notification<
+  "TestRejected",
+  { name: string },
+  "TEST_REJECTED"
+> {}
 
 const streamKey: StreamKey = "seat#1";
+
+const makeCommand = (): TestCommand => ({
+  kind: "command",
+  type: "TestCommand",
+  payload: { name: "Elon Musk" },
+  timestamp: Date.now(),
+  metadata: { correlationId: randomUUID(), causationId: randomUUID() },
+  id: randomUUID(),
+});
 
 const makeEvent = (): TestDomainEvent => ({
   type: "TestDomainEvent",
@@ -34,29 +57,77 @@ const makeIntent = (): TestIntent => ({
   id: randomUUID(),
 });
 
+const makeRejection = (): TestRejection => ({
+  kind: "rejection",
+  code: "TEST_REJECTED",
+  reason: "Test rejected",
+});
+
+const accepted = (
+  event: TestDomainEvent,
+  intent: TestIntent,
+): Decision<TestDomainEvent, TestIntent, TestRejection> => ({
+  accepted: true,
+  events: [event],
+  intents: [intent],
+});
+
+const rejected = (
+  rejection: TestRejection,
+): Decision<TestDomainEvent, TestIntent, TestRejection> => ({
+  accepted: false,
+  rejection,
+});
+
 describe("InMemoryTransactionalWriter", () => {
   let datasource: InMemoryDatasource;
   let eventStore: InMemoryEventStore<TestDomainEvent>;
-  let outbox: InMemoryOutbox<TestIntent, never>;
-  let writer: InMemoryTransactionalWriter<TestDomainEvent, TestIntent>;
+  let outbox: InMemoryOutbox<TestIntent, TestNotification>;
+  let writer: InMemoryTransactionalWriter<
+    TestCommand,
+    TestDomainEvent,
+    TestIntent,
+    TestRejection,
+    TestNotification
+  >;
 
   beforeEach(() => {
     datasource = new InMemoryDatasource();
     eventStore = new InMemoryEventStore<TestDomainEvent>(datasource);
-    outbox = new InMemoryOutbox<TestIntent, never>(datasource);
-    writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
+    outbox = new InMemoryOutbox<TestIntent, TestNotification>(datasource);
+    writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource, "TestRejected");
   });
 
   it("persists both the event and the intent on success", async () => {
     const event = makeEvent();
     const intent = makeIntent();
 
-    await writer.persist({ events: [event], intents: [intent] });
+    await writer.persist(accepted(event, intent), makeCommand());
 
     expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([event]);
     const pending = (await outbox.loadPending())._unsafeUnwrap();
     expect(pending).toHaveLength(1);
     expect(pending[0]?.entry).toEqual(intent);
+  });
+
+  it("stages a notification built from the command and rejection when rejected", async () => {
+    const command = makeCommand();
+    const rejection = makeRejection();
+
+    await writer.persist(rejected(rejection), command);
+
+    const rows = datasource.read<OutboxEnvelope<TestNotification>>(OUTBOX_TABLE);
+    const notification = rows.find((row) => row.entry.kind === "notification");
+    expect(notification).toBeDefined();
+    expect(notification?.entry).toMatchObject({
+      kind: "notification",
+      type: "TestRejected",
+      payload: command.payload,
+      metadata: command.metadata,
+      commandType: command.type,
+      commandId: command.id,
+      details: rejection,
+    });
   });
 
   it("commits immediately when writing outside of a transaction (autocommit default)", async () => {
@@ -81,7 +152,7 @@ describe("InMemoryTransactionalWriter", () => {
   it("persists neither the event nor the intent when the event store is offline", async () => {
     eventStore.simulate("offline");
 
-    const result = await writer.persist({ events: [makeEvent()], intents: [makeIntent()] });
+    const result = await writer.persist(accepted(makeEvent(), makeIntent()), makeCommand());
 
     expect(result._unsafeUnwrapErr()).toMatchObject({
       code: "GATEWAY_FAILURE",
@@ -95,7 +166,7 @@ describe("InMemoryTransactionalWriter", () => {
   it("persists neither the event nor the intent when the outbox is offline", async () => {
     outbox.simulate("offline");
 
-    const result = await writer.persist({ events: [makeEvent()], intents: [makeIntent()] });
+    const result = await writer.persist(accepted(makeEvent(), makeIntent()), makeCommand());
 
     expect(result._unsafeUnwrapErr()).toMatchObject({
       code: "GATEWAY_FAILURE",
@@ -114,7 +185,7 @@ describe("InMemoryTransactionalWriter", () => {
     // write that already succeeded, rather than relying on a single upfront
     // flag that predicts failure before either write is attempted.
     outbox.simulate("offline");
-    const result = await writer.persist({ events: [event], intents: [makeIntent()] });
+    const result = await writer.persist(accepted(event, makeIntent()), makeCommand());
 
     expect(result.isErr()).toBe(true);
     outbox.restore();
@@ -148,7 +219,7 @@ describe("InMemoryTransactionalWriter", () => {
 
     const event = makeEvent();
     const intent = makeIntent();
-    await writer.persist({ events: [event], intents: [intent] });
+    await writer.persist(accepted(event, intent), makeCommand());
     expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([event]);
   });
 });
