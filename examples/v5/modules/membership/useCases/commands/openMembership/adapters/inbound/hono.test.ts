@@ -29,12 +29,7 @@ describe("createOpenMembershipHonoHandler", () => {
     const datasource = new InMemoryDatasource();
     eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, OpenMembershipRejected>(datasource);
-    const writer = new InMemoryTransactionalWriter(
-      eventStore,
-      outbox,
-      datasource,
-      "OpenMembershipRejected",
-    );
+    const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
     app = new Hono();
     app.post("/", createOpenMembershipHonoHandler(eventStore, writer));
   });

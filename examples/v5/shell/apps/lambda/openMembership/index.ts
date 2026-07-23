@@ -14,11 +14,6 @@ const datasource = new InMemoryDatasource();
 
 const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
 const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(datasource);
-const writer = new InMemoryTransactionalWriter(
-  eventStore,
-  outbox,
-  datasource,
-  "OpenMembershipRejected",
-);
+const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
 
 export const handler = createOpenMembershipLambdaHandler(eventStore, writer);

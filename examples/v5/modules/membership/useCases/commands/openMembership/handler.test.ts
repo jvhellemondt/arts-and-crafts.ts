@@ -51,12 +51,7 @@ describe("OpenMembershipHandler", () => {
     datasource = new InMemoryDatasource();
     eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, OpenMembershipRejected>(datasource);
-    writer = new InMemoryTransactionalWriter(
-      eventStore,
-      outbox,
-      datasource,
-      "OpenMembershipRejected",
-    );
+    writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
     repository = new OpenMembershipRepository(eventStore);
     handler = new OpenMembershipHandler(repository, writer);
   });

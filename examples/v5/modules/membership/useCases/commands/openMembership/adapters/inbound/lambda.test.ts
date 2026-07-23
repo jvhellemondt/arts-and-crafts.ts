@@ -26,12 +26,7 @@ describe("createOpenMembershipLambdaHandler", () => {
     const datasource = new InMemoryDatasource();
     eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
     outbox = new InMemoryOutbox<NotifyUserToVerifyEmailV1, OpenMembershipRejected>(datasource);
-    const writer = new InMemoryTransactionalWriter(
-      eventStore,
-      outbox,
-      datasource,
-      "OpenMembershipRejected",
-    );
+    const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
     invoke = createOpenMembershipLambdaHandler(eventStore, writer);
   });
 

@@ -18,7 +18,7 @@ interface TestRejection extends Rejection<"TEST_REJECTED"> {
   reason: "Test rejected";
 }
 interface TestNotification extends Notification<
-  "TestRejected",
+  "TestCommandRejected",
   { name: string },
   "TEST_REJECTED"
 > {}
@@ -95,7 +95,7 @@ describe("InMemoryTransactionalWriter", () => {
     datasource = new InMemoryDatasource();
     eventStore = new InMemoryEventStore<TestDomainEvent>(datasource);
     outbox = new InMemoryOutbox<TestIntent, TestNotification>(datasource);
-    writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource, "TestRejected");
+    writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
   });
 
   it("persists both the event and the intent on success", async () => {
@@ -121,7 +121,7 @@ describe("InMemoryTransactionalWriter", () => {
     expect(notification).toBeDefined();
     expect(notification?.entry).toMatchObject({
       kind: "notification",
-      type: "TestRejected",
+      type: "TestCommandRejected",
       payload: command.payload,
       metadata: command.metadata,
       commandType: command.type,

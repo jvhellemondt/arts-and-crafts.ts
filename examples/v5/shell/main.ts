@@ -26,12 +26,7 @@ const datasource = new InMemoryDatasource();
 
 const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
 const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(datasource);
-const openMembershipWriter = new InMemoryTransactionalWriter(
-  eventStore,
-  outbox,
-  datasource,
-  "OpenMembershipRejected",
-);
+const openMembershipWriter = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
 
 const emailGateway = new InMemoryEmailGateway();
 

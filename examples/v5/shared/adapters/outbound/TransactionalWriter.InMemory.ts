@@ -30,11 +30,9 @@ import type { InMemoryOutbox } from "./Outbox.InMemory.ts";
  * - **Rejected** — builds a caller notification from the command
  *   (`payload`/`id`/`metadata`/`type`) plus the rejection, and stages it. No
  *   transaction: nothing else needs to commit alongside a standalone
- *   notification.
- *
- * `rejectionNotificationType` is the one piece the notification's shape
- * can't be built generically — every other field is derived mechanically
- * from `command` and the rejection.
+ *   notification. The notification's `type` follows the `${command.type}Rejected`
+ *   convention (e.g. `OpenMembership` → `OpenMembershipRejected`), so the
+ *   whole envelope is derived mechanically — no extra constructor input needed.
  *
  * This is what makes the "same transaction" claim in ADR-0005 concrete
  * instead of aspirational (see
@@ -56,7 +54,6 @@ export class InMemoryTransactionalWriter<
     private readonly eventStore: InMemoryEventStore<TEvent>,
     private readonly outbox: InMemoryOutbox<TIntent, TNotification>,
     private readonly datasource: InMemoryDatasource,
-    private readonly rejectionNotificationType: TNotification["type"],
   ) {}
 
   simulate(mode: "offline"): void {
@@ -99,7 +96,7 @@ export class InMemoryTransactionalWriter<
   private toRejectedNotification(command: TCommand, rejection: TRejection): TNotification {
     return {
       kind: "notification",
-      type: this.rejectionNotificationType,
+      type: `${command.type}Rejected`,
       payload: command.payload,
       id: uuidv7(),
       timestamp: Date.now(),
