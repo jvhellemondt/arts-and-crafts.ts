@@ -67,6 +67,11 @@ describe("IntentRelay", () => {
     outbox = new InMemoryOutbox<TestIntent, never>(datasource);
   });
 
+  const rows = async () =>
+    (await datasource.read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE))._unsafeUnwrap();
+
+  const findRow = async (id: string) => (await rows()).find((r) => r.entry.id === id);
+
   it("should resolve and call no handlers when the outbox is empty", async () => {
     const notify = new RecordingHandler<NotifyIntent>();
     const relay = new IntentRelay<TestIntent>(
@@ -115,9 +120,7 @@ describe("IntentRelay", () => {
     );
     await relay.relay();
 
-    const row = datasource
-      .read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE)
-      .find((r) => r.entry.id === n.id);
+    const row = await findRow(n.id);
     expect(row?.status).toBe("dispatched");
     expect(row?.dispatchedAt).toBeDefined();
   });
@@ -137,9 +140,7 @@ describe("IntentRelay", () => {
     );
     await relay.relay();
 
-    const row = datasource
-      .read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE)
-      .find((r) => r.entry.id === n.id);
+    const row = await findRow(n.id);
     expect(row?.status).toBe("failed");
     expect(row?.lastError).toBe("smtp down");
     expect(row?.attemptCount).toBe(1);
@@ -160,9 +161,7 @@ describe("IntentRelay", () => {
     );
     await relay.relay();
 
-    const row = datasource
-      .read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE)
-      .find((r) => r.entry.id === n.id);
+    const row = await findRow(n.id);
     expect(row?.lastError).toBe("oops");
   });
 
@@ -173,9 +172,7 @@ describe("IntentRelay", () => {
     const relay = new IntentRelay<TestIntent>(outbox, new Map<string, HandleIntent<TestIntent>>());
     await relay.relay();
 
-    const row = datasource
-      .read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE)
-      .find((r) => r.entry.id === w.id);
+    const row = await findRow(w.id);
     expect(row?.status).toBe("failed");
     expect(row?.lastError).toContain("Welcome.v1");
   });
@@ -295,9 +292,8 @@ describe("IntentRelay", () => {
 
     await relay.relay();
 
-    const rows = datasource.read<OutboxEnvelope<TestIntent>>(OUTBOX_TABLE);
-    expect(rows.find((r) => r.entry.id === n.id)?.status).toBe("failed");
-    expect(rows.find((r) => r.entry.id === w.id)?.status).toBe("dispatched");
+    expect((await findRow(n.id))?.status).toBe("failed");
+    expect((await findRow(w.id))?.status).toBe("dispatched");
     expect(succeeding.received).toEqual([w]);
   });
 });

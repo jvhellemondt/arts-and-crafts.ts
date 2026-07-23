@@ -7,7 +7,7 @@ import type { GatewayFailure, Notification } from "@arts-and-crafts/v5/adapters/
 import type { DomainEvent, Intent, Rejection } from "@arts-and-crafts/v5/core/shapes";
 import type { Command, Decision } from "@arts-and-crafts/v5/useCases/command/shapes";
 import { toRejectionNotification } from "@arts-and-crafts/v5-utils/adapters/outbound";
-import { type ResultAsync } from "neverthrow";
+import { errAsync, type ResultAsync } from "neverthrow";
 import type { InMemoryDatasource } from "./InMemoryDatasource.ts";
 import type { InMemoryEventStore } from "./EventStore.InMemory.ts";
 import type { InMemoryOutbox } from "./Outbox.InMemory.ts";
@@ -82,14 +82,12 @@ export class InMemoryTransactionalWriter<
       return this.outbox.stage([notification]);
     }
 
-    this.datasource.begin();
-    return this.eventStore
-      .append(decision.events)
-      .andThen(() => this.outbox.stage(decision.intents))
-      .map(() => this.datasource.commit())
-      .mapErr((failure) => {
-        this.datasource.rollback();
-        return failure;
-      });
+    return this.datasource.begin().andThen(() =>
+      this.eventStore
+        .append(decision.events)
+        .andThen(() => this.outbox.stage(decision.intents))
+        .andThen(() => this.datasource.commit())
+        .orElse((failure) => this.datasource.rollback().andThen(() => errAsync(failure))),
+    );
   }
 }

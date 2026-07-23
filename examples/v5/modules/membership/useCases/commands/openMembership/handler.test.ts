@@ -80,7 +80,9 @@ describe("OpenMembershipHandler", () => {
     await handler.handle(command);
     await handler.handle(command);
 
-    const rows = datasource.read<OutboxEnvelope<OpenMembershipRejected>>(OUTBOX_TABLE);
+    const rows = (
+      await datasource.read<OutboxEnvelope<OpenMembershipRejected>>(OUTBOX_TABLE)
+    )._unsafeUnwrap();
     const notification = rows.find((row) => row.entry.kind === "notification");
 
     expect(notification).toMatchObject({

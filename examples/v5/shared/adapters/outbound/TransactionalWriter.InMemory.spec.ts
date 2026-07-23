@@ -116,7 +116,9 @@ describe("InMemoryTransactionalWriter", () => {
 
     await writer.persist(rejected(rejection), command);
 
-    const rows = datasource.read<OutboxEnvelope<TestNotification>>(OUTBOX_TABLE);
+    const rows = (
+      await datasource.read<OutboxEnvelope<TestNotification>>(OUTBOX_TABLE)
+    )._unsafeUnwrap();
     const notification = rows.find((row) => row.entry.kind === "notification");
     expect(notification).toBeDefined();
     expect(notification?.entry).toMatchObject({
@@ -141,11 +143,11 @@ describe("InMemoryTransactionalWriter", () => {
   it("stages an append but does not make it visible until commit(), once a transaction is open", async () => {
     const event = makeEvent();
 
-    datasource.begin();
+    await datasource.begin();
     await eventStore.append([event]);
     expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([]);
 
-    datasource.commit();
+    await datasource.commit();
     expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([event]);
   });
 
