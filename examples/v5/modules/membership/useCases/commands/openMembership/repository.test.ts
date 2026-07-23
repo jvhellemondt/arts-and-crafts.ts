@@ -34,7 +34,12 @@ describe("OpenMembershipRepository", () => {
     it("returns initial state when no events exist for the aggregate", async () => {
       const aggregateId = randomUUID();
 
-      const state = (await repository.load(aggregateId, validEmail))._unsafeUnwrap();
+      const state = (await repository.load(aggregateId, validEmail)).match(
+        (state) => state,
+        (failure) => {
+          throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+        },
+      );
 
       expect(state).toEqual({ status: "initial", id: aggregateId });
     });
@@ -43,7 +48,12 @@ describe("OpenMembershipRepository", () => {
       const aggregateId = randomUUID();
       await eventStore.append([makeEvent(aggregateId)]);
 
-      const state = (await repository.load(aggregateId, validEmail))._unsafeUnwrap();
+      const state = (await repository.load(aggregateId, validEmail)).match(
+        (state) => state,
+        (failure) => {
+          throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+        },
+      );
 
       expect(state).toMatchObject({
         status: "open",
@@ -58,7 +68,12 @@ describe("OpenMembershipRepository", () => {
       await eventStore.append([makeEvent(aggregateId)]);
 
       const otherId = randomUUID();
-      const state = (await repository.load(otherId, validEmail))._unsafeUnwrap();
+      const state = (await repository.load(otherId, validEmail)).match(
+        (state) => state,
+        (failure) => {
+          throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+        },
+      );
 
       expect(state).toEqual({ status: "initial", id: otherId });
     });
@@ -66,7 +81,12 @@ describe("OpenMembershipRepository", () => {
     it("returns a GatewayFailure when the event store is offline", async () => {
       eventStore.simulate("offline");
 
-      const state = (await repository.load(randomUUID(), validEmail))._unsafeUnwrapErr();
+      const state = (await repository.load(randomUUID(), validEmail)).match(
+        (state) => {
+          throw new Error(`Expected Err, got Ok: ${JSON.stringify(state)}`);
+        },
+        (failure) => failure,
+      );
 
       expect(state).toMatchObject({ code: "GATEWAY_FAILURE" });
     });
