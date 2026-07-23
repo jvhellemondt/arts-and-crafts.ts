@@ -31,7 +31,7 @@ export function createHonoApp(
     ResultAsync<MembershipEventV1[], GatewayFailure>
   > &
     AppendToEventStore<MembershipEventV1, ResultAsync<void, GatewayFailure>>,
-  openMembershipWriter: PersistDecision<
+  writer: PersistDecision<
     OpenMembershipCommand,
     MembershipOpenedV1,
     NotifyUserToVerifyEmailV1,
@@ -60,7 +60,7 @@ export function createHonoApp(
   // inside its neverthrow pipeline. This boundary only catches genuinely
   // unexpected throws — a handler that rejected, or a global middleware fault.
   app
-    .post("membership/open", createOpenMembershipHonoHandler(eventStore, openMembershipWriter))
+    .post("membership/open", createOpenMembershipHonoHandler(eventStore, writer))
     .get("memberships", createListMembershipsHonoHandler(listMembershipsProjectionLoader));
 
   app.notFound((c) => {

@@ -17,11 +17,11 @@ function buildApp() {
   const datasource = new InMemoryDatasource();
   const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
   const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(datasource);
-  const openMembershipWriter = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
+  const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
   const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjection>(
     emptyProjection,
   );
-  const app = createHonoApp(eventStore, openMembershipWriter, listMembershipsStore);
+  const app = createHonoApp(eventStore, writer, listMembershipsStore);
   return { app, eventStore, outbox, listMembershipsStore };
 }
 

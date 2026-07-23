@@ -26,7 +26,7 @@ const datasource = new InMemoryDatasource();
 
 const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
 const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(datasource);
-const openMembershipWriter = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
+const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
 
 const emailGateway = new InMemoryEmailGateway();
 
@@ -39,7 +39,7 @@ const listMembershipsStore = new InMemoryProjectionStore<ListMembershipsProjecti
 );
 const listMembershipsProjector = new ListMembershipsProjector(listMembershipsStore, eventStore);
 
-const honoApp = createHonoApp(eventStore, openMembershipWriter, listMembershipsStore);
+const honoApp = createHonoApp(eventStore, writer, listMembershipsStore);
 
 const RELAY_INTERVAL_MS = 1000;
 const relayTimer = setInterval(() => {
