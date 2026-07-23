@@ -7,10 +7,12 @@ type NotificationContext<TType, TPayload> = Message<TType, TPayload> & {
   readonly commandId: string;
 };
 
-export type Notification<TType = string, TPayload = unknown, TCode = string> = NotificationContext<
-  TType,
-  TPayload
-> & {
+export type Notification<
+  TType = string,
+  TPayload = unknown,
+  TCode = string,
+  TDetails = Failure<TCode> | Rejection<TCode>,
+> = NotificationContext<TType, TPayload> & {
   readonly kind: "notification";
-  readonly details: Failure<TCode> | Rejection<TCode>;
+  readonly details: TDetails;
 };
