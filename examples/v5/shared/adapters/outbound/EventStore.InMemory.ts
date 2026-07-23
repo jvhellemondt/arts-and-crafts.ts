@@ -36,7 +36,7 @@ type EventTagRow = {
  * in the same `datasource`, keyed by table name — so the datasource genuinely
  * represents "a database" as `table name -> rows[]`, not just the events
  * table. Pass the same `InMemoryDatasource` given to an `InMemoryOutbox` (in
- * `"manual"` mode) to have both stores participate in one atomic write via
+ * `"atomic"` mode) to have both stores participate in one atomic write via
  * `InMemoryTransactionalWriter` — see `InMemoryDatasource.ts`.
  *
  * `load()` performs the same two-step lookup a SQL implementation would:

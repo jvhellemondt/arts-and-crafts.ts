@@ -28,13 +28,13 @@ export const OUTBOX_TABLE = "outbox";
 
 export type TableName = typeof EVENT_STORE_TABLE | typeof EVENT_TAGS_TABLE | typeof OUTBOX_TABLE;
 
-type DatasourceMode = "autocommit" | "manual";
+type DatasourceMode = "autocommit" | "atomic";
 
 type StagedWrite = { readonly table: TableName; readonly rows: unknown[] };
 
 export class InMemoryDatasource {
   private readonly tables = new Map<TableName, unknown[]>();
-  private readonly staged: StagedWrite[] = [];
+  private staged: StagedWrite[] = [];
   private mode: DatasourceMode = "autocommit";
 
   /** Always returns committed rows — staged-but-uncommitted writes are invisible until `commit()`. */
@@ -53,19 +53,19 @@ export class InMemoryDatasource {
 
   /** Opens a transaction: `write()` stages instead of landing immediately, until `commit()`/`rollback()`. */
   begin(): void {
-    this.mode = "manual";
+    this.mode = "atomic";
   }
 
   /** Flushes every staged write since `begin()`, atomically, then returns to autocommit. */
   commit(): void {
     for (const { table, rows } of this.staged) this.read(table).push(...rows);
-    this.staged.length = 0;
+    this.staged = [];
     this.mode = "autocommit";
   }
 
   /** Discards every staged write since `begin()` without making any of it visible, then returns to autocommit. */
   rollback(): void {
-    this.staged.length = 0;
+    this.staged = [];
     this.mode = "autocommit";
   }
 }
