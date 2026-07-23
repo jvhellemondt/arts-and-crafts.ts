@@ -12,9 +12,7 @@ import type {
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
 import { ResultAsync, errAsync, okAsync } from "neverthrow";
-
-const EVENT_STORE_TABLE = "event_store";
-const EVENT_TAGS_TABLE = "event_tags";
+import { EVENT_STORE_TABLE, EVENT_TAGS_TABLE, InMemoryDatasource } from "./InMemoryDatasource.ts";
 
 /** A single `(concern, event_id)` pairing — one row of the `event_tags` join table. */
 type EventTag = {
@@ -32,16 +30,14 @@ type EventTagRow = {
   readonly data: EventTag;
 };
 
-/** Discriminated union over every table's row shape, tagged by `table`. */
-export type TableRow<TEvent extends DomainEvent> = EventStoreRow<TEvent> | EventTagRow;
-export type TableName = TableRow<never>["table"];
-
 /**
  * Modelled as two SQL tables would be: `event_store` (the append-only physical
  * row store) and `event_tags` (a `(concern, event_id)` join table). Both live
- * in the same `datasource` map, keyed by table name, with `TableRow` as a
- * discriminated union over each table's row shape — so the map genuinely
- * represents "a database" as `table name -> rows[]`, not just the events table.
+ * in the same `datasource`, keyed by table name — so the datasource genuinely
+ * represents "a database" as `table name -> rows[]`, not just the events
+ * table. Pass the same `InMemoryDatasource` given to an `InMemoryOutbox` (in
+ * `"atomic"` mode) to have both stores participate in one atomic write via
+ * `InMemoryTransactionalWriter` — see `InMemoryDatasource.ts`.
  *
  * `load()` performs the same two-step lookup a SQL implementation would:
  * resolve concerns to candidate event ids via the tag table, then join back
@@ -56,7 +52,7 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
 {
   private simulation?: FaultSimulationMode;
 
-  constructor(private readonly datasource: Map<TableName, TableRow<TEvent>[]> = new Map()) {}
+  constructor(private readonly datasource: InMemoryDatasource = new InMemoryDatasource()) {}
 
   get isSimulating(): boolean {
     return this.simulation !== undefined;
@@ -74,17 +70,12 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     this.simulation = undefined;
   }
 
-  private table<T extends TableName>(name: T): Extract<TableRow<TEvent>, { table: T }>[] {
-    if (!this.datasource.has(name)) this.datasource.set(name, []);
-    return this.datasource.get(name)! as Extract<TableRow<TEvent>, { table: T }>[];
-  }
-
   private get eventRows(): EventStoreRow<TEvent>[] {
-    return this.table(EVENT_STORE_TABLE);
+    return this.datasource.read(EVENT_STORE_TABLE);
   }
 
   private get tagRows(): EventTagRow[] {
-    return this.table(EVENT_TAGS_TABLE);
+    return this.datasource.read(EVENT_TAGS_TABLE);
   }
 
   private offlineFailure(): GatewayFailure {
@@ -94,15 +85,6 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
       gateway: "InMemoryEventStore",
       reason: "The Eventstore has been set to offline mode",
     };
-  }
-
-  private indexConcerns(row: EventStoreRow<TEvent>): void {
-    for (const concern of row.data.concerns) {
-      this.tagRows.push({
-        table: EVENT_TAGS_TABLE,
-        data: { concern, eventId: row.data.event.id },
-      });
-    }
   }
 
   private candidateEventIds(concerns: readonly StreamKey[]): Set<string> {
@@ -142,19 +124,26 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   append(events: TEvent[]): ResultAsync<void, GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
+    let nextPosition = this.eventRows.length + 1;
+    const eventRows: EventStoreRow<TEvent>[] = [];
+    const tagRows: EventTagRow[] = [];
     for (const event of events) {
       const row: EventStoreRow<TEvent> = {
         table: EVENT_STORE_TABLE,
         data: {
           concerns: event.concerns,
-          globalPosition: this.eventRows.length + 1,
+          globalPosition: nextPosition++,
           insertedAt: Date.now(),
           event,
         },
       };
-      this.eventRows.push(row);
-      this.indexConcerns(row);
+      eventRows.push(row);
+      for (const concern of event.concerns) {
+        tagRows.push({ table: EVENT_TAGS_TABLE, data: { concern, eventId: event.id } });
+      }
     }
+    this.datasource.write(EVENT_STORE_TABLE, eventRows);
+    this.datasource.write(EVENT_TAGS_TABLE, tagRows);
     return okAsync(undefined);
   }
 }

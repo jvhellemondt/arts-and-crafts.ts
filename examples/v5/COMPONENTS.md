@@ -116,11 +116,44 @@ await emailGateway.send({
 
 ---
 
+### `shared/adapters/outbound/InMemoryDatasource.ts`
+
+**Type:** Outbound infrastructure — shared in-memory "database"
+
+**What it is.** `InMemoryDatasource` is the physical storage `InMemoryEventStore` and `InMemoryOutbox` read from and write to — `table name -> rows`, the in-memory stand-in for a single SQL connection with multiple tables. It starts in autocommit mode, like a real connection:
+
+- **Autocommit (default state)** — `write()` lands in the table immediately, exactly like a standalone in-memory adapter used on its own.
+- **`begin()`** opens a transaction — subsequent `write()`s only stage rows; nothing is visible via `read()` until `commit()` flushes every staged write at once, or `rollback()` discards them instead. Either way, the datasource returns to autocommit afterward.
+
+**Why to use it.** This is what makes atomic persistence possible at all: `InMemoryEventStore` and `InMemoryOutbox` never gained any special "transactional" methods of their own — they still just `append()`/`stage()`, exactly as before. What changed is that both can be pointed at the *same* `InMemoryDatasource`. `InMemoryTransactionalWriter` opens the transaction around its own coordinated write; a write made outside of that (e.g. staging a standalone rejection notification straight onto the shared outbox) still commits immediately, because the datasource isn't mid-transaction — see [ADR-0010](../../packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md).
+
+Injecting a shared `InMemoryDatasource` doesn't change where the data lives — `InMemoryEventStore` and `InMemoryOutbox` are still entirely in-memory either way. All `InMemoryDatasource` is is a `Map<TableName, unknown[]>` living in process memory; passing the same instance into both stores just means they read/write the same `Map` instead of each owning its own. There's no external persistence involved in either case.
+
+**How to use it.**
+
+```ts
+// standalone use (default) — behaves exactly as before, no changes needed
+const eventStore = new InMemoryEventStore<MembershipEventV1>();
+
+// transactional use — shared datasource
+const datasource = new InMemoryDatasource();
+const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
+const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(datasource);
+const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
+
+// a rejection notification staged directly (outside persist()) commits right away
+await outbox.stage([rejectionNotification]);
+```
+
+**Architecture fit.** Outbound infrastructure layer, one level below `InMemoryEventStore`/`InMemoryOutbox`. Both stores are constructed against it; `InMemoryTransactionalWriter` additionally holds a direct reference to call `begin()`/`commit()`/`rollback()` around driving the two stores.
+
+---
+
 ### `shared/adapters/outbound/EventStore.InMemory.ts`
 
 **Type:** Outbound adapter — event store
 
-**What it is.** `InMemoryEventStore<TEvent>` is a Map-backed, append-only event store. It implements three capability interfaces from the v5 library:
+**What it is.** `InMemoryEventStore<TEvent>` is an append-only event store backed by an `InMemoryDatasource`. It implements three capability interfaces from the v5 library:
 
 - `LoadDomainEvents<TEvent, Promise<TEvent[] | GatewayFailure>>` — load events by stream keys.
 - `LoadEventsFrom<TEvent>` — load events from a global position (for projectors).
@@ -132,8 +165,7 @@ await emailGateway.send({
 **How to use it.**
 
 ```ts
-const datasource = new Map<string, StoredEvent<MembershipEventV1>[]>();
-const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
+const eventStore = new InMemoryEventStore<MembershipEventV1>();
 
 // load events for a stream
 const events = await eventStore.load([
@@ -151,7 +183,7 @@ const result = await eventStore.load([...]);
 eventStore.restore();
 ```
 
-**Architecture fit.** Outbound infrastructure layer. Consumed by `OpenMembershipRepository` (write side) and `ListMembershipsProjector` (read side). The `datasource` Map is passed in from `main.ts` so tests can inspect or pre-populate it.
+**Architecture fit.** Outbound infrastructure layer. Consumed by `OpenMembershipRepository` (read side) and `ListMembershipsProjector` (read side); write access for `openMembership` goes through `InMemoryTransactionalWriter`. Pass the same `InMemoryDatasource` given to an `InMemoryOutbox` to have both participate in one atomic write.
 
 ---
 
@@ -189,7 +221,7 @@ setInterval(() => relay.relay(), 1000);
 
 **Type:** Outbound adapter — transactional outbox
 
-**What it is.** `InMemoryOutbox<TIntent, TNotification>` is a Map-backed implementation of the outbox pattern. It stores intents and notifications as `OutboxEnvelope` entries with status tracking (`pending` / `dispatched` / `failed`).
+**What it is.** `InMemoryOutbox<TIntent, TNotification>` is an implementation of the outbox pattern backed by an `InMemoryDatasource`. It stores intents and notifications as `OutboxEnvelope` entries with status tracking (`pending` / `dispatched` / `failed`).
 
 **Capabilities implemented:**
 - `StageIntents<TIntent>` — accept intents from command handlers.
@@ -198,21 +230,51 @@ setInterval(() => relay.relay(), 1000);
 - `MarkIntentDispatched` / `MarkIntentFailed` — used by `IntentRelay`.
 - `SimulateFaults` — `"offline"` mode returns `GatewayFailure` on every operation.
 
-**Why to use it.** Decouples the command handler from side-effects. The handler writes to the outbox atomically with the event store write (in a real database, inside the same transaction). A background worker then delivers the intents asynchronously, making delivery reliable even if the worker crashes.
+**Why to use it.** Decouples the command handler from side-effects. A background worker then delivers the intents asynchronously, making delivery reliable even if the worker crashes.
 
 **How to use it.**
 
 ```ts
 const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(datasource);
 
-// inside the command handler after deciding
+// staging directly (e.g. a standalone notification) — for events+intents
+// together, go through InMemoryTransactionalWriter instead, see below
 await outbox.stage(decision.intents);
 
 // mark as dispatched after successful delivery (done by IntentRelay)
 await outbox.markDispatched(intent.id);
 ```
 
-**Architecture fit.** Outbound adapter layer. Consumed by `OpenMembershipHandler` (staging) and `IntentRelay` (draining). Both ends use the same `datasource` Map, making state visible across the application.
+**Architecture fit.** Outbound adapter layer. Read side (`loadPending`/`markDispatched`/`markFailed`) is consumed by `IntentRelay`. Both write paths go through `InMemoryTransactionalWriter.persist()`, not `outbox.stage()` called directly by a handler: intents that must land atomically with the events they accompany go through the writer's transaction; a rejection notification has no atomicity partner, so the writer stages it directly on `outbox` outside a transaction, and it commits immediately (see `InMemoryDatasource.ts`).
+
+---
+
+### `shared/adapters/outbound/TransactionalWriter.InMemory.ts`
+
+**Type:** Outbound adapter — atomic event + intent writer
+
+**What it is.** `InMemoryTransactionalWriter<TCommand, TEvent, TIntent, TRejection, TNotification>` drives an `InMemoryEventStore` and an `InMemoryOutbox` — both constructed against the same `InMemoryDatasource` — and implements the library's `PersistDecision<TCommand, TEvent, TIntent, TRejection, TReturn>` capability. `persist(decision, command)` branches on `decision.accepted`:
+
+- **Accepted** — opens a transaction on the datasource, so `append()` and `stage()` only stage their writes for its duration; commits both together, or rolls both back if either failed. Either both the event and its intent become visible, or neither does — this is what makes ADR-0005's "same transaction" guarantee concrete, see [ADR-0010](../../packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md) for the full design.
+- **Rejected** — builds a notification from `command` + `decision.rejection` via `v5-utils`'s `toRejectionNotification` and stages it directly (no transaction — nothing else needs to commit alongside it).
+
+The writer itself holds no data — it only coordinates `eventStore` and `outbox`, which are the ones actually backed by the shared `InMemoryDatasource`. Its `InMemory` prefix matches the naming convention of the adapters it composes, not because it stores anything of its own.
+
+**Why to use it.** Appending events and staging intents as two independent calls (even combined only for error reporting, e.g. via `ResultAsync.combineWithAllErrors`) allows one to succeed while the other fails — the event stream and the outbox drift out of sync with no way to detect it after the fact. This adapter closes that gap for the in-memory example.
+
+**How to use it.**
+
+```ts
+const datasource = new InMemoryDatasource();
+const eventStore = new InMemoryEventStore<MembershipEventV1>(datasource);
+const outbox = new InMemoryOutbox<MembershipIntents, OpenMembershipRejected>(datasource);
+const writer = new InMemoryTransactionalWriter(eventStore, outbox, datasource);
+
+// inside the command handler, for either branch of the decision
+await writer.persist(decision, command);
+```
+
+**Architecture fit.** Outbound adapter layer. Consumed by `OpenMembershipHandler` in place of separate `StageIntents`/`StageNotifications` outbox dependencies. `IntentRelay` still reads from `outbox` directly (`loadPending`/`markDispatched`/`markFailed`) — those read only committed rows, so a relay can never see an intent that was staged but rolled back.
 
 ---
 
@@ -333,7 +395,7 @@ if (isRejection(decision)) {
 **What it is.** Creates and connects all infrastructure instances, wires them into the HTTP application, and starts background workers.
 
 **Responsibilities.**
-1. Instantiates shared infrastructure: `InMemoryEventStore`, `InMemoryOutbox`, `InMemoryEmailGateway`, `InMemoryProjectionStore`.
+1. Instantiates shared infrastructure: `InMemoryEventStore`, `InMemoryOutbox`, `InMemoryTransactionalWriter` (composing the two for atomic event+intent writes), `InMemoryEmailGateway`, `InMemoryProjectionStore`.
 2. Builds the intent handler map and creates an `IntentRelay`.
 3. Creates `ListMembershipsProjector`.
 4. Passes everything into `createHonoApp`.
@@ -349,7 +411,7 @@ if (isRejection(decision)) {
 
 **Type:** HTTP application factory
 
-**What it is.** `createHonoApp(eventStore, outbox, listMembershipsProjectionLoader)` creates a Hono application with all middleware and routes registered.
+**What it is.** `createHonoApp(eventStore, writer, listMembershipsProjectionLoader)` creates a Hono application with all middleware and routes registered. `writer` is the `PersistDecision` port (backed by `InMemoryTransactionalWriter` in `main.ts`) that the `openMembership` route uses to persist both an accepted and a rejected decision.
 
 **Responsibilities.**
 - Applies production-grade middleware: `compress`, `cors`, `csrf`, `logger`, `requestId`, `secureHeaders`, `timeout(5000)`, `timing`, `trimTrailingSlash`.
@@ -574,7 +636,7 @@ export type OpenMembershipDecision = Decision<
 **What it is.** Defines two related types:
 
 - `MembershipAlreadyExists extends Rejection<"MEMBERSHIP_ALREADY_EXISTS">` — the domain rejection returned by the decider when a duplicate is detected.
-- `OpenMembershipRejected extends Notification<"OpenMembershipRejected", ..., MembershipAlreadyExists>` — a notification that can be staged in the outbox to inform other systems that the command was rejected.
+- `OpenMembershipRejected extends Notification<"OpenMembershipRejected", ..., MembershipAlreadyExists>` — a notification staged in the outbox by `OpenMembershipHandler` on the rejected branch, to inform other systems that the command was rejected.
 
 **Why to use it.** Separates rejection (domain outcome) from notification (integration concern). The handler can stage a `Notification` for external consumers without mixing domain logic with messaging concerns.
 
@@ -600,26 +662,23 @@ export class MembershipDoesNotAlreadyExist implements EvaluateCandidate<Decision
 
 ### `repository.ts`
 
-**Type:** Repository (read/write adapter for event-sourced state)
+**Type:** Repository (read-only adapter for event-sourced decision state)
 
-**What it is.** `OpenMembershipRepository` bridges the event store and the decider. It implements:
+**What it is.** `OpenMembershipRepository` bridges the event store and the decider. It implements only:
 
-- `LoadDecisionState<MembershipEventV1, Promise<DecisionState | GatewayFailure>>` — loads events for both the membership and email stream keys, then calls `evolveOpenMembership`.
-- `StoreDomainEvents<MembershipEventV1, Promise<void | GatewayFailure>>` — appends events to the store.
+- `LoadDecisionState<MembershipEventV1, ResultAsync<DecisionState, GatewayFailure>>` — loads events for both the membership and email stream keys, then calls `evolveOpenMembership`.
 
 ```ts
-async load(membershipId: string, email: string): Promise<DecisionState | GatewayFailure> {
+load(membershipId: string, email: string): ResultAsync<DecisionState, GatewayFailure> {
   const streamKeys = [
     createStreamKey(ANCHOR_MEMBERSHIP, membershipId),
     createStreamKey("EmailRegistration", email),
   ];
-  const result = await this.eventStore.load(streamKeys);
-  if (!Array.isArray(result)) return result; // GatewayFailure
-  return evolveOpenMembership(membershipId, result);
+  return this.eventStore.load(streamKeys).map((events) => evolveOpenMembership(membershipId, events));
 }
 ```
 
-**Why to use it.** The handler should not know about stream keys or event evolution — that is the repository's job. The repository is the single coupling point between the domain model and the event store.
+**Why to use it.** The handler should not know about stream keys or event evolution — that is the repository's job. The repository is the single coupling point between the domain model and the event store for reads. It does **not** implement `StoreDomainEvents` — writing an accepted decision's events back is the transactional writer's job (see `TransactionalWriter.InMemory.ts` above and [ADR-0010](../../packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md)), since it must happen atomically with staging the decision's intents, not as an independent repository call.
 
 ---
 
@@ -627,31 +686,26 @@ async load(membershipId: string, email: string): Promise<DecisionState | Gateway
 
 **Type:** Command handler
 
-**What it is.** `OpenMembershipHandler` implements `HandleCommand<OpenMembershipCommand, Promise<GatewayFailure[] | Rejection>>`. It orchestrates the full command processing flow:
+**What it is.** `OpenMembershipHandler` implements `HandleCommand<OpenMembershipCommand, ResultAsync<OpenMembershipDecision, GatewayFailure>>`. It orchestrates the full command processing flow as one neverthrow chain, taking a single `writer` (`PersistDecision<OpenMembershipCommand, MembershipOpenedV1, NotifyUserToVerifyEmailV1, MembershipAlreadyExists, ResultAsync<void, GatewayFailure>>`) as its only persistence dependency:
 
 ```
-load state → decide → store events → stage intents → return failures
+load state → decide → persist(decision, command) → return decision
 ```
 
 ```ts
-async handle(command): Promise<GatewayFailure[] | Rejection> {
-  const result = await this.repository.load(command.payload.membershipId, command.payload.email);
-  if (isFailure(result)) return [result];
-
-  const decision = decideOpenMembership(result, command);
-  if (isRejection(decision)) return decision.rejection;
-
-  const repositoryResult = await this.repository.store(decision.events);
-  const outboxResult = await this.outbox.stage(decision.intents);
-
-  return [repositoryResult, outboxResult].filter(isFailure);
+handle(command: OpenMembershipCommand): ResultAsync<OpenMembershipDecision, GatewayFailure> {
+  return this.repository
+    .load(command.payload.membershipId, command.payload.email)
+    .map((state) => decideOpenMembership(state, command))
+    .andThen((decision) => this.writer.persist(decision, command).map(() => decision));
 }
 ```
 
+There's no branch on `decision.accepted` here — the writer's `persist()` handles both outcomes internally (atomic event+intent write for accepted, a staged rejection notification for rejected), so the handler stays a single unconditional chain regardless of which way the decision went.
+
 **Return type contract:**
-- `Rejection` — domain said no (business rule violated).
-- `GatewayFailure[]` (non-empty) — infrastructure failed.
-- `GatewayFailure[]` (empty) — success.
+- `Ok(decision)` where `decision.accepted` is `true` or `false` — both an accepted and a rejected decision are success values (ADR-009); the domain saying no is not an infrastructure error.
+- `Err(GatewayFailure)` — infrastructure failed, either at `load` or at the `persist` call. All gateways are called sequentially (never combined), so one `GatewayFailure` value is enough — see [ADR-0010](../../packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md).
 
 ---
 

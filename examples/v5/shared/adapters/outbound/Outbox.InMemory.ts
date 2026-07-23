@@ -14,6 +14,7 @@ import type {
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Intent } from "@arts-and-crafts/v5/core/shapes";
 import { ResultAsync, errAsync, okAsync } from "neverthrow";
+import { OUTBOX_TABLE, InMemoryDatasource } from "./InMemoryDatasource.ts";
 
 export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notification>
   implements
@@ -24,12 +25,9 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
     MarkIntentFailed<ResultAsync<void, GatewayFailure>>,
     SimulateFaults
 {
-  private readonly tableName: string = "outbox";
   private simulation?: FaultSimulationMode;
 
-  constructor(
-    private readonly datasource: Map<string, OutboxEnvelope<TIntent | TNotification>[]> = new Map(),
-  ) {}
+  constructor(private readonly datasource: InMemoryDatasource = new InMemoryDatasource()) {}
 
   simulate(mode: "offline"): void {
     this.simulation = mode;
@@ -48,10 +46,7 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
   }
 
   private get rows(): OutboxEnvelope<TIntent | TNotification>[] {
-    if (!this.datasource.has(this.tableName)) {
-      this.datasource.set(this.tableName, []);
-    }
-    return this.datasource.get(this.tableName)!;
+    return this.datasource.read(OUTBOX_TABLE);
   }
 
   private offlineFailure(): GatewayFailure {
@@ -66,14 +61,13 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
   stage(items: TIntent[] | TNotification[]): ResultAsync<void, GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
-    for (const item of items) {
-      this.rows.push({
-        status: "pending",
-        stagedAt: Date.now(),
-        attemptCount: 0,
-        entry: item,
-      });
-    }
+    const rows = items.map((item) => ({
+      status: "pending" as const,
+      stagedAt: Date.now(),
+      attemptCount: 0,
+      entry: item,
+    }));
+    this.datasource.write(OUTBOX_TABLE, rows);
     return okAsync(undefined);
   }
 

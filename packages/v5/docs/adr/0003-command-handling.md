@@ -27,11 +27,14 @@ centre.
   The `rejection` is a `Rejection` outcome (ADR-0009); its `code`/`reason` are
   typed domain values, not strings assembled at the edge.
 - **Handler** — the imperative shell for one use case. It loads decision state
-  via `LoadDecisionState.load(id, …)`, calls `decide`, and on `accepted` stores
-  the events and stages the intents, combining outbound calls with
-  `ResultAsync.combineWithAllErrors`. Its type is
-  `ResultAsync<Decision, GatewayFailure[]>` — an accepted *or* rejected decision
-  is a success value; only infrastructure faults are `Err` (ADR-0008).
+  via `LoadDecisionState.load(id, …)`, calls `decide`, and on `accepted`
+  persists the events and intents as one atomic unit via
+  `PersistEventsAndIntents.persist(decision)` — not two independent calls, so
+  neither can land without the other (ADR-0010). On `rejected`, it stages a
+  caller `Notification` built from the command plus the rejection (ADR-0005,
+  ADR-0010). Its type is `ResultAsync<Decision, GatewayFailure[]>` — an
+  accepted *or* rejected decision is a success value; only infrastructure
+  faults are `Err` (ADR-0008).
 - **Injection** — the handler is constructed from its outbound dependencies
   (event store, outbox); the inbound adapter builds it and passes them in.
 
@@ -60,3 +63,4 @@ centre.
 - ADR-0008: Outbound Ports Return ResultAsync; Rejection Stays in the Ok Channel
 - ADR-0009: Outcome Taxonomy — Rejection / Failure / Invalid
 - ADR-0005: Intents, Outbox, and Intent Relay
+- ADR-0010: Events and Intents Persist Atomically via a Transactional Writer

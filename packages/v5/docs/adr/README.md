@@ -35,6 +35,7 @@ one-ADR-per-topic set.)
 - [ADR-0007: Inbound Pipeline Uses neverthrow, Not Middleware Frameworks](./0007-inbound-pipeline-uses-neverthrow.md)
 - [ADR-0008: Outbound Ports Return ResultAsync; Rejection Stays in the Ok Channel](./0008-outbound-ports-return-resultasync.md)
 - [ADR-0009: Outcome Taxonomy — Rejection / Failure / Invalid Share an Outcome Base](./0009-outcome-taxonomy-rejection-failure-invalid.md)
+- [ADR-0010: Events and Intents Persist Atomically via a Transactional Writer](./0010-events-and-intents-persist-atomically.md)
 
 ## Contributing
 

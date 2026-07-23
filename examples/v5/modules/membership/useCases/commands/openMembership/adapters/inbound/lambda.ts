@@ -5,31 +5,34 @@ import {
   correlationIdFromHeaders,
 } from "@arts-and-crafts/v5-aws";
 import { parseSchema } from "@arts-and-crafts/v5-utils/adapters/inbound";
-import type { StageIntents } from "@arts-and-crafts/v5/core/capabilities";
 import type {
   LoadDomainEvents,
-  AppendToEventStore,
+  PersistDecision,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
+import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
 import type { NotifyUserToVerifyEmailV1 } from "@examples/modules/membership/core/intents/v1/NotifyUserToVerifyEmail.ts";
+import type { MembershipAlreadyExists } from "../../rejections/MembershipAlreadyExists.ts";
 import { ResultAsync } from "neverthrow";
 import { OpenMembershipHandler } from "../../handler.ts";
 import { OpenMembershipRepository } from "../../repository.ts";
-import { toOpenMembershipCommand } from "../../command.ts";
+import { toOpenMembershipCommand, type OpenMembershipCommand } from "../../command.ts";
 import { openMembershipSchema } from "./schema.ts";
 
 export function createOpenMembershipLambdaHandler(
-  eventStore: LoadDomainEvents<
-    MembershipEventV1,
-    ResultAsync<MembershipEventV1[], GatewayFailure>
-  > &
-    AppendToEventStore<MembershipEventV1, ResultAsync<void, GatewayFailure>>,
-  outbox: StageIntents<NotifyUserToVerifyEmailV1, ResultAsync<void, GatewayFailure>>,
+  eventStore: LoadDomainEvents<MembershipEventV1, ResultAsync<MembershipEventV1[], GatewayFailure>>,
+  writer: PersistDecision<
+    OpenMembershipCommand,
+    MembershipOpenedV1,
+    NotifyUserToVerifyEmailV1,
+    MembershipAlreadyExists,
+    ResultAsync<void, GatewayFailure>
+  >,
 ) {
   const repository = new OpenMembershipRepository(eventStore);
-  const handler = new OpenMembershipHandler(repository, outbox);
+  const handler = new OpenMembershipHandler(repository, writer);
 
   return (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> => {
     return ResultAsync.combine([
@@ -61,7 +64,7 @@ export function createOpenMembershipLambdaHandler(
                 }),
               },
         (error): APIGatewayProxyStructuredResultV2 => {
-          if (Array.isArray(error))
+          if (error.kind === "failure")
             return { statusCode: 503, body: JSON.stringify({ code: "GATEWAY_FAILURE" }) };
           return {
             statusCode: 400,

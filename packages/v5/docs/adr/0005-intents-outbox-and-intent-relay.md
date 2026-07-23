@@ -54,3 +54,4 @@ and dispatch it later with a polling **relay**.
 - ADR-0003: Command Handling
 - ADR-0006: Domain and Integration Events, Event Relay, and Checkpoints
 - ADR-0009: Outcome Taxonomy (caller `Notification` carries a `Rejection`/`Failure`)
+- ADR-0010: Events and Intents Persist Atomically via a Transactional Writer
