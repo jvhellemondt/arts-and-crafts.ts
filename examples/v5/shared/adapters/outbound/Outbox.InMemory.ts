@@ -45,8 +45,8 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
     return this.simulation;
   }
 
-  private get rows(): OutboxEnvelope<TIntent | TNotification>[] {
-    return this.datasource.read(OUTBOX_TABLE);
+  private rows(): ResultAsync<OutboxEnvelope<TIntent | TNotification>[], GatewayFailure> {
+    return this.datasource.read<OutboxEnvelope<TIntent | TNotification>>(OUTBOX_TABLE);
   }
 
   private offlineFailure(): GatewayFailure {
@@ -55,6 +55,15 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
       code: "GATEWAY_FAILURE",
       gateway: "InMemoryIntentOutbox",
       reason: "The Outbox has been set to offline mode",
+    };
+  }
+
+  private notFoundFailure(intentId: string): GatewayFailure {
+    return {
+      kind: "failure",
+      code: "GATEWAY_FAILURE",
+      gateway: "InMemoryIntentOutbox",
+      reason: `Intent ${intentId} not found in outbox`,
     };
   }
 
@@ -67,60 +76,53 @@ export class InMemoryOutbox<TIntent extends Intent, TNotification extends Notifi
       attemptCount: 0,
       entry: item,
     }));
-    this.datasource.write(OUTBOX_TABLE, rows);
-    return okAsync(undefined);
+    return this.datasource.write(OUTBOX_TABLE, rows);
   }
 
   loadPending(limit?: number): ResultAsync<OutboxEnvelope<TIntent>[], GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
-    const pending = this.rows.filter(
-      (row): row is OutboxEnvelope<TIntent> =>
-        row.status === "pending" && row.entry.kind === "intent",
-    );
-    return okAsync(pending.slice(0, limit ?? pending.length));
+    return this.rows().map((rows) => {
+      const pending = rows.filter(
+        (row): row is OutboxEnvelope<TIntent> =>
+          row.status === "pending" && row.entry.kind === "intent",
+      );
+      return pending.slice(0, limit ?? pending.length);
+    });
   }
 
   markDispatched(intentId: string): ResultAsync<void, GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
-    const index = this.rows.findIndex((r) => r.entry.id === intentId);
-    if (index === -1) {
-      return errAsync({
-        kind: "failure",
-        code: "GATEWAY_FAILURE",
-        gateway: "InMemoryIntentOutbox",
-        reason: `Intent ${intentId} not found in outbox`,
-      });
-    }
-    this.rows[index] = {
-      ...this.rows[index],
-      status: "dispatched",
-      dispatchedAt: Date.now(),
-    };
-    return okAsync(undefined);
+    return this.rows().andThen((rows) => {
+      const index = rows.findIndex((r) => r.entry.id === intentId);
+      if (index === -1) return errAsync(this.notFoundFailure(intentId));
+
+      rows[index] = {
+        ...rows[index],
+        status: "dispatched",
+        dispatchedAt: Date.now(),
+      };
+      return okAsync(undefined);
+    });
   }
 
   markFailed(intentId: string, reason: string): ResultAsync<void, GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
-    const index = this.rows.findIndex((r) => r.entry.id === intentId);
-    if (index === -1) {
-      return errAsync({
-        kind: "failure",
-        code: "GATEWAY_FAILURE",
-        gateway: "InMemoryIntentOutbox",
-        reason: `Intent ${intentId} not found in outbox`,
-      });
-    }
-    const current = this.rows[index];
-    this.rows[index] = {
-      ...current,
-      status: "failed",
-      failedAt: Date.now(),
-      lastError: reason,
-      attemptCount: current.attemptCount + 1,
-    };
-    return okAsync(undefined);
+    return this.rows().andThen((rows) => {
+      const index = rows.findIndex((r) => r.entry.id === intentId);
+      if (index === -1) return errAsync(this.notFoundFailure(intentId));
+
+      const current = rows[index];
+      rows[index] = {
+        ...current,
+        status: "failed",
+        failedAt: Date.now(),
+        lastError: reason,
+        attemptCount: current.attemptCount + 1,
+      };
+      return okAsync(undefined);
+    });
   }
 }

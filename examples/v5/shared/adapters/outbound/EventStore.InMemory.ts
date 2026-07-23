@@ -11,7 +11,7 @@ import type {
   StreamKey,
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
-import { ResultAsync, errAsync, okAsync } from "neverthrow";
+import { ResultAsync, errAsync } from "neverthrow";
 import { EVENT_STORE_TABLE, EVENT_TAGS_TABLE, InMemoryDatasource } from "./InMemoryDatasource.ts";
 
 /** A single `(concern, event_id)` pairing — one row of the `event_tags` join table. */
@@ -70,12 +70,12 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     this.simulation = undefined;
   }
 
-  private get eventRows(): EventStoreRow<TEvent>[] {
-    return this.datasource.read(EVENT_STORE_TABLE);
+  private eventRows(): ResultAsync<EventStoreRow<TEvent>[], GatewayFailure> {
+    return this.datasource.read<EventStoreRow<TEvent>>(EVENT_STORE_TABLE);
   }
 
-  private get tagRows(): EventTagRow[] {
-    return this.datasource.read(EVENT_TAGS_TABLE);
+  private tagRows(): ResultAsync<EventTagRow[], GatewayFailure> {
+    return this.datasource.read<EventTagRow>(EVENT_TAGS_TABLE);
   }
 
   private offlineFailure(): GatewayFailure {
@@ -87,25 +87,29 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     };
   }
 
-  private candidateEventIds(concerns: readonly StreamKey[]): Set<string> {
-    // Step 1: event_tags lookup — mirrors
-    // `SELECT DISTINCT event_id FROM event_tags WHERE concern IN (...)`.
-    const eventIds = new Set<string>();
-    for (const tag of this.tagRows) {
-      if (concerns.includes(tag.data.concern)) eventIds.add(tag.data.eventId);
-    }
-    return eventIds;
+  // Step 1: event_tags lookup — mirrors
+  // `SELECT DISTINCT event_id FROM event_tags WHERE concern IN (...)`.
+  private candidateEventIds(
+    concerns: readonly StreamKey[],
+  ): ResultAsync<Set<string>, GatewayFailure> {
+    return this.tagRows().map((tagRows) => {
+      const eventIds = new Set<string>();
+      for (const tag of tagRows) {
+        if (concerns.includes(tag.data.concern)) eventIds.add(tag.data.eventId);
+      }
+      return eventIds;
+    });
   }
 
   load(concerns: readonly StreamKey[]): ResultAsync<TEvent[], GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
-    const eventIds = this.candidateEventIds(concerns);
-
     // Step 2: join back to the events table, in append order —
     // mirrors `SELECT * FROM events WHERE id IN (...) ORDER BY global_position`.
-    return okAsync(
-      this.eventRows.filter((row) => eventIds.has(row.data.event.id)).map((row) => row.data.event),
+    return this.candidateEventIds(concerns).andThen((eventIds) =>
+      this.eventRows().map((rows) =>
+        rows.filter((row) => eventIds.has(row.data.event.id)).map((row) => row.data.event),
+      ),
     );
   }
 
@@ -115,35 +119,39 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
   ): ResultAsync<StoredEvent<TEvent>[], GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
-    const filtered = this.eventRows
-      .filter((row) => row.data.globalPosition >= globalPosition)
-      .map((row) => row.data);
-    return okAsync(limit !== undefined ? filtered.slice(0, limit) : filtered);
+    return this.eventRows().map((rows) => {
+      const filtered = rows
+        .filter((row) => row.data.globalPosition >= globalPosition)
+        .map((row) => row.data);
+      return limit !== undefined ? filtered.slice(0, limit) : filtered;
+    });
   }
 
   append(events: TEvent[]): ResultAsync<void, GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
-    let nextPosition = this.eventRows.length + 1;
-    const eventRows: EventStoreRow<TEvent>[] = [];
-    const tagRows: EventTagRow[] = [];
-    for (const event of events) {
-      const row: EventStoreRow<TEvent> = {
-        table: EVENT_STORE_TABLE,
-        data: {
-          concerns: event.concerns,
-          globalPosition: nextPosition++,
-          insertedAt: Date.now(),
-          event,
-        },
-      };
-      eventRows.push(row);
-      for (const concern of event.concerns) {
-        tagRows.push({ table: EVENT_TAGS_TABLE, data: { concern, eventId: event.id } });
+    return this.eventRows().andThen((existingRows) => {
+      let nextPosition = existingRows.length + 1;
+      const eventRows: EventStoreRow<TEvent>[] = [];
+      const tagRows: EventTagRow[] = [];
+      for (const event of events) {
+        const row: EventStoreRow<TEvent> = {
+          table: EVENT_STORE_TABLE,
+          data: {
+            concerns: event.concerns,
+            globalPosition: nextPosition++,
+            insertedAt: Date.now(),
+            event,
+          },
+        };
+        eventRows.push(row);
+        for (const concern of event.concerns) {
+          tagRows.push({ table: EVENT_TAGS_TABLE, data: { concern, eventId: event.id } });
+        }
       }
-    }
-    this.datasource.write(EVENT_STORE_TABLE, eventRows);
-    this.datasource.write(EVENT_TAGS_TABLE, tagRows);
-    return okAsync(undefined);
+      return this.datasource
+        .write(EVENT_STORE_TABLE, eventRows)
+        .andThen(() => this.datasource.write(EVENT_TAGS_TABLE, tagRows));
+    });
   }
 }
