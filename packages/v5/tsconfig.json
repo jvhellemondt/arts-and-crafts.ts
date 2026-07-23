@@ -10,11 +10,6 @@
     "module": "NodeNext",
     // Bundler mode
     "moduleResolution": "NodeNext",
-    "paths": {
-      "@core/*": ["./src/module/core/*"],
-      "@useCases/*": ["./src/module/useCases/*"],
-      "@adapters/*": ["./src/module/adapters/*"]
-    },
     "types": ["vitest/globals", "node"],
     "allowImportingTsExtensions": true,
     "allowJs": true,
