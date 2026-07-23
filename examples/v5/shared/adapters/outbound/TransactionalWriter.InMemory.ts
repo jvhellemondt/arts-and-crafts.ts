@@ -6,8 +6,8 @@ import type {
 import type { GatewayFailure, Notification } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { DomainEvent, Intent, Rejection } from "@arts-and-crafts/v5/core/shapes";
 import type { Command, Decision } from "@arts-and-crafts/v5/useCases/command/shapes";
+import { toRejectionNotification } from "@arts-and-crafts/v5-utils/adapters/outbound";
 import { type ResultAsync } from "neverthrow";
-import { v7 as uuidv7 } from "uuid";
 import type { InMemoryDatasource } from "./InMemoryDatasource.ts";
 import type { InMemoryEventStore } from "./EventStore.InMemory.ts";
 import type { InMemoryOutbox } from "./Outbox.InMemory.ts";
@@ -27,12 +27,11 @@ import type { InMemoryOutbox } from "./Outbox.InMemory.ts";
  *   open. If `append` or `stage` fails, whatever the other already staged is
  *   discarded via `rollback()` instead of becoming visible — real atomicity,
  *   not a pre-flight guess.
- * - **Rejected** — builds a caller notification from the command
- *   (`payload`/`id`/`metadata`/`type`) plus the rejection, and stages it. No
- *   transaction: nothing else needs to commit alongside a standalone
- *   notification. The notification's `type` follows the `${command.type}Rejected`
- *   convention (e.g. `OpenMembership` → `OpenMembershipRejected`), so the
- *   whole envelope is derived mechanically — no extra constructor input needed.
+ * - **Rejected** — builds a caller notification via
+ *   `@arts-and-crafts/v5-utils`'s `toRejectionNotification` (command +
+ *   rejection in, notification out — nothing adapter-specific) and stages
+ *   it. No transaction: nothing else needs to commit alongside a standalone
+ *   notification.
  *
  * This is what makes the "same transaction" claim in ADR-0005 concrete
  * instead of aspirational (see
@@ -79,7 +78,8 @@ export class InMemoryTransactionalWriter<
     command: TCommand,
   ): ResultAsync<void, GatewayFailure> {
     if (!decision.accepted) {
-      return this.outbox.stage([this.toRejectedNotification(command, decision.rejection)]);
+      const notification = toRejectionNotification<TNotification>(command, decision.rejection);
+      return this.outbox.stage([notification]);
     }
 
     this.datasource.begin();
@@ -91,19 +91,5 @@ export class InMemoryTransactionalWriter<
         this.datasource.rollback();
         return failure;
       });
-  }
-
-  private toRejectedNotification(command: TCommand, rejection: TRejection): TNotification {
-    return {
-      kind: "notification",
-      type: `${command.type}Rejected`,
-      payload: command.payload,
-      id: uuidv7(),
-      timestamp: Date.now(),
-      metadata: command.metadata,
-      commandType: command.type,
-      commandId: command.id,
-      details: rejection,
-    } as unknown as TNotification;
   }
 }

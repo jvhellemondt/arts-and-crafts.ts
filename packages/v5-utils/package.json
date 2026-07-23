@@ -31,6 +31,16 @@
         "default": "./dist/adapters-inbound/index.cjs"
       }
     },
+    "./adapters/outbound": {
+      "import": {
+        "types": "./dist/adapters-outbound/index.d.ts",
+        "default": "./dist/adapters-outbound/index.js"
+      },
+      "require": {
+        "types": "./dist/adapters-outbound/index.d.cts",
+        "default": "./dist/adapters-outbound/index.cjs"
+      }
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

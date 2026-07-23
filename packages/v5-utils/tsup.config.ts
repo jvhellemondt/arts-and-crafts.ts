@@ -7,6 +7,7 @@ export default defineConfig({
   entry: {
     "core/index": "src/module/core/index.ts",
     "adapters-inbound/index": "src/module/adapters/inbound/index.ts",
+    "adapters-outbound/index": "src/module/adapters/outbound/index.ts",
   },
   format: ["cjs", "esm"],
   dts: true,
