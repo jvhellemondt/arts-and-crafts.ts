@@ -57,14 +57,24 @@ describe("OpenMembershipHandler", () => {
   });
 
   it("returns an accepted decision when the membership is successfully opened", async () => {
-    const decision = (await handler.handle(command))._unsafeUnwrap();
+    const decision = (await handler.handle(command)).match(
+      (decision) => decision,
+      (failure) => {
+        throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+      },
+    );
     expect(decision.accepted).toBe(true);
   });
 
   it("returns a rejected decision (in the Ok channel) when the membership already exists", async () => {
     await handler.handle(command);
 
-    const decision = (await handler.handle(command))._unsafeUnwrap();
+    const decision = (await handler.handle(command)).match(
+      (decision) => decision,
+      (failure) => {
+        throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+      },
+    );
 
     expect(decision).toMatchObject({
       accepted: false,
@@ -82,7 +92,12 @@ describe("OpenMembershipHandler", () => {
 
     const rows = (
       await datasource.read<OutboxEnvelope<OpenMembershipRejected>>(OUTBOX_TABLE)
-    )._unsafeUnwrap();
+    ).match(
+      (rows) => rows,
+      (failure) => {
+        throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+      },
+    );
     const notification = rows.find((row) => row.entry.kind === "notification");
 
     expect(notification).toMatchObject({
@@ -104,13 +119,23 @@ describe("OpenMembershipHandler", () => {
 
   it("returns a GatewayFailure when the event store is offline (fails at load, before any write)", async () => {
     eventStore.simulate("offline");
-    const failure = (await handler.handle(command))._unsafeUnwrapErr();
+    const failure = (await handler.handle(command)).match(
+      (decision) => {
+        throw new Error(`Expected Err, got Ok: ${JSON.stringify(decision)}`);
+      },
+      (failure) => failure,
+    );
     expect(failure).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryEventStore" });
   });
 
   it("returns a GatewayFailure when the outbox is offline (fails at the atomic write)", async () => {
     outbox.simulate("offline");
-    const failure = (await handler.handle(command))._unsafeUnwrapErr();
+    const failure = (await handler.handle(command)).match(
+      (decision) => {
+        throw new Error(`Expected Err, got Ok: ${JSON.stringify(decision)}`);
+      },
+      (failure) => failure,
+    );
     expect(failure).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" });
   });
 
@@ -118,7 +143,12 @@ describe("OpenMembershipHandler", () => {
     await handler.handle(command);
     outbox.simulate("offline");
 
-    const failure = (await handler.handle(command))._unsafeUnwrapErr();
+    const failure = (await handler.handle(command)).match(
+      (decision) => {
+        throw new Error(`Expected Err, got Ok: ${JSON.stringify(decision)}`);
+      },
+      (failure) => failure,
+    );
     expect(failure).toMatchObject({ code: "GATEWAY_FAILURE", gateway: "InMemoryIntentOutbox" });
   });
 
@@ -129,10 +159,20 @@ describe("OpenMembershipHandler", () => {
 
     const stored = (
       await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, command.payload.membershipId)])
-    )._unsafeUnwrap();
+    ).match(
+      (events) => events,
+      (failure) => {
+        throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+      },
+    );
     expect(stored).toEqual([]);
 
-    const pending = (await outbox.loadPending())._unsafeUnwrap();
+    const pending = (await outbox.loadPending()).match(
+      (pending) => pending,
+      (failure) => {
+        throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+      },
+    );
     expect(pending).toEqual([]);
   });
 });

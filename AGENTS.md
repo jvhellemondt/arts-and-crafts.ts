@@ -127,6 +127,16 @@ Store all prompts in .github/prompts/ with descriptive filenames. This keeps the
 
 Document all significant architectural decisions in the docs/adr/ directory using the ADR template. This provides context and rationale for future maintainers and helps track the evolution of the codebase.
 
+## Rule: check v5 rules before working on v5
+
+Before making changes in `packages/v5` or `examples/v5`, read
+`packages/v5/docs/rules/README.md` and follow any rule that applies. These
+are narrower, binding conventions than an ADR (no alternatives/tradeoffs to
+weigh) — e.g. never use neverthrow's `_unsafeUnwrap()`/`_unsafeUnwrapErr()`
+in tests. When a new convention comes up in review that should apply
+consistently going forward, add it there rather than only fixing the one
+line it was raised on.
+
 ## Rule: keep Node and pnpm on latest LTS
 
 With every iteration, check whether Node and pnpm are on the latest LTS release (`.nvmrc`, the `engines`/`packageManager` fields in the root `package.json`, and `.github/workflows/onPush.yaml`). If a patch or minor update is available, apply it directly. If a new major LTS version is available, confirm with the user before upgrading. Ship these bumps as their own commit, separate from other changes (e.g. `chore: update Node/pnpm to vX.Y.Z`).
