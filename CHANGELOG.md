@@ -1,5 +1,33 @@
 # Changelog
 
+## [5.0.0-rc.3](https://github.com/jvhellemondt/arts-and-crafts.ts/compare/v5.0.0-rc.2...v5.0.0-rc.3) (2026-09-30)
+
+### Features
+
+* **Notification:** update shape to include generic details ([a26d278](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/a26d2782cffecce40dfb12e775e10363c338e345))
+* **v5-aws:** add toCommandMiddleware/toQueryMiddleware ([f2bb704](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/f2bb7041389224c4e526fe2d19f77c63b618e24b))
+* **v5-example:** add Lambda inbound adapters alongside Hono ([9cb1a37](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/9cb1a371d67c6feda183e3124d2ba6b08c48826b))
+* **v5-example:** extract shared inbound pipeline into v5-utils/v5-hono/v5-aws ([1628660](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/16286602196d414ded61d9995e82bd4ba7c0c65c))
+* **v5-hono:** add toCommandMiddleware/toQueryMiddleware ([1338eef](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/1338eef8a45dcaa2e11429526d2a7be86045664f))
+* **v5-utils:** add createCommand/createQuery factories ([23c6dd8](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/23c6dd8c89420abf16aabee9fae34804ecf2f6f3))
+* **v5-utils:** add event guards, gateway/integration mappers and wire schemas ([c433dad](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/c433dad13b40a14680d1a3859082a0737dc1b715))
+* **v5-utils:** export v5-utils from the published package ([4456e8f](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/4456e8f4e1309785dea94fd7d560fc5c056c251a))
+* **v5:** add a portable datasource port for atomic cross-store writes ([93a4ee8](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/93a4ee885243b0f7d2e32b2b80e70c6c9ac8c5cd))
+* **v5:** guard appends with per-concern versions (dynamic consistency boundary) ([5214126](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/52141266604e487e71e7b7d380c5f0dbd52f72e2))
+* **v5:** route rejection notifications through the outbox, redesign transaction boundary ([c9b0d41](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/c9b0d411d2599c00e0a7ecdf38c793f4d74bce7f))
+
+### Bug Fixes
+
+* add missing build step to CI ([319c3df](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/319c3df211f574770a89c198e6a40f2c4845cda1)), closes [#14](https://github.com/jvhellemondt/arts-and-crafts.ts/issues/14) [#14](https://github.com/jvhellemondt/arts-and-crafts.ts/issues/14) [#15](https://github.com/jvhellemondt/arts-and-crafts.ts/issues/15) [#16](https://github.com/jvhellemondt/arts-and-crafts.ts/issues/16)
+* build all example v5 workspace deps in just dev, hoist @oxc-node/core ([3d23713](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/3d237133d710f92436da2a830a9f5309086010ef))
+* **v5-example:** type the middy chains explicitly, simplify Hono route composition ([14792d4](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/14792d4472faa61e4dc73b7beb14ef57f9caaf4a))
+* **v5:** persist events and intents atomically for openMembership ([bca50e9](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/bca50e99bad520d1fd6324d4b12e55db2da37d46))
+
+### Reverts
+
+* Revert "refactor: drop tsx, run examples/v5 on plain Node 26" ([fc43d64](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/fc43d64d6a84da180dd3531387200d186e26324d))
+* **v5-utils:** drop createCommand/createQuery factories ([ca319fa](https://github.com/jvhellemondt/arts-and-crafts.ts/commit/ca319faf1118b97a1df21322a32416c160a62d02))
+
 ## [5.0.0-rc.2](https://github.com/jvhellemondt/arts-and-crafts/compare/v5.0.0-rc.1...v5.0.0-rc.2) (2026-07-02)
 
 ### Features
