@@ -80,7 +80,7 @@ jobs:
         run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
   publish:
-    name: publish to npm
+    name: stage on npm
     needs: release
     if: ${{ !cancelled() && (github.event_name == 'release' || (needs.release.result == 'success' && !inputs.dry-run)) }}
     runs-on: ubuntu-latest
@@ -103,10 +103,17 @@ jobs:
         run: pnpm run build
       - name: 🔎 Check exports
         run: pnpm run check-exports
-      - name: 📤 Publish
+      - name: ⬆️ npm 11 (for npm stage)
+        run: npm install -g npm@11
+      - name: 📤 Stage on npm
         run: |
           version=$(node -p "require('./package.json').version")
           dist_tag=latest
           case "$version" in *-*) dist_tag=next ;; esac
-          echo "Publishing @arts-n-crafts/ts@${version} with dist-tag ${dist_tag}"
-          npm publish --access public --tag "$dist_tag"
+          echo "Staging @arts-n-crafts/ts@${version} with dist-tag ${dist_tag}"
+          npm stage publish --access public --tag "$dist_tag"
+          {
+            echo "### Staged @arts-n-crafts/ts@${version} (\`${dist_tag}\`)"
+            echo ""
+            echo "Not live yet. Approve it with 2FA on npmjs.com (package → Versions → staged), or run \`npm stage list @arts-n-crafts/ts\` and then \`npm stage approve <stage-id>\`."
+          } >> "$GITHUB_STEP_SUMMARY"

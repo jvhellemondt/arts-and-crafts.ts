@@ -82,7 +82,7 @@ Each package is bundled with `tsup` producing both ESM (`.js`) and CJS (`.cjs`) 
 
 - **ESLint**: `@antfu/eslint-config` with flat config (`eslint.config.mjs`). Method signatures must use method style (`method()` not `method: () =>`).
 - **Commits**: Conventional commits enforced by `commitlint` + Husky. Use `pnpm run commit` for interactive commit via `commitizen`.
-- **Release**: the `Release` workflow (`.github/workflows/release.yaml`, manual dispatch on `main`) runs `release-it` with `@release-it/conventional-changelog` for the chosen `bump` (`rc`, `patch`/`minor`/`major`, `prepatch`/`preminor`/`premajor`), then publishes to npm with trusted publishing: `next` for pre-releases, `latest` otherwise.
+- **Release**: the `Release` workflow (`.github/workflows/release.yaml`, manual dispatch on `main`) runs `release-it` with `@release-it/conventional-changelog` for the chosen `bump` (`rc`, `patch`/`minor`/`major`, `prepatch`/`preminor`/`premajor`), then stages the version on npm with trusted publishing (`npm stage publish`: `next` for pre-releases, `latest` otherwise). A maintainer approves the staged version with 2FA before it goes live.
 
 
 ## Rule: always use qmd before reading files
