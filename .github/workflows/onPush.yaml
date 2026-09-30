@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
 
 jobs:
@@ -14,22 +15,25 @@ jobs:
         os:
           - macos-latest
     runs-on: ${{ matrix.os }}
+    env:
+      HUSKY: 0
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - name: 📦 Setup pnpm, Node and dependencies
+        uses: pnpm/setup@v3
         with:
-          node-version-file: package.json
-          cache: pnpm
-      - name: 📦 Install Dependencies
-        run: pnpm install --frozen-lockfile
+          node-version-file: .nvmrc
+          require-lockfile: true
+          cache: true
       - name: 🏗️ Build
         run: pnpm run build
       - name: 📏 Lint
         run: pnpm run lint
       - name: 🧹 Format
-        run: pnpm run fmt
+        run: pnpm run fmt:check
       - name: 🛠️ Typecheck
         run: pnpm run typecheck
       - name: 📋 Coverage
         run: pnpm run coverage
+      - name: 🔎 Check exports
+        run: pnpm run check-exports

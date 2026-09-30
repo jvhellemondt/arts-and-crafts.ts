@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "rc = next release candidate (5.0.0-rc.2 → 5.0.0-rc.3; from a stable release it starts a patch rc: 5.0.0 → 5.0.1-rc.0). patch/minor/major = stable release (from an rc this finalises it: 5.0.0-rc.3 → 5.0.0). prepatch/preminor/premajor = start a new rc line from a stable release (5.0.0 → 6.0.0-rc.0)."
+        required: true
+        type: choice
+        default: rc
+        options:
+          - rc
+          - patch
+          - minor
+          - major
+          - prepatch
+          - preminor
+          - premajor
+      dry-run:
+        description: "Dry run: show the version and changelog release-it would produce, without committing, tagging or publishing."
+        required: false
+        type: boolean
+        default: false
+  release:
+    types: [published]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  HUSKY: 0
+
+jobs:
+  release:
+    name: release-it
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Require main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Releases run from main only (got ${GITHUB_REF})."
+          exit 1
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: 📦 Setup pnpm, Node and dependencies
+        uses: pnpm/setup@v3
+        with:
+          node-version-file: .nvmrc
+          require-lockfile: true
+          cache: true
+      - name: 👤 Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: 🚀 release-it
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUMP: ${{ inputs.bump }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          case "$BUMP" in
+            rc) args=(--preRelease=rc) ;;
+            patch|minor|major) args=("$BUMP") ;;
+            prepatch|preminor|premajor) args=("$BUMP" --preRelease=rc) ;;
+            *) echo "::error::Unknown bump: $BUMP"; exit 1 ;;
+          esac
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          pnpm exec release-it --ci "${args[@]}"
+      - name: 🏷️ Resolve tag
+        id: version
+        if: ${{ !inputs.dry-run }}
+        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: stage on npm
+    needs: release
+    if: ${{ !cancelled() && (github.event_name == 'release' || (needs.release.result == 'success' && !inputs.dry-run)) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || needs.release.outputs.tag }}
+      - name: 📦 Setup pnpm, Node and dependencies
+        uses: pnpm/setup@v3
+        with:
+          node-version-file: .nvmrc
+          require-lockfile: true
+          cache: true
+      - name: 🏗️ Build
+        run: pnpm run build
+      - name: 🔎 Check exports
+        run: pnpm run check-exports
+      - name: 📤 Stage on npm
+        run: |
+          version=$(node -p "require('./package.json').version")
+          dist_tag=latest
+          case "$version" in *-*) dist_tag=next ;; esac
+          echo "Staging @arts-n-crafts/ts@${version} with dist-tag ${dist_tag}"
+          pnpm stage publish --access public --tag "$dist_tag" --no-git-checks
+          {
+            echo "### Staged @arts-n-crafts/ts@${version} (\`${dist_tag}\`)"
+            echo ""
+            echo "Not live yet. Approve it with 2FA on npmjs.com (package → Versions → staged), or run \`pnpm stage approve\` and pick it."
+          } >> "$GITHUB_STEP_SUMMARY"

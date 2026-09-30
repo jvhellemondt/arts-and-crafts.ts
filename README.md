@@ -104,6 +104,24 @@ pnpm run test         # Run the example's tests
 
 Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) spec. Use `pnpm run commit` for an interactive prompt.
 
+### Releasing
+
+Releases run in GitHub Actions: **Actions → Release → Run workflow** on `main`, then pick a `bump`:
+
+| `bump` | From `5.0.0-rc.2` | From `5.0.0` |
+|--------|-------------------|--------------|
+| `rc` | `5.0.0-rc.3` | `5.0.1-rc.0` |
+| `patch` / `minor` / `major` | `5.0.0` (finalises the rc) | `5.0.1` / `5.1.0` / `6.0.0` |
+| `prepatch` / `preminor` / `premajor` | `5.0.1-rc.0` / `5.1.0-rc.0` / `6.0.0-rc.0` | same |
+
+Tick `dry-run` to preview the version and changelog without committing, tagging or publishing.
+
+The workflow runs `release-it`, which runs the checks, bumps `package.json` and `VERSION`, updates `CHANGELOG.md`, commits, tags `v<version>` and creates the GitHub release. It then **stages** the version on npm through trusted publishing (`pnpm stage publish`, with provenance). Pre-releases are staged with the `next` dist-tag and stable releases with `latest`.
+
+A staged version isn't installable until a maintainer approves it with 2FA, either on npmjs.com (package → Versions) or with `pnpm stage approve`, which lists the pending versions to pick from. `pnpm stage reject <stage-id>` discards one. The trusted publisher is stage-only, so CI can't make a version live by itself.
+
+`pnpm run release` still works locally with the same options (`pnpm run release -- --preRelease=rc`, `pnpm run release -- minor`). Publishing the GitHub release it creates triggers the same staging job.
+
 ---
 
 ## Concepts (v5-utils)
