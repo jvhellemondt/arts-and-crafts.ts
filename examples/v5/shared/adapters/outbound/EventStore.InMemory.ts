@@ -6,15 +6,15 @@ import type {
   SimulateFaults,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type {
+  DynamicConsistencyResult,
   GatewayFailure,
   StoredEvent,
   StreamKey,
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
-import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
-import { ResultAsync, errAsync } from "neverthrow";
+import type { DomainEvent, Failure } from "@arts-and-crafts/v5/core/shapes";
+import { ResultAsync, errAsync, okAsync } from "neverthrow";
 import { EVENT_STORE_TABLE, EVENT_TAGS_TABLE, InMemoryDatasource } from "./InMemoryDatasource.ts";
 
-/** A single `(concern, event_id)` pairing — one row of the `event_tags` join table. */
 type EventTag = {
   readonly concern: StreamKey;
   readonly eventId: string;
@@ -30,24 +30,15 @@ type EventTagRow = {
   readonly data: EventTag;
 };
 
-/**
- * Modelled as two SQL tables would be: `event_store` (the append-only physical
- * row store) and `event_tags` (a `(concern, event_id)` join table). Both live
- * in the same `datasource`, keyed by table name — so the datasource genuinely
- * represents "a database" as `table name -> rows[]`, not just the events
- * table. Pass the same `InMemoryDatasource` given to an `InMemoryOutbox` (in
- * `"atomic"` mode) to have both stores participate in one atomic write via
- * `InMemoryTransactionalWriter` — see `InMemoryDatasource.ts`.
- *
- * `load()` performs the same two-step lookup a SQL implementation would:
- * resolve concerns to candidate event ids via the tag table, then join back
- * to the events table.
- */
+export type AppendFailure =
+  | GatewayFailure
+  | (Failure<"CONCURRENCY_CONFLICT"> & { readonly gateway: string });
+
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
-    LoadDomainEvents<TEvent, ResultAsync<TEvent[], GatewayFailure>>,
+    LoadDomainEvents<TEvent, ResultAsync<DynamicConsistencyResult<TEvent>, GatewayFailure>>,
     LoadEventsFrom<TEvent, ResultAsync<StoredEvent<TEvent>[], GatewayFailure>>,
-    AppendToEventStore<TEvent, ResultAsync<void, GatewayFailure>>,
+    AppendToEventStore<TEvent, ResultAsync<void, AppendFailure>>,
     SimulateFaults
 {
   private simulation?: FaultSimulationMode;
@@ -87,8 +78,6 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     };
   }
 
-  // Step 1: event_tags lookup — mirrors
-  // `SELECT DISTINCT event_id FROM event_tags WHERE concern IN (...)`.
   private candidateEventIds(
     concerns: readonly StreamKey[],
   ): ResultAsync<Set<string>, GatewayFailure> {
@@ -101,16 +90,31 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     });
   }
 
-  load(concerns: readonly StreamKey[]): ResultAsync<TEvent[], GatewayFailure> {
-    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
-
-    // Step 2: join back to the events table, in append order —
-    // mirrors `SELECT * FROM events WHERE id IN (...) ORDER BY global_position`.
-    return this.candidateEventIds(concerns).andThen((eventIds) =>
-      this.eventRows().map((rows) =>
-        rows.filter((row) => eventIds.has(row.data.event.id)).map((row) => row.data.event),
+  private versionsFor(
+    concerns: readonly StreamKey[],
+  ): ResultAsync<Record<StreamKey, number>, GatewayFailure> {
+    return this.tagRows().map((tagRows) =>
+      Object.fromEntries(
+        concerns.map((concern) => [
+          concern,
+          tagRows.filter((tag) => tag.data.concern === concern).length,
+        ]),
       ),
     );
+  }
+
+  load(
+    concerns: readonly StreamKey[],
+  ): ResultAsync<DynamicConsistencyResult<TEvent>, GatewayFailure> {
+    if (this.activeFault === "offline") return errAsync(this.offlineFailure());
+
+    return this.candidateEventIds(concerns)
+      .andThen((eventIds) =>
+        this.eventRows().map((rows) =>
+          rows.filter((row) => eventIds.has(row.data.event.id)).map((row) => row.data.event),
+        ),
+      )
+      .andThen((events) => this.versionsFor(concerns).map((versions) => ({ events, versions })));
   }
 
   loadFrom(
@@ -127,9 +131,33 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     });
   }
 
-  append(events: TEvent[]): ResultAsync<void, GatewayFailure> {
+  append(events: TEvent[], versions?: Record<StreamKey, number>): ResultAsync<void, AppendFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
+    return this.guardVersions(versions).andThen(() => this.appendUnchecked(events));
+  }
+
+  private guardVersions(
+    versions: Record<StreamKey, number> | undefined,
+  ): ResultAsync<void, AppendFailure> {
+    if (versions === undefined) return okAsync(undefined);
+
+    const guarded = Object.keys(versions) as StreamKey[];
+
+    return this.versionsFor(guarded).andThen((current) => {
+      const stale = guarded.filter((concern) => current[concern] !== versions[concern]);
+      if (stale.length === 0) return okAsync(undefined);
+
+      return errAsync({
+        kind: "failure" as const,
+        code: "CONCURRENCY_CONFLICT" as const,
+        gateway: "InMemoryEventStore",
+        reason: `concern(s) moved on since they were read: ${stale.join(", ")}`,
+      });
+    });
+  }
+
+  private appendUnchecked(events: TEvent[]): ResultAsync<void, GatewayFailure> {
     return this.eventRows().andThen((existingRows) => {
       let nextPosition = existingRows.length + 1;
       const eventRows: EventStoreRow<TEvent>[] = [];

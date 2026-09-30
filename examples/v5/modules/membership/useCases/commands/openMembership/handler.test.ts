@@ -160,7 +160,7 @@ describe("OpenMembershipHandler", () => {
     const stored = (
       await eventStore.load([createStreamKey(ANCHOR_MEMBERSHIP, command.payload.membershipId)])
     ).match(
-      (events) => events,
+      ({ events }) => events,
       (failure) => {
         throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
       },

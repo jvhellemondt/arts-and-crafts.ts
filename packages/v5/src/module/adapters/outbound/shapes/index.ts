@@ -1,3 +1,4 @@
+export * from "./DynamicConsistencyResult.ts";
 export * from "./GatewayFailure.ts";
 export * from "./IntegrationEvent.ts";
 export * from "./Notification.ts";

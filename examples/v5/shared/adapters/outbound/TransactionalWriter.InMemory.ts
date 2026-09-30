@@ -12,32 +12,6 @@ import type { InMemoryDatasource } from "./InMemoryDatasource.ts";
 import type { InMemoryEventStore } from "./EventStore.InMemory.ts";
 import type { InMemoryOutbox } from "./Outbox.InMemory.ts";
 
-/**
- * Persists a decision's outcome as one unit, given the command that produced
- * it:
- *
- * - **Accepted** — opens a transaction on the shared datasource, appends the
- *   events, stages the intents, then commits — or rolls back if either step
- *   failed. `eventStore` and `outbox` must be constructed against the same
- *   `datasource` (see `InMemoryDatasource.ts`); opening the transaction here
- *   means their writes only stage rather than land immediately for the
- *   duration of this call. A write made outside of `persist()` (e.g. a
- *   standalone stage directly on the same outbox) still commits immediately,
- *   since the datasource sits in autocommit mode whenever no transaction is
- *   open. If `append` or `stage` fails, whatever the other already staged is
- *   discarded via `rollback()` instead of becoming visible — real atomicity,
- *   not a pre-flight guess.
- * - **Rejected** — builds a caller notification via
- *   `@arts-and-crafts/v5-utils`'s `toRejectionNotification` (command +
- *   rejection in, notification out — nothing adapter-specific) and stages
- *   it. No transaction: nothing else needs to commit alongside a standalone
- *   notification.
- *
- * This is what makes the "same transaction" claim in ADR-0005 concrete
- * instead of aspirational (see
- * packages/v5/docs/adr/0010-events-and-intents-persist-atomically.md for the
- * full writeup).
- */
 export class InMemoryTransactionalWriter<
   TCommand extends Command,
   TEvent extends DomainEvent,
@@ -85,6 +59,7 @@ export class InMemoryTransactionalWriter<
     return this.datasource.begin().andThen(() =>
       this.eventStore
         .append(decision.events)
+        .mapErr((failure): GatewayFailure => ({ ...failure, code: "GATEWAY_FAILURE" }))
         .andThen(() => this.outbox.stage(decision.intents))
         .andThen(() => this.datasource.commit())
         .orElse((failure) => this.datasource.rollback().andThen(() => errAsync(failure))),
