@@ -11,12 +11,6 @@ import { createStreamKey } from "@examples/shared/utils/createStreamKey.ts";
 import { ANCHOR_MEMBERSHIP } from "@examples/modules/membership/core/anchors.ts";
 import { evolveOpenMembership } from "./evolve.ts";
 
-/**
- * Read-only: loads and evolves decision state. Writing events back is not
- * this repository's concern — persisting an accepted decision's events
- * together with its intents is handled atomically by the handler's
- * `PersistDecision` writer, not by a separate store() call here.
- */
 export class OpenMembershipRepository implements LoadDecisionState<
   MembershipEventV1,
   ResultAsync<DecisionState, GatewayFailure>

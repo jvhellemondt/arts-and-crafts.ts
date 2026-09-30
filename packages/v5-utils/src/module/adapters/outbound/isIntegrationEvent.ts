@@ -1,9 +1,5 @@
 import type { IntegrationEvent } from "@arts-and-crafts/v5/adapters/outbound/shapes";
 
-/**
- * Structural check on the `IntegrationEvent` envelope. The payload is not
- * checked: that takes the event type's own schema.
- */
 export function isIntegrationEvent(value: unknown): value is IntegrationEvent {
   if (typeof value !== "object" || value === null) return false;
 

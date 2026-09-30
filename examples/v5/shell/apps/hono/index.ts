@@ -60,9 +60,6 @@ export function createHonoApp(
     trimTrailingSlash(),
   );
 
-  // Each route resolves its own expected errors (validation/rejection/failure)
-  // inside its neverthrow pipeline. This boundary only catches genuinely
-  // unexpected throws — a handler that rejected, or a global middleware fault.
   app
     .post("membership/open", createOpenMembershipHonoHandler(eventStore, writer))
     .get("memberships", createListMembershipsHonoHandler(listMembershipsProjectionLoader));

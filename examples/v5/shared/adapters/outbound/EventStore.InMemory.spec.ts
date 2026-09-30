@@ -64,7 +64,6 @@ describe("in-memory event store", () => {
     makeEvent([...streamKeys[1]]),
   ];
 
-  // An empty version map guards nothing, so these appends always land.
   const append = (events: TestDomainEvent[], versions: Record<StreamKey, number> = {}) =>
     eventStore.append(events, versions);
 
@@ -160,8 +159,6 @@ describe("in-memory event store", () => {
 
       const { versions } = await load(streamKeys[0]);
 
-      // fixture[0..3] carry streamKeys[0][0] three times, [0][1] three times
-      // and [0][2] twice — see the fixture above.
       expect(versions).toEqual({
         [streamKeys[0][0]]: 3,
         [streamKeys[0][1]]: 3,
@@ -181,7 +178,6 @@ describe("in-memory event store", () => {
     it("refuses when a guarded concern moved on since it was read", async () => {
       await append(fixture);
       const { versions } = await load(streamKeys[0]);
-      // A concurrent writer lands on streamKeys[0][0] first.
       await append([makeEvent([streamKeys[0][0]])]);
 
       const failure = await expectErr(eventStore.append([makeEvent([streamKeys[0][0]])], versions));
@@ -197,8 +193,6 @@ describe("in-memory event store", () => {
     it("guards concerns that were only read from, not written to", async () => {
       await append(fixture);
       const { versions } = await load(streamKeys[0]);
-      // streamKeys[0][2] is never written to by the append below, but it was
-      // read — moving it on must still cancel the append.
       await append([makeEvent([streamKeys[0][2]])]);
 
       const failure = await expectErr(eventStore.append([makeEvent([streamKeys[0][0]])], versions));

@@ -1,9 +1,5 @@
 import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
 
-/**
- * Structural check on the `DomainEvent` envelope. The payload is not checked:
- * that takes the event type's own schema.
- */
 export function isDomainEvent(value: unknown): value is DomainEvent {
   if (typeof value !== "object" || value === null) return false;
 

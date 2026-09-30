@@ -15,8 +15,6 @@ describe("createIntegrationEventSchema", () => {
     payload: { accountId: "account-1" },
     metadata: { correlationId: "correlation-1", causationId: "causation-1" },
   };
-  // Typed against the schema's input: every IntegrationEvent must fit it once
-  // its timestamp is put in wire format.
   const envelope: z.input<typeof schema> = {
     ...event,
     timestamp: new Date(event.timestamp).toISOString(),
@@ -69,14 +67,12 @@ describe("createIntegrationEventSchema", () => {
     expect(typed.safeParse({ ...envelope, type: "AccountClosed.v1" }).success).toBe(false);
   });
 
-  // Each case is rejected twice: by the compiler (the @ts-expect-error) and,
-  // for callers it cannot see, when the schema is built.
   describe("keeps correlationId and causationId required", () => {
     it("rejects an optional correlationId", () => {
       expect(() =>
         createIntegrationEventSchema({
           payload,
-          // @ts-expect-error correlationId must stay required
+          // @ts-expect-error
           metadata: MetadataSchema.extend({ correlationId: z.string().optional() }),
         }),
       ).toThrow("Integration event metadata must require correlationId");
@@ -86,7 +82,7 @@ describe("createIntegrationEventSchema", () => {
       expect(() =>
         createIntegrationEventSchema({
           payload,
-          // @ts-expect-error causationId must stay required
+          // @ts-expect-error
           metadata: MetadataSchema.extend({ causationId: z.string().nullable() }),
         }),
       ).toThrow("Integration event metadata must require causationId");
@@ -96,7 +92,7 @@ describe("createIntegrationEventSchema", () => {
       expect(() =>
         createIntegrationEventSchema({
           payload,
-          // @ts-expect-error a default makes correlationId optional on the way in
+          // @ts-expect-error
           metadata: MetadataSchema.extend({ correlationId: z.string().default("unknown") }),
         }),
       ).toThrow("Integration event metadata must require correlationId");
@@ -106,7 +102,7 @@ describe("createIntegrationEventSchema", () => {
       expect(() =>
         createIntegrationEventSchema({
           payload,
-          // @ts-expect-error causationId must be declared
+          // @ts-expect-error
           metadata: z.object({ correlationId: z.string() }),
         }),
       ).toThrow("Integration event metadata must require causationId");

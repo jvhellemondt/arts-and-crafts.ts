@@ -190,10 +190,6 @@ describe("InMemoryTransactionalWriter", () => {
   it("rolls back a successfully-staged event write when the intent write fails (real rollback, not a pre-flight guess)", async () => {
     const event = makeEvent();
 
-    // The event store write itself succeeds and stages fine — it is not
-    // offline. Only the outbox is. Proves the writer's rollback discards a
-    // write that already succeeded, rather than relying on a single upfront
-    // flag that predicts failure before either write is attempted.
     outbox.simulate("offline");
     const result = await writer.persist(accepted(event, makeIntent()), makeCommand());
 
