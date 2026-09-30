@@ -36,7 +36,13 @@
     "@release-it/conventional-changelog": {
       "preset": "conventionalcommits",
       "infile": "CHANGELOG.md",
-      "ignoreRecommendedBump": true
+      "ignoreRecommendedBump": true,
+      "context": {
+        "host": "https://github.com",
+        "owner": "jvhellemondt",
+        "repository": "arts-and-crafts.ts",
+        "repoUrl": "https://github.com/jvhellemondt/arts-and-crafts.ts"
+      }
     }
   }
 }
