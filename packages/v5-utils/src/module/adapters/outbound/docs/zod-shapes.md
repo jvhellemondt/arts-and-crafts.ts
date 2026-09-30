@@ -60,7 +60,7 @@ export function createIntegrationEventSchema<
 import {
   createIntegrationEventSchema,
   MetadataSchema,
-} from "@arts-and-crafts/v5-utils/adapters/outbound";
+} from "@arts-n-crafts/ts/v5-utils/module/adapters/outbound";
 
 export const AccountEventsSchema = createIntegrationEventSchema({
   payload: z.discriminatedUnion("eventType", [AccountOpenedSchema, AccountClosedSchema]),

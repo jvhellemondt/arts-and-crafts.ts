@@ -22,7 +22,7 @@ export function isIntegrationEvent(value: unknown): value is IntegrationEvent;
 ## Usage
 
 ```typescript
-import { isIntegrationEvent } from "@arts-and-crafts/v5-utils/adapters/outbound";
+import { isIntegrationEvent } from "@arts-n-crafts/ts/v5-utils/module/adapters/outbound";
 
 const parsed: unknown = JSON.parse(record.body);
 

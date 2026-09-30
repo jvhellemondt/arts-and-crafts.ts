@@ -27,7 +27,7 @@ export function toGatewayFailure(
 ## Usage
 
 ```typescript
-import { toGatewayFailure } from "@arts-and-crafts/v5-utils/adapters/outbound";
+import { toGatewayFailure } from "@arts-n-crafts/ts/v5-utils/module/adapters/outbound";
 import { ResultAsync } from "neverthrow";
 
 send(event: IntegrationEvent): ResultAsync<void, GatewayFailure> {

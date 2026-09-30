@@ -45,7 +45,7 @@ Once events are identified, each feature becomes a vertical slice:
 
 ## Installation
 
-This package is available on npm as `@arts-n-crafts/ts`. It ships two versioned entry points:
+This package is available on npm as `@arts-n-crafts/ts`. It ships several versioned entry points:
 
 ```bash
 # Install
@@ -55,6 +55,11 @@ npm install @arts-n-crafts/ts
 ```
 
 ```typescript
+// v5-utils (helpers for v5 adapters; install the zod and neverthrow peers alongside)
+import { ... } from '@arts-n-crafts/ts/v5-utils/module/core'
+import { ... } from '@arts-n-crafts/ts/v5-utils/module/adapters/inbound'
+import { ... } from '@arts-n-crafts/ts/v5-utils/module/adapters/outbound'
+
 // v4 (recommended)
 import { ... } from '@arts-n-crafts/ts/v4'
 
@@ -103,7 +108,7 @@ Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) 
 
 ## Concepts (v5-utils)
 
-Standalone helpers for building v5 adapters, built on the `v5` shapes and exported from `@arts-and-crafts/v5-utils` per layer (`/core`, `/adapters/inbound`, `/adapters/outbound`). Despite sharing some names with the `v4` utils below, these are a separate implementation.
+Standalone helpers for building v5 adapters, built on the `v5` shapes and exported per layer from `@arts-n-crafts/ts/v5-utils/module/core`, `.../adapters/inbound` and `.../adapters/outbound`. They rely on `zod` and `neverthrow` as optional peer dependencies. Despite sharing some names with the `v4` utils below, these are a separate implementation.
 
 | Concept | Description |
 |---------|-------------|

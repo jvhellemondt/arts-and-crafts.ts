@@ -33,7 +33,7 @@ export function parseAsError(value: unknown): Error;
 ## Usage
 
 ```typescript
-import { parseAsError } from "@utils/parseAsError/parseAsError.ts";
+import { parseAsError } from "@arts-n-crafts/ts/v5-utils/module/core";
 
 try {
   await externalService.call();

@@ -74,6 +74,7 @@ The root `package.json` exports:
 - `.` and `./v3` → `packages/v3/dist/`
 - `./v4` → `packages/v4/dist/`
 - `./v5/module/...` → `packages/v5/dist/...` (per-layer subpaths)
+- `./v5-utils/module/...` → `packages/v5-utils/dist/...` (`core`, `adapters/inbound`, `adapters/outbound`; needs the optional `zod`/`neverthrow` peers)
 
 Each package is bundled with `tsup` producing both ESM (`.js`) and CJS (`.cjs`) with source maps and type declarations.
 

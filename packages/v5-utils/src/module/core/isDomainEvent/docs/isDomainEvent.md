@@ -25,8 +25,8 @@ export function isDomainEvent(value: unknown): value is DomainEvent;
 ## Usage
 
 ```typescript
-import { isDomainEvent } from "@arts-and-crafts/v5-utils/core";
-import { toIntegrationEvent } from "@arts-and-crafts/v5-utils/adapters/outbound";
+import { isDomainEvent } from "@arts-n-crafts/ts/v5-utils/module/core";
+import { toIntegrationEvent } from "@arts-n-crafts/ts/v5-utils/module/adapters/outbound";
 
 const candidate: unknown = JSON.parse(record.body);
 
