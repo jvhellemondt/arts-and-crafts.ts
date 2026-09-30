@@ -106,9 +106,9 @@ jobs:
           dist_tag=latest
           case "$version" in *-*) dist_tag=next ;; esac
           echo "Staging @arts-n-crafts/ts@${version} with dist-tag ${dist_tag}"
-          pnpm dlx npm@11 stage publish --access public --tag "$dist_tag"
+          pnpm stage publish --access public --tag "$dist_tag" --no-git-checks
           {
             echo "### Staged @arts-n-crafts/ts@${version} (\`${dist_tag}\`)"
             echo ""
-            echo "Not live yet. Approve it with 2FA on npmjs.com (package → Versions → staged), or run \`npm stage list @arts-n-crafts/ts\` and then \`npm stage approve <stage-id>\`."
+            echo "Not live yet. Approve it with 2FA on npmjs.com (package → Versions → staged), or run \`pnpm stage approve\` and pick it."
           } >> "$GITHUB_STEP_SUMMARY"
