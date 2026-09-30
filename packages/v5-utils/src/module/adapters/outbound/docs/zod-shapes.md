@@ -27,7 +27,7 @@ The publisher converts `timestamp` to ISO-8601 before parsing.
 `correlationId` and `causationId` are always required. Metadata that loosens
 either one (optional, nullable, defaulted, or missing) is rejected twice:
 by the type parameter at compile time, and when the schema is built, via
-[`invariant`](../../../core/invariant/docs/invariant.md).
+`node:assert`.
 
 Neither schema sets an Avro name or namespace, because those belong to the
 topic that uses them. Chain `.meta()` on the result. The metadata record keeps

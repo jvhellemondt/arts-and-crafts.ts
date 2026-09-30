@@ -1,6 +1,5 @@
+import assert from "node:assert";
 import * as z from "zod";
-import { fail } from "../../core/fail/fail.ts";
-import { invariant } from "../../core/invariant/invariant.ts";
 import { MetadataSchema, type RequiredMetadata } from "./Metadata.schema.ts";
 
 const REQUIRED_METADATA_KEYS = [
@@ -66,10 +65,7 @@ export function createIntegrationEventSchema<
   type = TypeSchema as unknown as TType,
 }: IntegrationEventSchemaParts<TPayload, TMetadata, TType>) {
   const loosened = REQUIRED_METADATA_KEYS.filter((key) => !isRequired(metadata.shape[key]));
-  invariant(
-    loosened.length === 0,
-    fail(new Error(`Integration event metadata must require ${loosened.join(", ")}`)),
-  );
+  assert(loosened.length === 0, `Integration event metadata must require ${loosened.join(", ")}`);
 
   return z.object({
     id: IdSchema,

@@ -11,6 +11,7 @@ in `docs/adr/` instead — see [ADR-0000](../adr/0000-madr-template-for-adr.md).
 ## Index
 
 - [No unsafe unwrap in tests](./no-unsafe-unwrap-in-tests.md)
+- [Use `node:assert` for runtime assertions](./use-node-assert.md)
 
 ## Contributing
 

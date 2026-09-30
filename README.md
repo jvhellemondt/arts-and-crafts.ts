@@ -107,8 +107,6 @@ Standalone helpers for building v5 adapters, built on the `v5` shapes and export
 
 | Concept | Description |
 |---------|-------------|
-| [fail](packages/v5-utils/src/module/core/fail/docs/fail.md) | Wraps an already-constructed `Error` in a thunk for lazy throwing |
-| [invariant](packages/v5-utils/src/module/core/invariant/docs/invariant.md) | Asserts a condition and throws if false |
 | [isDomainEvent](packages/v5-utils/src/module/core/isDomainEvent/docs/isDomainEvent.md) | Type guard for the v5 `DomainEvent` envelope |
 | [parseAsError](packages/v5-utils/src/module/core/parseAsError/docs/parseAsError.md) | Normalises unknown catch values to `Error` |
 | [isIntegrationEvent](packages/v5-utils/src/module/adapters/outbound/docs/isIntegrationEvent.md) | Type guard for the v5 `IntegrationEvent` envelope |
