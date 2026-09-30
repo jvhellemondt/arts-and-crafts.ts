@@ -5,6 +5,7 @@ import type {
   SimulateFaults,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type {
+  DynamicConsistencyResult,
   GatewayFailure,
   StoredEvent,
   StreamKey,
@@ -12,7 +13,7 @@ import type {
 import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
 import type { ResultAsync } from "neverthrow";
 import { randomUUID } from "node:crypto";
-import { InMemoryEventStore } from "./EventStore.InMemory.ts";
+import { type AppendFailure, InMemoryEventStore } from "./EventStore.InMemory.ts";
 
 interface TestDomainEvent extends DomainEvent<"TestDomainEvent", { name: string }> {}
 
@@ -49,10 +50,10 @@ describe("in-memory event store", () => {
   ];
   let eventStore: LoadDomainEvents<
     TestDomainEvent,
-    ResultAsync<TestDomainEvent[], GatewayFailure>
+    ResultAsync<DynamicConsistencyResult<TestDomainEvent>, GatewayFailure>
   > &
     LoadEventsFrom<TestDomainEvent, ResultAsync<StoredEvent<TestDomainEvent>[], GatewayFailure>> &
-    AppendToEventStore<TestDomainEvent, ResultAsync<void, GatewayFailure>> &
+    AppendToEventStore<TestDomainEvent, ResultAsync<void, AppendFailure>> &
     SimulateFaults;
 
   const fixture = [
@@ -62,6 +63,34 @@ describe("in-memory event store", () => {
     makeEvent(streamKeys[0].slice(1, 3)),
     makeEvent([...streamKeys[1]]),
   ];
+
+  // An empty version map guards nothing, so these appends always land.
+  const append = (events: TestDomainEvent[], versions: Record<StreamKey, number> = {}) =>
+    eventStore.append(events, versions);
+
+  const load = async (concerns: readonly StreamKey[]) =>
+    (await eventStore.load(concerns)).match(
+      (result) => result,
+      (failure) => {
+        throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+      },
+    );
+
+  const loadFrom = async (globalPosition: number, limit?: number) =>
+    (await eventStore.loadFrom(globalPosition, limit)).match(
+      (rows) => rows,
+      (failure) => {
+        throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+      },
+    );
+
+  const expectErr = async <T, E>(result: ResultAsync<T, E>) =>
+    (await result).match(
+      (value) => {
+        throw new Error(`Expected Err, got Ok: ${JSON.stringify(value)}`);
+      },
+      (failure) => failure,
+    );
 
   beforeEach(() => {
     eventStore = new InMemoryEventStore();
@@ -85,13 +114,13 @@ describe("in-memory event store", () => {
       expected: [fixture[0], fixture[1], fixture[2], fixture[4]],
     },
   ])("should load domain events by given concerns", async ({ concerns, expected }) => {
-    await Promise.all(fixture.map((event) => eventStore.append([event])));
-    const events = (await eventStore.load(concerns))._unsafeUnwrap();
+    await Promise.all(fixture.map((event) => append([event])));
+    const { events } = await load(concerns);
     expect(events.map(({ id }) => id)).toEqual(expected.map(({ id }) => id));
   });
 
   it("should return empty array if no events were appended", async () => {
-    const events = (await eventStore.load(streamKeys[0]))._unsafeUnwrap();
+    const { events } = await load(streamKeys[0]);
     expect(events).toEqual([]);
   });
 
@@ -106,43 +135,116 @@ describe("in-memory event store", () => {
       ],
     },
   ])("should append $events.length domain event(s)", async ({ events }) => {
-    const results = await Promise.all(events.map((event) => eventStore.append([event])));
+    const results = await Promise.all(events.map((event) => append([event])));
     expect(results.every((result) => result.isOk())).toBe(true);
   });
 
   it("should append events when events already exist in the store", async () => {
-    await eventStore.append(fixture);
+    await append(fixture);
     const event = makeEvent(streamKeys[0]);
-    expect((await eventStore.append([event])).isOk()).toBe(true);
+    expect((await append([event])).isOk()).toBe(true);
+  });
+
+  describe("versions", () => {
+    it("reports 0 for every queried concern nothing has been appended to", async () => {
+      const { versions } = await load(streamKeys[0]);
+      expect(versions).toEqual({
+        [streamKeys[0][0]]: 0,
+        [streamKeys[0][1]]: 0,
+        [streamKeys[0][2]]: 0,
+      });
+    });
+
+    it("counts the events carrying each queried concern, one version per concern", async () => {
+      await append(fixture);
+
+      const { versions } = await load(streamKeys[0]);
+
+      // fixture[0..3] carry streamKeys[0][0] three times, [0][1] three times
+      // and [0][2] twice — see the fixture above.
+      expect(versions).toEqual({
+        [streamKeys[0][0]]: 3,
+        [streamKeys[0][1]]: 3,
+        [streamKeys[0][2]]: 2,
+      });
+    });
+
+    it("appends when every guarded concern still stands at the version that was read", async () => {
+      await append(fixture);
+      const { versions } = await load(streamKeys[0]);
+
+      const result = await eventStore.append([makeEvent([streamKeys[0][0]])], versions);
+
+      expect(result.isOk()).toBe(true);
+    });
+
+    it("refuses when a guarded concern moved on since it was read", async () => {
+      await append(fixture);
+      const { versions } = await load(streamKeys[0]);
+      // A concurrent writer lands on streamKeys[0][0] first.
+      await append([makeEvent([streamKeys[0][0]])]);
+
+      const failure = await expectErr(eventStore.append([makeEvent([streamKeys[0][0]])], versions));
+
+      expect(failure).toEqual({
+        kind: "failure",
+        code: "CONCURRENCY_CONFLICT",
+        gateway: "InMemoryEventStore",
+        reason: `concern(s) moved on since they were read: ${streamKeys[0][0]}`,
+      });
+    });
+
+    it("guards concerns that were only read from, not written to", async () => {
+      await append(fixture);
+      const { versions } = await load(streamKeys[0]);
+      // streamKeys[0][2] is never written to by the append below, but it was
+      // read — moving it on must still cancel the append.
+      await append([makeEvent([streamKeys[0][2]])]);
+
+      const failure = await expectErr(eventStore.append([makeEvent([streamKeys[0][0]])], versions));
+
+      expect(failure).toMatchObject({ code: "CONCURRENCY_CONFLICT" });
+    });
+
+    it("writes nothing when the append is refused", async () => {
+      await append(fixture);
+      const { versions } = await load(streamKeys[0]);
+      await append([makeEvent([streamKeys[0][0]])]);
+      const before = (await loadFrom(1)).length;
+
+      await eventStore.append([makeEvent([streamKeys[0][0]])], versions);
+
+      expect(await loadFrom(1)).toHaveLength(before);
+    });
   });
 
   describe("loadFrom", () => {
     it("returns all stored events from globalPosition 1", async () => {
-      await eventStore.append(fixture);
-      const result = (await eventStore.loadFrom(1))._unsafeUnwrap();
+      await append(fixture);
+      const result = await loadFrom(1);
       expect(result).toHaveLength(fixture.length);
       expect(result.map((row) => row.globalPosition)).toEqual([1, 2, 3, 4, 5]);
     });
 
     it("filters out rows before the given globalPosition", async () => {
-      await eventStore.append(fixture);
-      const result = (await eventStore.loadFrom(2))._unsafeUnwrap();
+      await append(fixture);
+      const result = await loadFrom(2);
       expect(result.map((row) => row.globalPosition)).toEqual([2, 3, 4, 5]);
     });
 
     it("honours the optional limit", async () => {
-      await eventStore.append(fixture);
-      const result = (await eventStore.loadFrom(1, 2))._unsafeUnwrap();
+      await append(fixture);
+      const result = await loadFrom(1, 2);
       expect(result.map((row) => row.globalPosition)).toEqual([1, 2]);
     });
 
     it("returns an empty array when nothing has been appended", async () => {
-      const result = (await eventStore.loadFrom(1))._unsafeUnwrap();
+      const result = await loadFrom(1);
       expect(result).toEqual([]);
     });
   });
 
-  describe("should simulate offline fault", async () => {
+  describe("should simulate offline fault", () => {
     beforeEach(() => {
       eventStore.simulate("offline");
     });
@@ -152,7 +254,7 @@ describe("in-memory event store", () => {
     });
 
     it("should return gateway failure when loading events", async () => {
-      const response = (await eventStore.load(streamKeys[0]))._unsafeUnwrapErr();
+      const response = await expectErr(eventStore.load(streamKeys[0]));
       expect(response).toEqual({
         kind: "failure",
         code: "GATEWAY_FAILURE",
@@ -163,7 +265,7 @@ describe("in-memory event store", () => {
 
     it("should return gateway failure when appending events", async () => {
       const event = makeEvent(streamKeys[0]);
-      const response = (await eventStore.append([event]))._unsafeUnwrapErr();
+      const response = await expectErr(append([event]));
       expect(response).toEqual({
         kind: "failure",
         code: "GATEWAY_FAILURE",
@@ -173,7 +275,7 @@ describe("in-memory event store", () => {
     });
 
     it("should return gateway failure from loadFrom", async () => {
-      const response = (await eventStore.loadFrom(0))._unsafeUnwrapErr();
+      const response = await expectErr(eventStore.loadFrom(0));
       expect(response).toMatchObject({
         code: "GATEWAY_FAILURE",
         gateway: "InMemoryEventStore",
@@ -183,8 +285,8 @@ describe("in-memory event store", () => {
     it("should restore the event store to online state", async () => {
       eventStore.restore();
       expect(eventStore.isSimulating).toBe(false);
-      await Promise.all(fixture.map((event) => eventStore.append([event])));
-      const events = (await eventStore.load([streamKeys[0][0]]))._unsafeUnwrap();
+      await Promise.all(fixture.map((event) => append([event])));
+      const { events } = await load([streamKeys[0][0]]);
       expect(events.map(({ id }) => id)).toEqual(fixture.slice(0, 3).map(({ id }) => id));
     });
   });

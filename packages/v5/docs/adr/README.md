@@ -37,6 +37,7 @@ one-ADR-per-topic set.)
 - [ADR-0009: Outcome Taxonomy — Rejection / Failure / Invalid Share an Outcome Base](./0009-outcome-taxonomy-rejection-failure-invalid.md)
 - [ADR-0010: Events and Intents Persist Atomically via a Transactional Writer](./0010-events-and-intents-persist-atomically.md)
 - [ADR-0011: A Portable Datasource — `StageTableRows`, `LoadTableRows`, `CoordinateTransactions`](./0011-portable-datasource-capabilities.md)
+- [ADR-0013: Append Guards a Dynamic Consistency Boundary via Per-Concern Versions](./0013-append-guards-a-dynamic-consistency-boundary.md)
 
 ## Contributing
 

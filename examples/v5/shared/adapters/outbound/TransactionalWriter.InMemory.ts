@@ -85,6 +85,11 @@ export class InMemoryTransactionalWriter<
     return this.datasource.begin().andThen(() =>
       this.eventStore
         .append(decision.events)
+        // Appending without versions defends no consistency boundary, so a
+        // CONCURRENCY_CONFLICT cannot come back here — restamping the code
+        // unconditionally keeps `persist` answering in GatewayFailure alone
+        // without a branch no test could ever reach.
+        .mapErr((failure): GatewayFailure => ({ ...failure, code: "GATEWAY_FAILURE" }))
         .andThen(() => this.outbox.stage(decision.intents))
         .andThen(() => this.datasource.commit())
         .orElse((failure) => this.datasource.rollback().andThen(() => errAsync(failure))),

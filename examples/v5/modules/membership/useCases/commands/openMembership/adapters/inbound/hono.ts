@@ -9,7 +9,10 @@ import type {
   LoadDomainEvents,
   PersistDecision,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
-import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type {
+  DynamicConsistencyResult,
+  GatewayFailure,
+} from "@arts-and-crafts/v5/adapters/outbound/shapes";
 import type { Metadata } from "@arts-and-crafts/v5/core/shapes";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
@@ -22,7 +25,10 @@ import { toOpenMembershipCommand, type OpenMembershipCommand } from "../../comma
 import { openMembershipSchema } from "./schema.ts";
 
 export function createOpenMembershipHonoHandler(
-  eventStore: LoadDomainEvents<MembershipEventV1, ResultAsync<MembershipEventV1[], GatewayFailure>>,
+  eventStore: LoadDomainEvents<
+    MembershipEventV1,
+    ResultAsync<DynamicConsistencyResult<MembershipEventV1>, GatewayFailure>
+  >,
   writer: PersistDecision<
     OpenMembershipCommand,
     MembershipOpenedV1,

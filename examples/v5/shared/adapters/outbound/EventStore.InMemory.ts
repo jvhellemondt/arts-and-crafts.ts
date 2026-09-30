@@ -6,12 +6,13 @@ import type {
   SimulateFaults,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
 import type {
+  DynamicConsistencyResult,
   GatewayFailure,
   StoredEvent,
   StreamKey,
 } from "@arts-and-crafts/v5/adapters/outbound/shapes";
-import type { DomainEvent } from "@arts-and-crafts/v5/core/shapes";
-import { ResultAsync, errAsync } from "neverthrow";
+import type { DomainEvent, Failure } from "@arts-and-crafts/v5/core/shapes";
+import { ResultAsync, errAsync, okAsync } from "neverthrow";
 import { EVENT_STORE_TABLE, EVENT_TAGS_TABLE, InMemoryDatasource } from "./InMemoryDatasource.ts";
 
 /** A single `(concern, event_id)` pairing — one row of the `event_tags` join table. */
@@ -31,6 +32,14 @@ type EventTagRow = {
 };
 
 /**
+ * An append fails either because the store is unreachable, or because a
+ * concern moved on since the versions handed in were read.
+ */
+export type AppendFailure =
+  | GatewayFailure
+  | (Failure<"CONCURRENCY_CONFLICT"> & { readonly gateway: string });
+
+/**
  * Modelled as two SQL tables would be: `event_store` (the append-only physical
  * row store) and `event_tags` (a `(concern, event_id)` join table). Both live
  * in the same `datasource`, keyed by table name — so the datasource genuinely
@@ -45,9 +54,9 @@ type EventTagRow = {
  */
 export class InMemoryEventStore<TEvent extends DomainEvent>
   implements
-    LoadDomainEvents<TEvent, ResultAsync<TEvent[], GatewayFailure>>,
+    LoadDomainEvents<TEvent, ResultAsync<DynamicConsistencyResult<TEvent>, GatewayFailure>>,
     LoadEventsFrom<TEvent, ResultAsync<StoredEvent<TEvent>[], GatewayFailure>>,
-    AppendToEventStore<TEvent, ResultAsync<void, GatewayFailure>>,
+    AppendToEventStore<TEvent, ResultAsync<void, AppendFailure>>,
     SimulateFaults
 {
   private simulation?: FaultSimulationMode;
@@ -101,16 +110,37 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     });
   }
 
-  load(concerns: readonly StreamKey[]): ResultAsync<TEvent[], GatewayFailure> {
+  // A concern's version is how many events carry it — what a real backend
+  // would read back off the concern's latest version marker (e.g. the last
+  // `v#` sort key on a DynamoDB partition). Concerns nothing has been
+  // appended to yet report 0.
+  private versionsFor(
+    concerns: readonly StreamKey[],
+  ): ResultAsync<Record<StreamKey, number>, GatewayFailure> {
+    return this.tagRows().map((tagRows) =>
+      Object.fromEntries(
+        concerns.map((concern) => [
+          concern,
+          tagRows.filter((tag) => tag.data.concern === concern).length,
+        ]),
+      ),
+    );
+  }
+
+  load(
+    concerns: readonly StreamKey[],
+  ): ResultAsync<DynamicConsistencyResult<TEvent>, GatewayFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
     // Step 2: join back to the events table, in append order —
     // mirrors `SELECT * FROM events WHERE id IN (...) ORDER BY global_position`.
-    return this.candidateEventIds(concerns).andThen((eventIds) =>
-      this.eventRows().map((rows) =>
-        rows.filter((row) => eventIds.has(row.data.event.id)).map((row) => row.data.event),
-      ),
-    );
+    return this.candidateEventIds(concerns)
+      .andThen((eventIds) =>
+        this.eventRows().map((rows) =>
+          rows.filter((row) => eventIds.has(row.data.event.id)).map((row) => row.data.event),
+        ),
+      )
+      .andThen((events) => this.versionsFor(concerns).map((versions) => ({ events, versions })));
   }
 
   loadFrom(
@@ -127,9 +157,42 @@ export class InMemoryEventStore<TEvent extends DomainEvent>
     });
   }
 
-  append(events: TEvent[]): ResultAsync<void, GatewayFailure> {
+  /**
+   * `versions` is the consistency boundary read by `load()`. When given, the
+   * append only lands while every concern in it — including ones the events
+   * do not write to — still stands at the version that was read; otherwise it
+   * fails with `CONCURRENCY_CONFLICT`, the same way a conditional write on a
+   * real backend would be cancelled. Omitting it appends unconditionally, for
+   * callers with no consistency boundary to defend (see
+   * `InMemoryTransactionalWriter`).
+   */
+  append(events: TEvent[], versions?: Record<StreamKey, number>): ResultAsync<void, AppendFailure> {
     if (this.activeFault === "offline") return errAsync(this.offlineFailure());
 
+    return this.guardVersions(versions).andThen(() => this.appendUnchecked(events));
+  }
+
+  private guardVersions(
+    versions: Record<StreamKey, number> | undefined,
+  ): ResultAsync<void, AppendFailure> {
+    if (versions === undefined) return okAsync(undefined);
+
+    const guarded = Object.keys(versions) as StreamKey[];
+
+    return this.versionsFor(guarded).andThen((current) => {
+      const stale = guarded.filter((concern) => current[concern] !== versions[concern]);
+      if (stale.length === 0) return okAsync(undefined);
+
+      return errAsync({
+        kind: "failure" as const,
+        code: "CONCURRENCY_CONFLICT" as const,
+        gateway: "InMemoryEventStore",
+        reason: `concern(s) moved on since they were read: ${stale.join(", ")}`,
+      });
+    });
+  }
+
+  private appendUnchecked(events: TEvent[]): ResultAsync<void, GatewayFailure> {
     return this.eventRows().andThen((existingRows) => {
       let nextPosition = existingRows.length + 1;
       const eventRows: EventStoreRow<TEvent>[] = [];

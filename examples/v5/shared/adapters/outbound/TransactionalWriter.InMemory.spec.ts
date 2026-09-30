@@ -91,6 +91,14 @@ describe("InMemoryTransactionalWriter", () => {
     TestNotification
   >;
 
+  const loadEvents = async () =>
+    (await eventStore.load([streamKey])).match(
+      ({ events }) => events,
+      (failure) => {
+        throw new Error(`Expected Ok, got Err: ${JSON.stringify(failure)}`);
+      },
+    );
+
   beforeEach(() => {
     datasource = new InMemoryDatasource();
     eventStore = new InMemoryEventStore<TestDomainEvent>(datasource);
@@ -104,7 +112,7 @@ describe("InMemoryTransactionalWriter", () => {
 
     await writer.persist(accepted(event, intent), makeCommand());
 
-    expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([event]);
+    expect(await loadEvents()).toEqual([event]);
     const pending = (await outbox.loadPending())._unsafeUnwrap();
     expect(pending).toHaveLength(1);
     expect(pending[0]?.entry).toEqual(intent);
@@ -137,7 +145,7 @@ describe("InMemoryTransactionalWriter", () => {
 
     await eventStore.append([event]);
 
-    expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([event]);
+    expect(await loadEvents()).toEqual([event]);
   });
 
   it("stages an append but does not make it visible until commit(), once a transaction is open", async () => {
@@ -145,10 +153,10 @@ describe("InMemoryTransactionalWriter", () => {
 
     await datasource.begin();
     await eventStore.append([event]);
-    expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([]);
+    expect(await loadEvents()).toEqual([]);
 
     await datasource.commit();
-    expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([event]);
+    expect(await loadEvents()).toEqual([event]);
   });
 
   it("persists neither the event nor the intent when the event store is offline", async () => {
@@ -161,7 +169,7 @@ describe("InMemoryTransactionalWriter", () => {
       gateway: "InMemoryEventStore",
     });
     eventStore.restore();
-    expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([]);
+    expect(await loadEvents()).toEqual([]);
     expect((await outbox.loadPending())._unsafeUnwrap()).toEqual([]);
   });
 
@@ -174,7 +182,7 @@ describe("InMemoryTransactionalWriter", () => {
       code: "GATEWAY_FAILURE",
       gateway: "InMemoryIntentOutbox",
     });
-    expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([]);
+    expect(await loadEvents()).toEqual([]);
     outbox.restore();
     expect((await outbox.loadPending())._unsafeUnwrap()).toEqual([]);
   });
@@ -191,7 +199,7 @@ describe("InMemoryTransactionalWriter", () => {
 
     expect(result.isErr()).toBe(true);
     outbox.restore();
-    expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([]);
+    expect(await loadEvents()).toEqual([]);
     expect((await outbox.loadPending())._unsafeUnwrap()).toEqual([]);
   });
 
@@ -222,6 +230,6 @@ describe("InMemoryTransactionalWriter", () => {
     const event = makeEvent();
     const intent = makeIntent();
     await writer.persist(accepted(event, intent), makeCommand());
-    expect((await eventStore.load([streamKey]))._unsafeUnwrap()).toEqual([event]);
+    expect(await loadEvents()).toEqual([event]);
   });
 });

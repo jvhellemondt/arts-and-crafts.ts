@@ -14,7 +14,11 @@ import type {
   PersistDecision,
   LoadProjection,
 } from "@arts-and-crafts/v5/adapters/outbound/capabilities";
-import type { GatewayFailure } from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type {
+  DynamicConsistencyResult,
+  GatewayFailure,
+} from "@arts-and-crafts/v5/adapters/outbound/shapes";
+import type { AppendFailure } from "@examples/shared/adapters/outbound/EventStore.InMemory.ts";
 import type { MembershipAlreadyExists } from "@examples/modules/membership/useCases/commands/openMembership/rejections/MembershipAlreadyExists.ts";
 import type { MembershipEventV1 } from "@examples/modules/membership/core/events/index.ts";
 import type { MembershipOpenedV1 } from "@examples/modules/membership/core/events/v1/MembershipOpenedV1.ts";
@@ -28,9 +32,9 @@ import { createListMembershipsHonoHandler } from "@examples/modules/membership/u
 export function createHonoApp(
   eventStore: LoadDomainEvents<
     MembershipEventV1,
-    ResultAsync<MembershipEventV1[], GatewayFailure>
+    ResultAsync<DynamicConsistencyResult<MembershipEventV1>, GatewayFailure>
   > &
-    AppendToEventStore<MembershipEventV1, ResultAsync<void, GatewayFailure>>,
+    AppendToEventStore<MembershipEventV1, ResultAsync<void, AppendFailure>>,
   writer: PersistDecision<
     OpenMembershipCommand,
     MembershipOpenedV1,
