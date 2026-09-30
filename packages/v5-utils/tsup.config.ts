@@ -1,16 +1,21 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "tsup";
 
+const v5Source = fileURLToPath(new URL("../v5/src/module/", import.meta.url));
+
 export default defineConfig({
-  // Named (not array) entries so each output file sits exactly one directory
-  // under dist/ — @oxc-node/core's ESM resolve hook (used by examples/v5's
-  // dev script) fails to resolve files nested two or more directories deep.
   entry: {
     "core/index": "src/module/core/index.ts",
     "adapters-inbound/index": "src/module/adapters/inbound/index.ts",
     "adapters-outbound/index": "src/module/adapters/outbound/index.ts",
   },
   format: ["cjs", "esm"],
-  dts: true,
+  dts: {
+    compilerOptions: {
+      paths: { "@arts-and-crafts/v5/*": [`${v5Source}*/index.ts`] },
+    },
+  },
+  noExternal: ["uuid"],
   outDir: "dist",
   clean: true,
   splitting: false,
