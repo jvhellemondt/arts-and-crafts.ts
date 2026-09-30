@@ -1,7 +1,14 @@
 {
   "$schema": "https://unpkg.com/release-it/schema/release-it.json",
   "hooks": {
-    "before:init": ["pnpm run typecheck", "pnpm run lint", "pnpm run coverage", "pnpm run build", "pnpm run check-exports"]
+    "before:init": [
+      "pnpm run build",
+      "pnpm run typecheck",
+      "pnpm run lint",
+      "pnpm run fmt:check",
+      "pnpm run coverage",
+      "pnpm run check-exports"
+    ]
   },
   "git": {
     "tagName": "v${version}",
@@ -28,7 +35,8 @@
     },
     "@release-it/conventional-changelog": {
       "preset": "conventionalcommits",
-      "infile": "CHANGELOG.md"
+      "infile": "CHANGELOG.md",
+      "ignoreRecommendedBump": true
     }
   }
 }

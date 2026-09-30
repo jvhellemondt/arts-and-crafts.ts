@@ -1,0 +1,112 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "rc = next release candidate (5.0.0-rc.2 → 5.0.0-rc.3; from a stable release it starts a patch rc: 5.0.0 → 5.0.1-rc.0). patch/minor/major = stable release (from an rc this finalises it: 5.0.0-rc.3 → 5.0.0). prepatch/preminor/premajor = start a new rc line from a stable release (5.0.0 → 6.0.0-rc.0)."
+        required: true
+        type: choice
+        default: rc
+        options:
+          - rc
+          - patch
+          - minor
+          - major
+          - prepatch
+          - preminor
+          - premajor
+      dry-run:
+        description: "Dry run: show the version and changelog release-it would produce, without committing, tagging or publishing."
+        required: false
+        type: boolean
+        default: false
+  release:
+    types: [published]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  HUSKY: 0
+
+jobs:
+  release:
+    name: release-it
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Require main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Releases run from main only (got ${GITHUB_REF})."
+          exit 1
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: 📦 Install Dependencies
+        run: pnpm install --frozen-lockfile
+      - name: 👤 Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: 🚀 release-it
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUMP: ${{ inputs.bump }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          case "$BUMP" in
+            rc) args=(--preRelease=rc) ;;
+            patch|minor|major) args=("$BUMP") ;;
+            prepatch|preminor|premajor) args=("$BUMP" --preRelease=rc) ;;
+            *) echo "::error::Unknown bump: $BUMP"; exit 1 ;;
+          esac
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          pnpm exec release-it --ci "${args[@]}"
+      - name: 🏷️ Resolve tag
+        id: version
+        if: ${{ !inputs.dry-run }}
+        run: echo "tag=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: publish to npm
+    needs: release
+    if: ${{ !cancelled() && (github.event_name == 'release' || (needs.release.result == 'success' && !inputs.dry-run)) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || needs.release.outputs.tag }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - name: 📦 Install Dependencies
+        run: pnpm install --frozen-lockfile
+      - name: 🏗️ Build
+        run: pnpm run build
+      - name: 🔎 Check exports
+        run: pnpm run check-exports
+      - name: 📤 Publish
+        run: |
+          version=$(node -p "require('./package.json').version")
+          dist_tag=latest
+          case "$version" in *-*) dist_tag=next ;; esac
+          echo "Publishing @arts-n-crafts/ts@${version} with dist-tag ${dist_tag}"
+          npm publish --access public --tag "$dist_tag"

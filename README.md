@@ -104,6 +104,22 @@ pnpm run test         # Run the example's tests
 
 Commits follow the [Conventional Commits](https://www.conventionalcommits.org/) spec. Use `pnpm run commit` for an interactive prompt.
 
+### Releasing
+
+Releases run in GitHub Actions: **Actions → Release → Run workflow** on `main`, then pick a `bump`:
+
+| `bump` | From `5.0.0-rc.2` | From `5.0.0` |
+|--------|-------------------|--------------|
+| `rc` | `5.0.0-rc.3` | `5.0.1-rc.0` |
+| `patch` / `minor` / `major` | `5.0.0` (finalises the rc) | `5.0.1` / `5.1.0` / `6.0.0` |
+| `prepatch` / `preminor` / `premajor` | `5.0.1-rc.0` / `5.1.0-rc.0` / `6.0.0-rc.0` | same |
+
+Tick `dry-run` to preview the version and changelog without committing, tagging or publishing.
+
+The workflow runs `release-it`, which runs the checks, bumps `package.json` and `VERSION`, updates `CHANGELOG.md`, commits, tags `v<version>` and creates the GitHub release. It then publishes to npm through trusted publishing (with provenance). Pre-releases go to the `next` dist-tag and stable releases to `latest`.
+
+`pnpm run release` still works locally with the same options (`pnpm run release -- --preRelease=rc`, `pnpm run release -- minor`). Publishing the GitHub release it creates triggers the same npm publish job.
+
 ---
 
 ## Concepts (v5-utils)
